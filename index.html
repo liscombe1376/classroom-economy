@@ -2,48 +2,54 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-      body { font-family: sans-serif; padding: 20px; text-align: center; }
-      #reader { width: 100%; max-width: 400px; min-height: 300px; margin: 20px auto; border: 2px solid #333; }
+      body { max-width: 500px; margin: auto; text-align: center; }
+      #reader { width: 100%; border: 2px solid #ddd; border-radius: 8px; margin: 20px 0; }
+      .button-full { width: 100%; font-size: 1.2rem; cursor: pointer; }
     </style>
   </head>
   <body>
-    <h2>Classroom POS</h2>
-    <select id="actionSelect" onchange="updateDropdown()">
-      <option value="Sale">Record a Sale (Store)</option>
-      <option value="Reward">Record a Reward (Income)</option>
-    </select>
+    <h1>💰 Classroom POS</h1>
+    
+    <label>Transaction Type</label>
+    <select id="actionSelect" onchange="updateDropdown()"></select>
+    
+    <label>Select Item/Goal</label>
     <select id="itemSelect"></select>
-    <button onclick="startScan()">Start Camera Scanner</button>
+    
+    <button class="button-full" onclick="startScan()">📷 Start Scanner</button>
     <div id="reader"></div>
 
     <script>
-      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw89wtWWnNKUK4Aev3Y06Yu4CI7TTpkndiMviWvDEzSZaUWi03ZS-2it0Gu8vY2UMRM/exec"; // PASTE URL HERE
+      const WEB_APP_URL = "YOUR_WEB_APP_URL_HERE"; 
+
+      // Initialize dropdowns on load
+      const actionSelect = document.getElementById('actionSelect');
+      actionSelect.innerHTML = '<option value="Sale">Store Sale</option><option value="Reward">Reward/Income</option>';
+      updateDropdown();
 
       async function callServer(payload) {
-        const response = await fetch(WEB_APP_URL, {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
+        const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
         return await response.json();
       }
 
       async function updateDropdown() {
-        const action = document.getElementById('actionSelect').value;
+        const action = actionSelect.value;
         const data = await callServer({ action: action === "Sale" ? "getItems" : "getGoals" });
         const select = document.getElementById('itemSelect');
         select.innerHTML = '';
         data.forEach(row => {
           let opt = document.createElement('option');
-          opt.value = row[1]; opt.text = row[0];
+          opt.value = row[1]; opt.text = row[0] + " ($" + row[1] + ")";
           select.appendChild(opt);
         });
       }
 
       function startScan() {
         const scanner = new Html5Qrcode("reader");
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, async (data) => {
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (data) => {
           scanner.stop();
           const amount = document.getElementById('itemSelect').value;
           const desc = document.getElementById('itemSelect').options[document.getElementById('itemSelect').selectedIndex].text;
@@ -51,13 +57,12 @@
             action: "processTransaction", 
             studentID: data, 
             amount: amount, 
-            type: document.getElementById('actionSelect').value, 
+            type: actionSelect.value, 
             description: desc 
           });
-          alert(result.success ? "Success!" : result.message);
+          alert(result.success ? "Success! Balance updated." : result.message);
         });
       }
-      updateDropdown();
     </script>
   </body>
 </html>
