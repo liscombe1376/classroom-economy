@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+      body { font-family: sans-serif; padding: 20px; text-align: center; }
+      #reader { width: 100%; max-width: 400px; min-height: 300px; margin: 20px auto; border: 2px solid #333; }
+    </style>
+  </head>
+  <body>
+    <h2>Classroom POS</h2>
+    <select id="actionSelect" onchange="updateDropdown()">
+      <option value="Sale">Record a Sale (Store)</option>
+      <option value="Reward">Record a Reward (Income)</option>
+    </select>
+    <select id="itemSelect"></select>
+    <button onclick="startScan()">Start Camera Scanner</button>
+    <div id="reader"></div>
+
+    <script>
+      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw89wtWWnNKUK4Aev3Y06Yu4CI7TTpkndiMviWvDEzSZaUWi03ZS-2it0Gu8vY2UMRM/exec"; // PASTE URL HERE
+
+      async function callServer(payload) {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      }
+
+      async function updateDropdown() {
+        const action = document.getElementById('actionSelect').value;
+        const data = await callServer({ action: action === "Sale" ? "getItems" : "getGoals" });
+        const select = document.getElementById('itemSelect');
+        select.innerHTML = '';
+        data.forEach(row => {
+          let opt = document.createElement('option');
+          opt.value = row[1]; opt.text = row[0];
+          select.appendChild(opt);
+        });
+      }
+
+      function startScan() {
+        const scanner = new Html5Qrcode("reader");
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, async (data) => {
+          scanner.stop();
+          const amount = document.getElementById('itemSelect').value;
+          const desc = document.getElementById('itemSelect').options[document.getElementById('itemSelect').selectedIndex].text;
+          const result = await callServer({ 
+            action: "processTransaction", 
+            studentID: data, 
+            amount: amount, 
+            type: document.getElementById('actionSelect').value, 
+            description: desc 
+          });
+          alert(result.success ? "Success!" : result.message);
+        });
+      }
+      updateDropdown();
+    </script>
+  </body>
+</html>
