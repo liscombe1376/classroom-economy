@@ -19,6 +19,7 @@
     <select id="actionSelect" onchange="updateDropdown()">
       <option value="Sale">Store Sale</option>
       <option value="Reward">Reward/Income</option>
+      <option value="Custom">Custom Reward</option>
       <option value="Pool">Group Purchase (Split Bill)</option>
     </select>
     
@@ -40,24 +41,36 @@
 
       async function updateDropdown() {
         const action = document.getElementById('actionSelect').value;
-        // Always fetch items so the list is populated regardless of action
         const data = await callServer({ action: (action === "Sale" || action === "Pool") ? "getItems" : "getGoals" });
         const select = document.getElementById('itemSelect');
         select.innerHTML = '';
-        data.forEach(row => {
-          let opt = document.createElement('option');
-          opt.value = row[1]; opt.text = row[0] + " ($" + row[1] + ")";
-          select.appendChild(opt);
-        });
+        
+        // Hide dropdown if using Custom Reward
+        select.style.display = (action === "Custom") ? "none" : "block";
+        
+        if (action !== "Custom") {
+          data.forEach(row => {
+            let opt = document.createElement('option');
+            opt.value = row[1]; opt.text = row[0] + " ($" + row[1] + ")";
+            select.appendChild(opt);
+          });
+        }
       }
 
       async function confirmAndScan() {
         const action = document.getElementById('actionSelect').value;
-        const itemVal = parseFloat(document.getElementById('itemSelect').value);
-        if(!itemVal) return alert("Please select an item.");
+        let amount = 0;
+
+        if (action === "Custom") {
+          amount = parseFloat(prompt("Enter custom reward amount:", "50"));
+          if (!amount || isNaN(amount)) return alert("Invalid amount.");
+        } else {
+          amount = parseFloat(document.getElementById('itemSelect').value);
+          if (!amount) return alert("Please select an item.");
+        }
         
         const tax = (action === "Sale" || action === "Pool") ? 0.13 : 0;
-        finalPrice = (itemVal * (1 + tax)).toFixed(2);
+        finalPrice = (amount * (1 + tax)).toFixed(2);
         
         if(action === "Pool") {
             studentsToPool = parseInt(prompt("How many students are splitting the total of $"+finalPrice+"?", "2"));
@@ -67,7 +80,7 @@
             isPooling = false;
         }
 
-        if(confirm(`Total per student: $${finalPrice}. Confirm purchase?`)) {
+        if(confirm(`Amount per student: $${finalPrice}. Confirm?`)) {
             startScan();
         }
       }
@@ -81,7 +94,7 @@
             studentID: data, 
             amount: finalPrice, 
             type: document.getElementById('actionSelect').value, 
-            description: "Purchase (inc. tax)" 
+            description: (document.getElementById('actionSelect').value === "Custom") ? "Custom Reward" : "Purchase (inc. tax)" 
           });
 
           if(result.success) {
@@ -112,7 +125,6 @@
         }
       }
       
-      // Initialize
       updateDropdown();
     </script>
   </body>
