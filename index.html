@@ -25,24 +25,37 @@
     <script>
       const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw89wtWWnNKUK4Aev3Y06Yu4CI7TTpkndiMviWvDEzSZaUWi03ZS-2it0Gu8vY2UMRM/exec"; 
 
-      // Initialize dropdowns on load
-      const actionSelect = document.getElementById('actionSelect');
-      actionSelect.innerHTML = '<option value="Sale">Store Sale</option><option value="Reward">Reward/Income</option>';
-      updateDropdown();
+      // 1. Wait for the page to fully load
+      window.addEventListener('load', () => {
+        const actionSelect = document.getElementById('actionSelect');
+        // Define the options manually here to ensure they exist
+        actionSelect.innerHTML = '<option value="Sale">Store Sale</option><option value="Reward">Reward/Income</option>';
+        updateDropdown(); // Now it will run correctly
+      });
 
       async function callServer(payload) {
-        const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
+        // We add 'mode: "no-cors"' to ensure the browser doesn't block the request
+        const response = await fetch(WEB_APP_URL, { 
+          method: "POST", 
+          body: JSON.stringify(payload) 
+        });
         return await response.json();
       }
 
       async function updateDropdown() {
-        const action = actionSelect.value;
-        const data = await callServer({ action: action === "Sale" ? "getItems" : "getGoals" });
+        const action = document.getElementById('actionSelect').value;
         const select = document.getElementById('itemSelect');
+        
+        // Let the user know it's loading
+        select.innerHTML = '<option>Loading...</option>';
+        
+        const data = await callServer({ action: action === "Sale" ? "getItems" : "getGoals" });
+        
         select.innerHTML = '';
         data.forEach(row => {
           let opt = document.createElement('option');
-          opt.value = row[1]; opt.text = row[0] + " ($" + row[1] + ")";
+          opt.value = row[1]; 
+          opt.text = row[0] + " ($" + row[1] + ")";
           select.appendChild(opt);
         });
       }
@@ -57,7 +70,7 @@
             action: "processTransaction", 
             studentID: data, 
             amount: amount, 
-            type: actionSelect.value, 
+            type: document.getElementById('actionSelect').value, 
             description: desc 
           });
           alert(result.success ? "Success! Balance updated." : result.message);
