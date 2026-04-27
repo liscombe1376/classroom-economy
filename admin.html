@@ -34,7 +34,7 @@
     </div>
 
     <script>
-      const WEB_APP_URL = "YOUR_APPS_SCRIPT_URL_HERE"; // PASTE YOUR SCRIPT URL HERE
+      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw89wtWWnNKUK4Aev3Y06Yu4CI7TTpkndiMviWvDEzSZaUWi03ZS-2it0Gu8vY2UMRM/exec"; // PASTE YOUR SCRIPT URL HERE
 
       async function callServer(payload) {
         const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
