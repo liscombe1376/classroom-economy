@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+    <style>
+      body { max-width: 800px; margin: auto; }
+      .card-view { display: none; text-align: center; padding: 50px; }
+      @media print { .no-print { display: none; } .card-view { display: block; } }
+    </style>
+  </head>
+  <body>
+    <div class="no-print">
+      <h1>👨‍🏫 Teacher Admin Panel</h1>
+      <a href="index.html">← Back to POS</a>
+      
+      <section>
+        <input type="text" id="name" placeholder="Student Name">
+        <input type="text" id="pass" placeholder="Password">
+        <button onclick="createNewStudent()">➕ Add Student</button>
+      </section>
+
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Balance</th><th>Actions</th></tr></thead>
+        <tbody id="studentBody"></tbody>
+      </table>
+    </div>
+
+    <div id="card" class="card-view">
+      <h2 id="cardName"></h2>
+      <div id="qrcode" style="margin: auto; width: 200px;"></div>
+      <p id="cardID"></p>
+    </div>
+
+    <script>
+      const WEB_APP_URL = "YOUR_APPS_SCRIPT_URL_HERE"; // PASTE YOUR SCRIPT URL HERE
+
+      async function callServer(payload) {
+        const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
+        return await response.json();
+      }
+
+      async function loadStudents() {
+        const students = await callServer({ action: "getAllStudents" });
+        const body = document.getElementById('studentBody');
+        body.innerHTML = '';
+        students.forEach(s => {
+          body.innerHTML += `<tr><td>${s[0]}</td><td>${s[1]}</td><td>$${s[3]}</td>
+            <td><button onclick="printCard('${s[0]}', '${s[1]}')">🖨️ Print</button></td></tr>`;
+        });
+      }
+
+      async function createNewStudent() {
+        await callServer({ action: "addStudent", name: document.getElementById('name').value, password: document.getElementById('pass').value });
+        loadStudents();
+      }
+
+      function printCard(id, name) {
+        document.getElementById('cardName').innerText = name;
+        document.getElementById('cardID').innerText = id;
+        document.getElementById('qrcode').innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), id);
+        window.print();
+      }
+
+      loadStudents();
+    </script>
+  </body>
+</html>
