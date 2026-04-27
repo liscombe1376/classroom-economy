@@ -24,8 +24,8 @@
     
     <select id="itemSelect"></select>
     
-    <button onclick="confirmAndScan()">📷 Start Scanner</button>
     <button class="secondary" onclick="payClass()">🚀 Pay Class Bonus</button>
+    <button onclick="confirmAndScan()">📷 Start Scanner</button>
     
     <div id="reader"></div>
 
@@ -40,8 +40,8 @@
 
       async function updateDropdown() {
         const action = document.getElementById('actionSelect').value;
-        if(action === "Pool") { document.getElementById('itemSelect').innerHTML = '<option>Select item above</option>'; return; }
-        const data = await callServer({ action: action === "Sale" ? "getItems" : "getGoals" });
+        // Always fetch items so the list is populated regardless of action
+        const data = await callServer({ action: (action === "Sale" || action === "Pool") ? "getItems" : "getGoals" });
         const select = document.getElementById('itemSelect');
         select.innerHTML = '';
         data.forEach(row => {
@@ -54,15 +54,17 @@
       async function confirmAndScan() {
         const action = document.getElementById('actionSelect').value;
         const itemVal = parseFloat(document.getElementById('itemSelect').value);
-        if(!itemVal && action !== "Pool") return alert("Please select an item.");
+        if(!itemVal) return alert("Please select an item.");
         
-        const tax = (action === "Sale") ? 0.13 : 0;
+        const tax = (action === "Sale" || action === "Pool") ? 0.13 : 0;
         finalPrice = (itemVal * (1 + tax)).toFixed(2);
         
         if(action === "Pool") {
-            studentsToPool = parseInt(prompt("How many students are splitting the total?", "2"));
+            studentsToPool = parseInt(prompt("How many students are splitting the total of $"+finalPrice+"?", "2"));
             finalPrice = (finalPrice / studentsToPool).toFixed(2);
             isPooling = true;
+        } else {
+            isPooling = false;
         }
 
         if(confirm(`Total per student: $${finalPrice}. Confirm purchase?`)) {
@@ -86,11 +88,18 @@
             alert("✅ SUCCESS!");
             if(isPooling) {
                 studentsScanned++;
-                if(studentsScanned < studentsToPool) startScan(); 
-                else { alert("All students processed!"); isPooling = false; }
+                if(studentsScanned < studentsToPool) {
+                    alert(`Paid! ${studentsScanned}/${studentsToPool} scanned. Next student...`);
+                    startScan();
+                } else {
+                    alert("All students processed!");
+                    isPooling = false;
+                    studentsScanned = 0;
+                }
             }
           } else {
             alert("❌ DECLINED: " + result.message);
+            isPooling = false;
           }
         });
       }
@@ -102,6 +111,8 @@
             alert(res.success ? "Bonus sent!" : "Error");
         }
       }
+      
+      // Initialize
       updateDropdown();
     </script>
   </body>
