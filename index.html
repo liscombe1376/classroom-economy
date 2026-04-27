@@ -24,14 +24,14 @@
     
     <select id="itemSelect"></select>
     
-    <button onclick="startScan()">📷 Start Scanner</button>
-    <button class="secondary" onclick="payClass()">🚀 Pay Class (All +100)</button>
+    <button onclick="confirmAndScan()">📷 Start Scanner</button>
+    <button class="secondary" onclick="payClass()">🚀 Pay Class Bonus</button>
     
     <div id="reader"></div>
 
     <script>
       const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw89wtWWnNKUK4Aev3Y06Yu4CI7TTpkndiMviWvDEzSZaUWi03ZS-2it0Gu8vY2UMRM/exec";
-      let isPooling = false, studentsToPool = 0, studentsScanned = 0, costPerStudent = 0;
+      let isPooling = false, studentsToPool = 0, studentsScanned = 0, finalPrice = 0;
 
       async function callServer(payload) {
         const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
@@ -40,10 +40,7 @@
 
       async function updateDropdown() {
         const action = document.getElementById('actionSelect').value;
-        if(action === "Pool") {
-            document.getElementById('itemSelect').innerHTML = '<option>Select an item above</option>';
-            return;
-        }
+        if(action === "Pool") { document.getElementById('itemSelect').innerHTML = '<option>Select item above</option>'; return; }
         const data = await callServer({ action: action === "Sale" ? "getItems" : "getGoals" });
         const select = document.getElementById('itemSelect');
         select.innerHTML = '';
@@ -54,50 +51,56 @@
         });
       }
 
-      async function payClass() {
-        if(confirm("Add 100 credits to EVERY student?")) {
-            const result = await callServer({ action: "payClass" });
-            alert(result.success ? "Class Paid!" : "Error");
+      async function confirmAndScan() {
+        const action = document.getElementById('actionSelect').value;
+        const itemVal = parseFloat(document.getElementById('itemSelect').value);
+        if(!itemVal && action !== "Pool") return alert("Please select an item.");
+        
+        const tax = (action === "Sale") ? 0.13 : 0;
+        finalPrice = (itemVal * (1 + tax)).toFixed(2);
+        
+        if(action === "Pool") {
+            studentsToPool = parseInt(prompt("How many students are splitting the total?", "2"));
+            finalPrice = (finalPrice / studentsToPool).toFixed(2);
+            isPooling = true;
+        }
+
+        if(confirm(`Total per student: $${finalPrice}. Confirm purchase?`)) {
+            startScan();
         }
       }
 
       function startScan() {
-        const action = document.getElementById('actionSelect').value;
-        const itemSelect = document.getElementById('itemSelect');
-        
-        if(action === "Pool") {
-            isPooling = true;
-            studentsToPool = parseInt(prompt("How many students are splitting this?", "2"));
-            costPerStudent = parseFloat(itemSelect.value) / studentsToPool;
-            studentsScanned = 0;
-        }
-
         const scanner = new Html5Qrcode("reader");
         scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (data) => {
           scanner.stop();
           const result = await callServer({ 
             action: isPooling ? "poolTransaction" : "processTransaction", 
             studentID: data, 
-            amount: isPooling ? costPerStudent : itemSelect.value, 
-            type: action, 
-            description: isPooling ? "Group Purchase" : itemSelect.options[itemSelect.selectedIndex].text 
+            amount: finalPrice, 
+            type: document.getElementById('actionSelect').value, 
+            description: "Purchase (inc. tax)" 
           });
 
-          if(isPooling) {
-            if(result.success) {
+          if(result.success) {
+            alert("✅ SUCCESS!");
+            if(isPooling) {
                 studentsScanned++;
-                if(studentsScanned < studentsToPool) {
-                    alert(`Paid! ${studentsScanned}/${studentsToPool} scanned. Next student...`);
-                    startScan(); // Restart immediately
-                } else {
-                    alert("All students processed!");
-                    isPooling = false;
-                }
-            } else { alert("DECLINED: " + result.message); isPooling = false; }
+                if(studentsScanned < studentsToPool) startScan(); 
+                else { alert("All students processed!"); isPooling = false; }
+            }
           } else {
-            alert(result.success ? "Success!" : result.message);
+            alert("❌ DECLINED: " + result.message);
           }
         });
+      }
+
+      async function payClass() {
+        const amt = prompt("How many credits for every student?", "100");
+        if(amt && confirm("Give "+amt+" credits to everyone?")) {
+            const res = await callServer({ action: "payClass", amount: amt });
+            alert(res.success ? "Bonus sent!" : "Error");
+        }
       }
       updateDropdown();
     </script>
