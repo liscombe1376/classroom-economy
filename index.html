@@ -5,77 +5,101 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-      body { max-width: 500px; margin: auto; text-align: center; }
-      #reader { width: 100%; border: 2px solid #ddd; border-radius: 8px; margin: 20px 0; }
-      .button-full { width: 100%; font-size: 1.2rem; cursor: pointer; }
+      body { max-width: 500px; margin: auto; text-align: center; font-size: 1.2rem; }
+      select, button { font-size: 1.5rem !important; padding: 15px !important; margin: 10px 0 !important; width: 100% !important; }
+      h1 { font-size: 2rem; }
+      #reader { width: 100%; border: 4px solid #333; border-radius: 12px; margin: 20px 0; }
+      .secondary { background-color: #555; color: white; }
     </style>
   </head>
   <body>
     <h1>💰 Classroom POS</h1>
     
-    <label>Transaction Type</label>
-    <select id="actionSelect" onchange="updateDropdown()"></select>
+    <label>Action</label>
+    <select id="actionSelect" onchange="updateDropdown()">
+      <option value="Sale">Store Sale</option>
+      <option value="Reward">Reward/Income</option>
+      <option value="Pool">Group Purchase (Split Bill)</option>
+    </select>
     
-    <label>Select Item/Goal</label>
     <select id="itemSelect"></select>
     
-    <button class="button-full" onclick="startScan()">📷 Start Scanner</button>
+    <button onclick="startScan()">📷 Start Scanner</button>
+    <button class="secondary" onclick="payClass()">🚀 Pay Class (All +100)</button>
+    
     <div id="reader"></div>
 
     <script>
-      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw89wtWWnNKUK4Aev3Y06Yu4CI7TTpkndiMviWvDEzSZaUWi03ZS-2it0Gu8vY2UMRM/exec"; 
-
-      // 1. Wait for the page to fully load
-      window.addEventListener('load', () => {
-        const actionSelect = document.getElementById('actionSelect');
-        // Define the options manually here to ensure they exist
-        actionSelect.innerHTML = '<option value="Sale">Store Sale</option><option value="Reward">Reward/Income</option>';
-        updateDropdown(); // Now it will run correctly
-      });
+      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw89wtWWnNKUK4Aev3Y06Yu4CI7TTpkndiMviWvDEzSZaUWi03ZS-2it0Gu8vY2UMRM/exec";
+      let isPooling = false, studentsToPool = 0, studentsScanned = 0, costPerStudent = 0;
 
       async function callServer(payload) {
-        // We add 'mode: "no-cors"' to ensure the browser doesn't block the request
-        const response = await fetch(WEB_APP_URL, { 
-          method: "POST", 
-          body: JSON.stringify(payload) 
-        });
+        const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
         return await response.json();
       }
 
       async function updateDropdown() {
         const action = document.getElementById('actionSelect').value;
-        const select = document.getElementById('itemSelect');
-        
-        // Let the user know it's loading
-        select.innerHTML = '<option>Loading...</option>';
-        
+        if(action === "Pool") {
+            document.getElementById('itemSelect').innerHTML = '<option>Select an item above</option>';
+            return;
+        }
         const data = await callServer({ action: action === "Sale" ? "getItems" : "getGoals" });
-        
+        const select = document.getElementById('itemSelect');
         select.innerHTML = '';
         data.forEach(row => {
           let opt = document.createElement('option');
-          opt.value = row[1]; 
-          opt.text = row[0] + " ($" + row[1] + ")";
+          opt.value = row[1]; opt.text = row[0] + " ($" + row[1] + ")";
           select.appendChild(opt);
         });
       }
 
+      async function payClass() {
+        if(confirm("Add 100 credits to EVERY student?")) {
+            const result = await callServer({ action: "payClass" });
+            alert(result.success ? "Class Paid!" : "Error");
+        }
+      }
+
       function startScan() {
+        const action = document.getElementById('actionSelect').value;
+        const itemSelect = document.getElementById('itemSelect');
+        
+        if(action === "Pool") {
+            isPooling = true;
+            studentsToPool = parseInt(prompt("How many students are splitting this?", "2"));
+            costPerStudent = parseFloat(itemSelect.value) / studentsToPool;
+            studentsScanned = 0;
+        }
+
         const scanner = new Html5Qrcode("reader");
         scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (data) => {
           scanner.stop();
-          const amount = document.getElementById('itemSelect').value;
-          const desc = document.getElementById('itemSelect').options[document.getElementById('itemSelect').selectedIndex].text;
           const result = await callServer({ 
-            action: "processTransaction", 
+            action: isPooling ? "poolTransaction" : "processTransaction", 
             studentID: data, 
-            amount: amount, 
-            type: document.getElementById('actionSelect').value, 
-            description: desc 
+            amount: isPooling ? costPerStudent : itemSelect.value, 
+            type: action, 
+            description: isPooling ? "Group Purchase" : itemSelect.options[itemSelect.selectedIndex].text 
           });
-          alert(result.success ? "Success! Balance updated." : result.message);
+
+          if(isPooling) {
+            if(result.success) {
+                studentsScanned++;
+                if(studentsScanned < studentsToPool) {
+                    alert(`Paid! ${studentsScanned}/${studentsToPool} scanned. Next student...`);
+                    startScan(); // Restart immediately
+                } else {
+                    alert("All students processed!");
+                    isPooling = false;
+                }
+            } else { alert("DECLINED: " + result.message); isPooling = false; }
+          } else {
+            alert(result.success ? "Success!" : result.message);
+          }
         });
       }
+      updateDropdown();
     </script>
   </body>
 </html>
