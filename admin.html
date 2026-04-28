@@ -3,6 +3,9 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <style>
+      input:disabled { background: transparent; border: none; color: inherit; }
+    </style>
   </head>
   <body>
     <h1>👨‍🏫 Teacher Admin Panel</h1>
@@ -20,14 +23,10 @@
     </table>
 
     <script>
-      // Make sure this URL matches your deployed Web App URL
       const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw89wtWWnNKUK4Aev3Y06Yu4CI7TTpkndiMviWvDEzSZaUWi03ZS-2it0Gu8vY2UMRM/exec";
 
       async function callServer(payload) {
-        const response = await fetch(WEB_APP_URL, { 
-          method: "POST", 
-          body: JSON.stringify(payload) 
-        });
+        const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
         return await response.json();
       }
 
@@ -36,37 +35,54 @@
         const body = document.getElementById('studentBody');
         body.innerHTML = '';
         students.forEach(s => {
-          body.innerHTML += `<tr>
+          body.innerHTML += `<tr id="row-${s[0]}">
             <td>${s[0]}</td>
-            <td>${s[1]}</td>
-            <td>$${s[3]}</td>
-            <td><button onclick="requestCard('${s[0]}')">🖨️ Print</button></td>
+            <td><input type="text" id="name-${s[0]}" value="${s[1]}" disabled></td>
+            <td><input type="number" id="bal-${s[0]}" value="${s[3]}" disabled></td>
+            <td>
+              <button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')">✏️ Edit</button>
+              <button onclick="requestCard('${s[0]}')">🖨️ Print</button>
+            </td>
           </tr>`;
         });
       }
 
+      function toggleEdit(id) {
+        const n = document.getElementById(`name-${id}`);
+        const b = document.getElementById(`bal-${id}`);
+        const btn = document.getElementById(`btn-${id}`);
+        
+        if (n.disabled) {
+          n.disabled = false; b.disabled = false;
+          btn.innerText = "💾 Save";
+        } else {
+          saveStudent(id, n.value, b.value);
+          n.disabled = true; b.disabled = true;
+          btn.innerText = "✏️ Edit";
+        }
+      }
+
+      async function saveStudent(id, name, balance) {
+        await callServer({ action: "updateStudent", id: id, name: name, balance: balance });
+        alert("Student updated!");
+      }
+
       async function createNewStudent() {
-        const name = document.getElementById('name').value;
-        const pass = document.getElementById('pass').value;
-        await callServer({ action: "addStudent", name: name, password: pass });
+        await callServer({ action: "addStudent", name: document.getElementById('name').value, password: document.getElementById('pass').value });
         loadStudents();
       }
 
       async function requestCard(id) {
-        alert("Generating card... please wait a moment.");
-        // We now expect the server to return the URL string directly
+        alert("Generating card... please wait.");
         const response = await fetch(WEB_APP_URL, { 
           method: "POST", 
           body: JSON.stringify({ action: "generateStudentCard", studentId: id }) 
         });
-        
         const result = await response.json();
-        
-        // If the result is a URL string, open it
         if (typeof result === 'string' && result.startsWith("http")) {
           window.open(result, '_blank');
         } else {
-          alert("Error: " + (result || "Unknown error occurred."));
+          alert("Error: " + result);
         }
       }
 
