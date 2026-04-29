@@ -36,14 +36,25 @@
       }
 
       async function runPrintClassQRs() {
-        alert("Generating your QR sheet...");
-        const response = await fetch(WEB_APP_URL, { 
-            method: "POST", 
-            body: JSON.stringify({ action: "printClassQRs" }) 
+        alert("Fetching students...");
+        const students = await callServer({ action: "getPrintData" });
+        
+        // Build the HTML locally in the browser
+        let html = `<html><body style="font-family:sans-serif; text-align:center;">`;
+        html += `<h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
+        
+        students.forEach(s => {
+          let qrUrl = 'https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=' + encodeURIComponent(s[0]);
+          html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px;">
+                     <p style="font-weight:bold;">${s[1]}</p>
+                     <img src="${qrUrl}">
+                   </div>`;
         });
-        const htmlContent = await response.text();
+        
+        html += `</div><script>window.print();<\/script></body></html>`;
+        
         const win = window.open("", "_blank");
-        win.document.write(htmlContent);
+        win.document.write(html);
         win.document.close();
       }
 
@@ -52,12 +63,7 @@
         const body = document.getElementById('studentBody');
         body.innerHTML = '';
         students.forEach(s => {
-          body.innerHTML += `<tr>
-            <td>${s[0]}</td>
-            <td><input type="text" id="name-${s[0]}" value="${s[1]}" disabled></td>
-            <td><input type="number" id="bal-${s[0]}" value="${s[3]}" disabled></td>
-            <td><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')">✏️ Edit</button></td>
-          </tr>`;
+          body.innerHTML += `<tr><td>${s[0]}</td><td><input type="text" id="name-${s[0]}" value="${s[1]}" disabled></td><td><input type="number" id="bal-${s[0]}" value="${s[3]}" disabled></td><td><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')">✏️ Edit</button></td></tr>`;
         });
       }
 
