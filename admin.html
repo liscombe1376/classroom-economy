@@ -36,26 +36,26 @@
       }
 
       async function runPrintClassQRs() {
-        alert("Fetching students...");
-        const students = await callServer({ action: "getPrintData" });
-        
-        // Build the HTML locally in the browser
-        let html = `<html><body style="font-family:sans-serif; text-align:center;">`;
-        html += `<h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
-        
-        students.forEach(s => {
-          let qrUrl = 'https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=' + encodeURIComponent(s[0]);
-          html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px;">
-                     <p style="font-weight:bold;">${s[1]}</p>
-                     <img src="${qrUrl}">
-                   </div>`;
-        });
-        
-        html += `</div><script>window.print();<\/script></body></html>`;
-        
         const win = window.open("", "_blank");
-        win.document.write(html);
-        win.document.close();
+        win.document.write("<html><body><h1 style='font-family:sans-serif;'>Generating QR Sheet... Please wait.</h1></body></html>");
+        try {
+          const students = await callServer({ action: "getPrintData" });
+          let html = `<html><body style="font-family:sans-serif; text-align:center;">`;
+          html += `<h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
+          students.forEach(s => {
+            let qrUrl = 'https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=' + encodeURIComponent(s[0]);
+            html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px;">
+                       <p style="font-weight:bold;">${s[1]}</p>
+                       <img src="${qrUrl}">
+                     </div>`;
+          });
+          html += `</div><script>window.print();<\/script></body></html>`;
+          win.document.open();
+          win.document.write(html);
+          win.document.close();
+        } catch (err) {
+          win.document.write("<h1>Error loading data. Please try again.</h1>");
+        }
       }
 
       async function loadStudents() {
