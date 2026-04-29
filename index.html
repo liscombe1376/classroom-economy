@@ -10,10 +10,13 @@
       h1 { font-size: 2rem; }
       #reader { width: 100%; border: 4px solid #333; border-radius: 12px; margin: 20px 0; }
       .secondary { background-color: #555; color: white; }
+      .print-btn { background-color: #2ecc71 !important; color: white; }
     </style>
   </head>
   <body>
     <h1>💰 Classroom POS</h1>
+    
+    <button class="print-btn" onclick="runPrintClassQRs()">🖨️ Print All Class QRs</button>
     
     <label>Action</label>
     <select id="actionSelect" onchange="updateDropdown()">
@@ -39,15 +42,19 @@
         return await response.json();
       }
 
+      // NEW PRINT FUNCTION
+      async function runPrintClassQRs() {
+        alert("Generating your QR Sheet. Please wait...");
+        const result = await callServer({ action: "printClassQRs" });
+        alert(result); 
+      }
+
       async function updateDropdown() {
         const action = document.getElementById('actionSelect').value;
         const data = await callServer({ action: (action === "Sale" || action === "Pool") ? "getItems" : "getGoals" });
         const select = document.getElementById('itemSelect');
         select.innerHTML = '';
-        
-        // Hide dropdown if using Custom Reward
         select.style.display = (action === "Custom") ? "none" : "block";
-        
         if (action !== "Custom") {
           data.forEach(row => {
             let opt = document.createElement('option');
@@ -60,7 +67,6 @@
       async function confirmAndScan() {
         const action = document.getElementById('actionSelect').value;
         let amount = 0;
-
         if (action === "Custom") {
           amount = parseFloat(prompt("Enter custom reward amount:", "50"));
           if (!amount || isNaN(amount)) return alert("Invalid amount.");
@@ -68,21 +74,14 @@
           amount = parseFloat(document.getElementById('itemSelect').value);
           if (!amount) return alert("Please select an item.");
         }
-        
         const tax = (action === "Sale" || action === "Pool") ? 0.13 : 0;
         finalPrice = (amount * (1 + tax)).toFixed(2);
-        
         if(action === "Pool") {
             studentsToPool = parseInt(prompt("How many students are splitting the total of $"+finalPrice+"?", "2"));
             finalPrice = (finalPrice / studentsToPool).toFixed(2);
             isPooling = true;
-        } else {
-            isPooling = false;
-        }
-
-        if(confirm(`Amount per student: $${finalPrice}. Confirm?`)) {
-            startScan();
-        }
+        } else { isPooling = false; }
+        if(confirm(`Amount per student: $${finalPrice}. Confirm?`)) { startScan(); }
       }
 
       function startScan() {
@@ -91,29 +90,18 @@
           scanner.stop();
           const result = await callServer({ 
             action: isPooling ? "poolTransaction" : "processTransaction", 
-            studentID: data, 
-            amount: finalPrice, 
+            studentID: data, amount: finalPrice, 
             type: document.getElementById('actionSelect').value, 
-            description: (document.getElementById('actionSelect').value === "Custom") ? "Custom Reward" : "Purchase (inc. tax)" 
+            description: "Purchase/Reward" 
           });
-
           if(result.success) {
             alert("✅ SUCCESS!");
             if(isPooling) {
                 studentsScanned++;
-                if(studentsScanned < studentsToPool) {
-                    alert(`Paid! ${studentsScanned}/${studentsToPool} scanned. Next student...`);
-                    startScan();
-                } else {
-                    alert("All students processed!");
-                    isPooling = false;
-                    studentsScanned = 0;
-                }
+                if(studentsScanned < studentsToPool) { alert(`Next student...`); startScan(); }
+                else { alert("All done!"); isPooling = false; studentsScanned = 0; }
             }
-          } else {
-            alert("❌ DECLINED: " + result.message);
-            isPooling = false;
-          }
+          } else { alert("❌ DECLINED: " + result.message); isPooling = false; }
         });
       }
 
@@ -124,7 +112,6 @@
             alert(res.success ? "Bonus sent!" : "Error");
         }
       }
-      
       updateDropdown();
     </script>
   </body>
