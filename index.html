@@ -10,13 +10,10 @@
       h1 { font-size: 2rem; }
       #reader { width: 100%; border: 4px solid #333; border-radius: 12px; margin: 20px 0; }
       .secondary { background-color: #555; color: white; }
-      .print-btn { background-color: #2ecc71 !important; color: white; }
     </style>
   </head>
   <body>
     <h1>💰 Classroom POS</h1>
-    
-    <button class="print-btn" onclick="runPrintClassQRs()">🖨️ Print All Class QRs</button>
     
     <label>Action</label>
     <select id="actionSelect" onchange="updateDropdown()">
@@ -40,13 +37,6 @@
       async function callServer(payload) {
         const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
         return await response.json();
-      }
-
-      // NEW PRINT FUNCTION
-      async function runPrintClassQRs() {
-        alert("Generating your QR Sheet. Please wait...");
-        const result = await callServer({ action: "printClassQRs" });
-        alert(result); 
       }
 
       async function updateDropdown() {
