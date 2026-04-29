@@ -42,7 +42,6 @@
         try {
           const result = await callServer({ action: "getPrintData" });
           
-          // Check if server sent back an error string
           if (typeof result === 'string' && result.startsWith("Error")) {
             win.document.write("<h1>Server Error:</h1><p>" + result + "</p>");
             return;
@@ -50,14 +49,20 @@
 
           let html = `<html><body style="font-family:sans-serif; text-align:center;">`;
           html += `<h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
+          
           result.forEach(s => {
-            let qrUrl = 'https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=' + encodeURIComponent(s[0]);
-            html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px;">
+            // Using a different QR provider (api.qrserver.com) which is often less restricted
+            let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
+            
+            html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px; margin:10px;">
                        <p style="font-weight:bold;">${s[1]}</p>
-                       <img src="${qrUrl}">
+                       <img src="${qrUrl}" style="width:150px; height:150px;">
                      </div>`;
           });
-          html += `</div><script>window.print();<\/script></body></html>`;
+          
+          // Added a small delay to ensure images load before printing
+          html += `</div><script>setTimeout(function(){ window.print(); }, 2000);<\/script></body></html>`;
+          
           win.document.open();
           win.document.write(html);
           win.document.close();
