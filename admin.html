@@ -72,11 +72,24 @@
       }
 
       async function loadStudents() {
-        const students = await callServer({ action: "getAllStudents" });
+        // Change "getAllStudents" to "getStudents" to match the Code.gs
+        const students = await callServer({ action: "getStudents" }); 
         const body = document.getElementById('studentBody');
+        
+        // Safety check: if students is empty or null, don't crash
+        if (!students || students.length === 0) {
+            body.innerHTML = '<tr><td colspan="4">No students found in the "Students" tab.</td></tr>';
+            return;
+        }
+
         body.innerHTML = '';
         students.forEach(s => {
-          body.innerHTML += `<tr><td>${s[0]}</td><td><input type="text" id="name-${s[0]}" value="${s[1]}" disabled></td><td><input type="number" id="bal-${s[0]}" value="${s[3]}" disabled></td><td><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')">✏️ Edit</button></td></tr>`;
+          body.innerHTML += `<tr>
+            <td>${s[0]}</td>
+            <td><input type="text" id="name-${s[0]}" value="${s[1]}" disabled></td>
+            <td><input type="number" id="bal-${s[0]}" value="${s[3]}" disabled></td>
+            <td><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')">✏️ Edit</button></td>
+          </tr>`;
         });
       }
 
