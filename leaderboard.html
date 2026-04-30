@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <style>
+    body { 
+      max-width: 1200px; 
+      text-align: center; 
+      background-color: #121212; 
+      color: white; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    h1 { margin-top: 30px; font-size: 2.5rem; color: #f1c40f; }
+    .date-range { color: #888; font-style: italic; margin-bottom: 40px; }
+
+    .container { 
+      display: flex; 
+      justify-content: center; 
+      align-items: flex-start;
+      flex-wrap: wrap; 
+      gap: 30px; 
+      margin-top: 20px;
+    }
+
+    .column { 
+      flex: 1; 
+      max-width: 350px; 
+      min-width: 300px; 
+      background: #1e1e1e; 
+      padding: 30px; 
+      border-radius: 20px; 
+      border: 2px solid #333; 
+      transition: transform 0.3s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .column:hover { transform: translateY(-10px); border-color: #666; }
+
+    /* --- THE BADGES --- */
+    .badge { width: 100px; height: 100px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+    
+    /* GOLD - Wealth Master */
+    .gold { 
+      background: radial-gradient(circle, #f1c40f, #d4af37); 
+      border-radius: 50%; 
+      box-shadow: 0 0 40px rgba(241, 196, 15, 0.4); 
+      border: 4px solid rgba(255,255,255,0.2);
+    }
+    
+    /* EMERALD - Goal Crusher */
+    .emerald { 
+      background: linear-gradient(135deg, #2ecc71, #27ae60); 
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); 
+      box-shadow: 0 0 40px rgba(46, 204, 113, 0.4); 
+    }
+    
+    /* CRYSTAL - Super Saver */
+    .crystal { 
+      background: rgba(255, 255, 255, 0.1); 
+      backdrop-filter: blur(10px); 
+      border: 3px solid #00d2ff; 
+      transform: rotate(45deg); 
+      box-shadow: 0 0 40px rgba(0, 210, 255, 0.4);
+    }
+    .crystal span { transform: rotate(-45deg); }
+
+    /* --- THE WINNERS --- */
+    .winner-box { 
+      background: #2a2a2a; 
+      margin: 15px 0; 
+      padding: 15px; 
+      border-radius: 12px; 
+      display: flex; 
+      align-items: center; 
+      border: 1px solid #444;
+    }
+    .rank { font-size: 1.8rem; margin-right: 15px; font-weight: bold; width: 40px; }
+    .gold-text { color: #f1c40f; } 
+    .silver-text { color: #bdc3c7; } 
+    .bronze-text { color: #cd7f32; }
+    
+    .name { flex-grow: 1; text-align: left; font-weight: bold; font-size: 1.1rem; }
+    .amount { font-family: monospace; color: #2ecc71; font-size: 1.2rem; }
+
+    .loader { font-size: 1.5rem; margin-top: 100px; color: #888; }
+  </style>
+</head>
+<body>
+
+  <h1 id="title">🏆 Classroom Hall of Fame</h1>
+  <p class="date-range" id="period">Calculating weekly window...</p>
+
+  <div class="container" id="board">
+    <div class="loader">Gathering the data...</div>
+  </div>
+
+  <script>
+    // 1. UPDATE THIS URL TO YOUR LATEST DEPLOYMENT
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzsSbIVAYBm9lNZcvYTy0JSBiFGeRB7Rv01MfkaKB0NQNpns89-3IEsi_M7JTFUP9ET/exec";
+
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch(WEB_APP_URL, { 
+          method: "POST", 
+          body: JSON.stringify({ action: "getLeaderboard" }) 
+        });
+        const data = await response.json();
+        
+        document.getElementById('period').innerText = "Current Race: " + data.period;
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+
+        // Render the 3 Columns
+        board.innerHTML += renderCol("Wealth Master", "gold", "💰", data.wealth, "Top Weekly Income");
+        board.innerHTML += renderCol("Goal Crusher", "emerald", "🌟", data.achievers, "Top Weekly Rewards");
+        board.innerHTML += renderCol("Super Saver", "crystal", "<span>📈</span>", data.savers, "Top Interest Gained");
+
+      } catch (err) {
+        document.getElementById('board').innerHTML = "<p>Error loading data. Make sure you deployed as a New Version.</p>";
+      }
+    }
+
+    function renderCol(title, style, icon, winners, subtext) {
+      let html = `
+        <div class="column">
+          <div class="badge ${style}">${icon}</div>
+          <h2>${title}</h2>
+          <p style="color: #aaa; margin-bottom: 20px;">${subtext}</p>
+      `;
+
+      if (!winners || winners.length === 0) {
+        html += `<div class="winner-box"><div class="name">No entries yet!</div></div>`;
+      } else {
+        winners.forEach((w, i) => {
+          let rankColors = ["gold-text", "silver-text", "bronze-text"];
+          let medals = ["🥇", "🥈", "🥉"];
+          html += `
+            <div class="winner-box">
+              <div class="rank ${rankColors[i]}">${medals[i]}</div>
+              <div class="name">${w.name}</div>
+              <div class="amount">$${w.amount.toFixed(2)}</div>
+            </div>`;
+        });
+      }
+
+      html += `</div>`;
+      return html;
+    }
+
+    // Run on load
+    loadLeaderboard();
+  </script>
+</body>
+</html>
