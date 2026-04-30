@@ -81,6 +81,7 @@
     .bronze-text { color: #cd7f32; }
     
     .name { flex-grow: 1; text-align: left; font-weight: bold; font-size: 1.1rem; }
+    .tally { font-size: 0.8rem; color: #f1c40f; margin-left: 5px; vertical-align: middle; }
     .amount { font-family: monospace; color: #2ecc71; font-size: 1.2rem; }
 
     .loader { font-size: 1.5rem; margin-top: 100px; color: #888; }
@@ -135,10 +136,14 @@
         winners.forEach((w, i) => {
           let rankColors = ["gold-text", "silver-text", "bronze-text"];
           let medals = ["🥇", "🥈", "🥉"];
+          
+          // Legacy Tally logic: If they have wins recorded in Column F, show them.
+          let winDisplay = (w.wins && w.wins > 0) ? `<span class="tally">${w.wins}x 🏆</span>` : "";
+          
           html += `
             <div class="winner-box">
               <div class="rank ${rankColors[i]}">${medals[i]}</div>
-              <div class="name">${w.name}</div>
+              <div class="name">${w.name}${winDisplay}</div>
               <div class="amount">$${w.amount.toFixed(2)}</div>
             </div>`;
         });
