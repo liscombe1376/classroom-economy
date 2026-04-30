@@ -6,8 +6,12 @@
     <style>
       .pos { color: #2ecc71; font-weight: bold; }
       .neg { color: #e74c3c; font-weight: bold; }
-      .balance-card { border: 2px solid #ddd; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
+      .balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+      .balance-card { border: 2px solid #ddd; padding: 15px; border-radius: 10px; text-align: center; }
+      .savings-card { border-color: #3498db; }
       #bankSection { display: none; }
+      .transfer-box { background: #f9f9f9; padding: 15px; border-radius: 10px; margin: 20px 0; border: 1px solid #eee; }
+      input[type="number"] { width: 100%; margin-bottom: 10px; }
     </style>
   </head>
   <body>
@@ -20,9 +24,25 @@
 
     <div id="bankSection">
       <h1 id="displayName"></h1>
-      <div class="balance-card">
-        <h3>Current Balance</h3>
-        <h1 id="balanceDisplay"></h1>
+      
+      <div class="balance-grid">
+        <div class="balance-card">
+          <small>Checking</small>
+          <h2 id="balanceDisplay">$0.00</h2>
+        </div>
+        <div class="balance-card savings-card">
+          <small>Savings (5%)</small>
+          <h2 id="savingsDisplay" style="color: #3498db;">$0.00</h2>
+        </div>
+      </div>
+
+      <div class="transfer-box">
+        <h3>Internal Transfer</h3>
+        <input type="number" id="transferAmount" placeholder="Amount $0.00">
+        <div style="display: flex; gap: 10px;">
+          <button onclick="transfer('toSavings')" style="flex: 1;">Save ➡️</button>
+          <button onclick="transfer('toChecking')" style="flex: 1; background: #666;">Spend ⬅️</button>
+        </div>
       </div>
       
       <h3>Transaction History</h3>
@@ -30,10 +50,12 @@
         <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
         <tbody id="historyBody"></tbody>
       </table>
+      <button onclick="location.reload()" style="background: none; color: gray; font-size: 12px;">Logout / Refresh</button>
     </div>
 
     <script>
-      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbze7zOoWLR6noWeTNNA8pmjtO0k3VDEVsVsUHFFQ04YRWvDNqX7AloPESFkj7ce2jiM/exec"; // PASTE YOUR URL HERE
+      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbze7zOoWLR6noWeTNNA8pmjtO0k3VDEVsVsUHFFQ04YRWvDNqX7AloPESFkj7ce2jiM/exec"; 
+      let currentStudentID = "";
 
       async function login() {
         const name = document.getElementById('name').value;
@@ -46,14 +68,18 @@
         const data = await res.json();
         
         if (data.success) {
+          currentStudentID = data.student.id;
           document.getElementById('loginSection').style.display = 'none';
           document.getElementById('bankSection').style.display = 'block';
           document.getElementById('displayName').innerText = "Hello, " + data.student.name;
-          document.getElementById('balanceDisplay').innerText = "$" + data.student.balance;
+          
+          // data.student.balance now refers to Checking (Col 4)
+          document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
+          // data.student.savings refers to Savings (Col 5)
+          document.getElementById('savingsDisplay').innerText = "$" + parseFloat(data.student.savings).toFixed(2);
           
           const body = document.getElementById('historyBody');
           body.innerHTML = '';
-          // Ledger returns: Date, ID, Type, Description, Change, Balance
           data.history.forEach(r => {
             const amount = parseFloat(r[4]);
             const sign = amount > 0 ? "+" : "";
@@ -62,10 +88,34 @@
               <td>${r[3]}</td>
               <td class="${amount > 0 ? 'pos' : 'neg'}">${sign}${amount.toFixed(2)}</td>
             </tr>`;
-            body.innerHTML = row + body.innerHTML; // Newest on top
+            body.innerHTML = row + body.innerHTML;
           });
         } else {
           alert("Login failed. Check your name and password.");
+        }
+      }
+
+      async function transfer(direction) {
+        const amount = document.getElementById('transferAmount').value;
+        if (!amount || amount <= 0) return alert("Enter an amount!");
+
+        const res = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "transferFunds",
+            studentID: currentStudentID,
+            amount: amount,
+            direction: direction
+          })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert("Transfer Complete!");
+          login(); // Re-run login to refresh data without full reload
+          document.getElementById('transferAmount').value = "";
+        } else {
+          alert("Error: " + data.message);
         }
       }
     </script>
