@@ -11,7 +11,9 @@
       .savings-card { border-color: #3498db; }
       #bankSection { display: none; }
       .transfer-box { background: #f9f9f9; padding: 15px; border-radius: 10px; margin: 20px 0; border: 1px solid #eee; }
+      .portfolio-box { background: #fffdf0; padding: 15px; border-radius: 10px; margin: 20px 0; border: 1px solid #ffeeba; }
       input[type="number"] { width: 100%; margin-bottom: 10px; }
+      .market-btn { width: 100%; background-color: #27ae60; color: white; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
     </style>
   </head>
   <body>
@@ -25,6 +27,9 @@
     <div id="bankSection">
       <h1 id="displayName"></h1>
       
+      <button class="market-btn" onclick="location.href='market.html'">📈 Enter Wall Street Market</button>
+      <br><br>
+
       <div class="balance-grid">
         <div class="balance-card">
           <small>Checking</small>
@@ -34,6 +39,11 @@
           <small>Savings (5%)</small>
           <h2 id="savingsDisplay" style="color: #3498db;">$0.00</h2>
         </div>
+      </div>
+
+      <div class="portfolio-box" id="portfolioSection" style="display:none;">
+        <h3>My Stock Portfolio</h3>
+        <div id="portfolioBody"></div>
       </div>
 
       <div class="transfer-box">
@@ -50,11 +60,11 @@
         <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
         <tbody id="historyBody"></tbody>
       </table>
-      <button onclick="location.reload()" style="background: none; color: gray; font-size: 12px;">Logout / Refresh</button>
+      <button onclick="logout()" style="background: none; color: gray; font-size: 12px;">Logout / Refresh</button>
     </div>
 
     <script>
-      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw_hxSkO6Klnx3oTRBRsLIxAV9g-kYRa5mLpspeLRoitgMIDMuJdIByswDpYy1sE_OF/exec"; 
+      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQBnjXxre0C1mxvDuiEdOrsh3a0mIvuwtdJZ56_In7Ipsm24FdClN2RFw9w042ci7V/exec"; 
       let currentStudentID = "";
 
       async function login() {
@@ -68,16 +78,36 @@
         const data = await res.json();
         
         if (data.success) {
+          // Store data for the Market Page to use
           currentStudentID = data.student.id;
+          localStorage.setItem('studentID', currentStudentID);
+          localStorage.setItem('studentName', name);
+          localStorage.setItem('studentPass', pass);
+
           document.getElementById('loginSection').style.display = 'none';
           document.getElementById('bankSection').style.display = 'block';
           document.getElementById('displayName').innerText = "Hello, " + data.student.name;
           
-          // data.student.balance now refers to Checking (Col 4)
           document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
-          // data.student.savings refers to Savings (Col 5)
           document.getElementById('savingsDisplay').innerText = "$" + parseFloat(data.student.savings).toFixed(2);
           
+          // Render Portfolio if they own stocks
+          const portBody = document.getElementById('portfolioBody');
+          if (data.student.portfolio && data.student.portfolio.length > 0) {
+            document.getElementById('portfolioSection').style.display = 'block';
+            let portHtml = "<ul>";
+            data.student.portfolio.forEach(stock => {
+              if(stock.shares > 0) {
+                portHtml += `<li><strong>${stock.ticker}:</strong> ${stock.shares} Shares</li>`;
+              }
+            });
+            portHtml += "</ul>";
+            portBody.innerHTML = portHtml;
+          } else {
+            document.getElementById('portfolioSection').style.display = 'none';
+          }
+
+          // Render History
           const body = document.getElementById('historyBody');
           body.innerHTML = '';
           data.history.forEach(r => {
@@ -112,10 +142,26 @@
         const data = await res.json();
         if (data.success) {
           alert("Transfer Complete!");
-          login(); // Re-run login to refresh data without full reload
+          login(); 
           document.getElementById('transferAmount').value = "";
         } else {
           alert("Error: " + data.message);
+        }
+      }
+
+      function logout() {
+        localStorage.clear();
+        location.reload();
+      }
+
+      // Auto-login check (optional helper)
+      window.onload = () => {
+        const savedName = localStorage.getItem('studentName');
+        const savedPass = localStorage.getItem('studentPass');
+        if(savedName && savedPass) {
+          document.getElementById('name').value = savedName;
+          document.getElementById('pass').value = savedPass;
+          login();
         }
       }
     </script>
