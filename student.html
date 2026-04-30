@@ -4,17 +4,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <style>
-      .pos { color: #2ecc71; font-weight: bold; }
-      .neg { color: #e74c3c; font-weight: bold; }
-      .balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-      .balance-card { border: 2px solid #ddd; padding: 15px; border-radius: 10px; text-align: center; }
-      .savings-card { border-color: #3498db; }
-      #bankSection { display: none; }
-      .transfer-box { background: #f9f9f9; padding: 15px; border-radius: 10px; margin: 20px 0; border: 1px solid #eee; }
-      .portfolio-box { background: #fffdf0; padding: 15px; border-radius: 10px; margin: 20px 0; border: 1px solid #ffeeba; }
-      input[type="number"] { width: 100%; margin-bottom: 10px; }
-      .market-btn { width: 100%; background-color: #27ae60; color: white; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    </style>
+    /* ... your existing styles (body, buttons, etc.) ... */
+
+    /* The main white box area */
+    .dashboard-container {
+        background-color: #2f3542; /* A dark slate grey */
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        margin-bottom: 20px;
+        color: #f1f2f6; /* Off-white text */
+    }
+
+    /* The Pale Yellow Box (Portfolio/Savings) */
+    .info-box {
+        background-color: #1e272e !important; /* Very dark background */
+        color: #f1f2f6 !important; /* bright text */
+        border: 2px solid #3498db; /* A blue accent to make it "Bank" themed */
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    /* Make sure all list items ( VIBE: 2 Shares) inside are bright */
+    .info-box ul li {
+        color: #f1f2f6 !important;
+        opacity: 1 !important;
+    }
+
+    /* The Transfer Area */
+    #transferSection {
+        background-color: #1e272e; /* matches the other dark boxes */
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid #444; /* subtle border */
+    }
+
+    /* Input Field ("Amount $0.00") */
+    input[type="number"] {
+        background: #f1f2f6 !important; /* Bright white input background */
+        color: #000000 !important; /* Black text while typing */
+        border: 1px solid #ccc;
+        font-size: 1.1em;
+    }
+    
+    /* The label "Amount" or "Internal Transfer" */
+    #transferSection label, #transferSection h3 {
+        color: #f1f2f6 !important;
+    }
+
+    /* Transaction History Table */
+    #historyTable {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        color: #f1f2f6;
+    }
+    #historyTable th { background: #57606f; color: white; padding: 10px;}
+    #historyTable td { border-bottom: 1px solid #444; padding: 10px;}
+</style>
   </head>
   <body>
     <div id="loginSection">
