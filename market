@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <style>
+        .up { color: #2ecc71; font-weight: bold; }
+        .down { color: #e74c3c; font-weight: bold; }
+        .market-card { border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .portfolio-section { background: #f0f4f8; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #d1d9e6; }
+        .trade-controls { display: flex; gap: 5px; margin-top: 10px; }
+        input[type="number"] { width: 80px; }
+        .nav-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="nav-buttons">
+        <button onclick="location.href='student.html'">⬅️ Back to Bank</button>
+        <button onclick="loadMarketData()" style="background: #3498db;">🔄 Refresh Market</button>
+    </div>
+
+    <h1>📈 Classroom Wall Street</h1>
+
+    <div class="portfolio-section">
+        <h3>My Portfolio</h3>
+        <div id="myHoldings">Loading your shares...</div>
+    </div>
+
+    <h3>Market Listings</h3>
+    <div id="marketList">
+        </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQBnjXxre0C1mxvDuiEdOrsh3a0mIvuwtdJZ56_In7Ipsm24FdClN2RFw9w042ci7V/exec";
+        let studentID = localStorage.getItem('studentID'); 
+        let studentBalance = 0;
+
+        async function loadMarketData() {
+            const res = await fetch(WEB_APP_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ action: "getMarketData" }) 
+            });
+            const market = await res.json();
+            
+            // Re-fetch student data to see current shares and balance
+            const studentRes = await fetch(WEB_APP_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ action: "loginStudent", name: localStorage.getItem('studentName'), password: localStorage.getItem('studentPass') }) 
+            });
+            const sData = await studentRes.json();
+            studentBalance = sData.student.balance;
+            
+            renderPortfolio(sData.student.portfolio, market);
+            renderMarket(market);
+        }
+
+        function renderPortfolio(portfolio, market) {
+            const container = document.getElementById('myHoldings');
+            if (!portfolio || portfolio.length === 0) {
+                container.innerHTML = "<p>You don't own any stocks yet. Buy the dip!</p>";
+                return;
+            }
+
+            let html = "<table><thead><tr><th>Stock</th><th>Shares</th><th>Value</th></tr></thead><tbody>";
+            portfolio.forEach(item => {
+                const stock = market.find(m => m[0] === item.ticker);
+                const currentVal = (item.shares * stock[2]).toFixed(2);
+                if(item.shares > 0) {
+                    html += `<tr><td>${item.ticker}</td><td>${item.shares}</td><td>$${currentVal}</td></tr>`;
+                }
+            });
+            html += "</tbody></table>";
+            container.innerHTML = html;
+        }
+
+        function renderMarket(market) {
+            const list = document.getElementById('marketList');
+            list.innerHTML = '';
+
+            market.forEach(stock => {
+                const isUp = parseFloat(stock[4]) >= 0;
+                const card = document.createElement('div');
+                card.className = 'market-card';
+                card.innerHTML = `
+                    <div>
+                        <strong>${stock[1]} (${stock[0]})</strong><br>
+                        <small>Type: ${stock[5]}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 1.2em;">$${parseFloat(stock[2]).toFixed(2)}</span><br>
+                        <span class="${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${stock[4]}</span>
+                    </div>
+                    <div class="trade-controls">
+                        <input type="number" id="qty-${stock[0]}" placeholder="Qty" min="1">
+                        <button onclick="executeTrade('${stock[0]}', 'BUY')" style="background: #2ecc71;">Buy</button>
+                        <button onclick="executeTrade('${stock[0]}', 'SELL')" style="background: #e74c3c;">Sell</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        async function executeTrade(ticker, type) {
+            const qty = document.getElementById(`qty-${ticker}`).value;
+            if (!qty || qty <= 0) return alert("Enter a quantity!");
+
+            const confirmTrade = confirm(`${type} ${qty} shares of ${ticker}?`);
+            if (!confirmTrade) return;
+
+            const res = await fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "tradeStock",
+                    studentID: studentID,
+                    ticker: ticker,
+                    quantity: parseInt(qty),
+                    type: type
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert("Trade Complete!");
+                loadMarketData();
+            } else {
+                alert("Trade Failed: " + data.message);
+            }
+        }
+
+        // Initialize
+        if (!studentID) {
+            alert("Please login through the Bank page first!");
+            location.href = 'student.html';
+        } else {
+            loadMarketData();
+        }
+    </script>
+</body>
+</html>
