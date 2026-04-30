@@ -6,6 +6,7 @@
     <style>
       input:disabled { background: transparent; border: none; color: inherit; }
       .print-all-btn { background-color: #2ecc71; color: white; margin-bottom: 20px; width: 100%; }
+      table { width: 100%; }
     </style>
   </head>
   <body>
@@ -17,17 +18,27 @@
     </section>
     
     <section>
+      <h3>Add New Student</h3>
       <input type="text" id="name" placeholder="Student Name">
       <input type="text" id="pass" placeholder="Password">
       <button onclick="createNewStudent()">➕ Add Student</button>
     </section>
 
     <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Balance</th><th>Actions</th></tr></thead>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Password</th>
+          <th>Balance</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
       <tbody id="studentBody"></tbody>
     </table>
 
     <script>
+      // MAKE SURE THIS URL MATCHES YOUR LATEST DEPLOYMENT
       const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzsSbIVAYBm9lNZcvYTy0JSBiFGeRB7Rv01MfkaKB0NQNpns89-3IEsi_M7JTFUP9ET/exec";
 
       async function callServer(payload) {
@@ -41,7 +52,6 @@
         
         try {
           const result = await callServer({ action: "getPrintData" });
-          
           if (typeof result === 'string' && result.startsWith("Error")) {
             win.document.write("<h1>Server Error:</h1><p>" + result + "</p>");
             return;
@@ -51,18 +61,14 @@
           html += `<h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
           
           result.forEach(s => {
-            // Using a different QR provider (api.qrserver.com) which is often less restricted
             let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
-            
             html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px; margin:10px;">
                        <p style="font-weight:bold;">${s[1]}</p>
                        <img src="${qrUrl}" style="width:150px; height:150px;">
                      </div>`;
           });
           
-          // Added a small delay to ensure images load before printing
           html += `</div><script>setTimeout(function(){ window.print(); }, 2000);<\/script></body></html>`;
-          
           win.document.open();
           win.document.write(html);
           win.document.close();
@@ -72,13 +78,11 @@
       }
 
       async function loadStudents() {
-        // Change "getAllStudents" to "getStudents" to match the Code.gs
         const students = await callServer({ action: "getStudents" }); 
         const body = document.getElementById('studentBody');
         
-        // Safety check: if students is empty or null, don't crash
         if (!students || students.length === 0) {
-            body.innerHTML = '<tr><td colspan="4">No students found in the "Students" tab.</td></tr>';
+            body.innerHTML = '<tr><td colspan="5">No students found.</td></tr>';
             return;
         }
 
@@ -87,6 +91,7 @@
           body.innerHTML += `<tr>
             <td>${s[0]}</td>
             <td><input type="text" id="name-${s[0]}" value="${s[1]}" disabled></td>
+            <td><input type="text" id="pass-${s[0]}" value="${s[2]}" disabled></td>
             <td><input type="number" id="bal-${s[0]}" value="${s[3]}" disabled></td>
             <td><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')">✏️ Edit</button></td>
           </tr>`;
@@ -95,19 +100,43 @@
 
       function toggleEdit(id) {
         const n = document.getElementById(`name-${id}`);
+        const p = document.getElementById(`pass-${id}`); // Added password selector
         const b = document.getElementById(`bal-${id}`);
         const btn = document.getElementById(`btn-${id}`);
-        if (n.disabled) { n.disabled = false; b.disabled = false; btn.innerText = "💾 Save"; } 
-        else { saveStudent(id, n.value, b.value); n.disabled = true; b.disabled = true; btn.innerText = "✏️ Edit"; }
+
+        if (n.disabled) { 
+          n.disabled = false; 
+          p.disabled = false; 
+          b.disabled = false; 
+          btn.innerText = "💾 Save"; 
+        } else { 
+          // Now passing p.value (password) to the save function
+          saveStudent(id, n.value, b.value, p.value); 
+          n.disabled = true; 
+          p.disabled = true; 
+          b.disabled = true; 
+          btn.innerText = "✏️ Edit"; 
+        }
       }
 
-      async function saveStudent(id, name, balance) {
-        await callServer({ action: "updateStudent", id: id, name: name, balance: balance });
-        alert("Student updated!");
+      async function saveStudent(id, name, balance, password) {
+        const res = await callServer({ 
+          action: "updateStudent", 
+          id: id, 
+          name: name, 
+          balance: balance, 
+          password: password 
+        });
+        if(res.success) alert("Student updated!");
+        else alert("Error saving student.");
       }
 
       async function createNewStudent() {
-        await callServer({ action: "addStudent", name: document.getElementById('name').value, password: document.getElementById('pass').value });
+        const name = document.getElementById('name').value;
+        const pass = document.getElementById('pass').value;
+        await callServer({ action: "addStudent", name: name, password: pass });
+        document.getElementById('name').value = '';
+        document.getElementById('pass').value = '';
         loadStudents();
       }
 
