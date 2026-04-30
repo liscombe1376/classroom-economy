@@ -3,64 +3,85 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
-    /* High-contrast Green/Red */
-    .up { color: #2ecc71; font-weight: bold; text-shadow: 0 0 5px rgba(46, 204, 113, 0.2); }
-    .down { color: #e74c3c; font-weight: bold; text-shadow: 0 0 5px rgba(231, 76, 60, 0.2); }
-    
-    /* Darker, more defined cards */
-    .market-card { 
-        border: 1px solid #444; 
-        background: #222; /* Dark background */
-        color: #fff;      /* White text */
-        padding: 15px; 
-        border-radius: 10px; 
-        margin-bottom: 12px; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
+        .up { color: #2ecc71; font-weight: bold; }
+        .down { color: #ff4757; font-weight: bold; }
+        
+        .portfolio-section { 
+            background: #1e272e !important; 
+            color: #ffffff !important;
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-bottom: 25px; 
+            border: 2px solid #3498db; 
+        }
 
-    .portfolio-section { 
-        background: #1a1a1a; 
-        color: #fff;
-        padding: 15px; 
-        border-radius: 10px; 
-        margin-bottom: 20px; 
-        border: 2px solid #3498db; 
-    }
+        #myHoldings table { background: #2f3542; color: white; width: 100%; border-radius: 8px; overflow: hidden; }
+        #myHoldings th { background: #57606f; color: white; }
+        #myHoldings td { border-bottom: 1px solid #57606f; color: white !important; }
 
-    /* Make buttons pop more */
-    .trade-controls button {
-        border: none;
-        color: white;
-        padding: 8px 12px;
-        font-weight: bold;
-    }
-</style>
+        .market-card { 
+            border: 1px solid #444; 
+            background: #2f3542; 
+            color: #fff; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 12px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .trade-controls { display: flex; gap: 5px; }
+        input[type="number"] { width: 70px; background: #f1f2f6; color: black; }
+        
+        /* Modal for Chart */
+        #chartModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+        .modal-content {
+            background-color: #2f3542;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <div class="nav-buttons">
-        <button onclick="location.href='student.html'">⬅️ Back to Bank</button>
-        <button onclick="loadMarketData()" style="background: #3498db;">🔄 Refresh Market</button>
-    </div>
+    <button onclick="location.href='student.html'">⬅️ Back to Bank</button>
+    <button onclick="loadMarketData()" style="background: #3498db;">🔄 Refresh Market</button>
 
-    <h1>📈 Classroom Wall Street</h1>
+    <h1>📈 Wall Street</h1>
 
     <div class="portfolio-section">
         <h3>My Portfolio</h3>
-        <div id="myHoldings">Loading your shares...</div>
+        <div id="myHoldings">Loading shares...</div>
     </div>
 
     <h3>Market Listings</h3>
-    <div id="marketList">
+    <div id="marketList"></div>
+
+    <div id="chartModal">
+        <div class="modal-content">
+            <div id="chart_div" style="width: 100%; height: 300px;"></div>
+            <button onclick="document.getElementById('chartModal').style.display='none'">Close Trend</button>
         </div>
+    </div>
 
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwWlRPcdv8yhuVy0vphZEMxygboV8lLDP9jSPbCOmoLrGcW2Lgr4tmAcqHgx4PHZIDK/exec";
         let studentID = localStorage.getItem('studentID'); 
-        let studentBalance = 0;
+
+        google.charts.load('current', {'packages':['corechart']});
 
         async function loadMarketData() {
             const res = await fetch(WEB_APP_URL, { 
@@ -69,13 +90,15 @@
             });
             const market = await res.json();
             
-            // Re-fetch student data to see current shares and balance
             const studentRes = await fetch(WEB_APP_URL, { 
                 method: "POST", 
-                body: JSON.stringify({ action: "loginStudent", name: localStorage.getItem('studentName'), password: localStorage.getItem('studentPass') }) 
+                body: JSON.stringify({ 
+                    action: "loginStudent", 
+                    name: localStorage.getItem('studentName'), 
+                    password: localStorage.getItem('studentPass') 
+                }) 
             });
             const sData = await studentRes.json();
-            studentBalance = sData.student.balance;
             
             renderPortfolio(sData.student.portfolio, market);
             renderMarket(market);
@@ -84,15 +107,14 @@
         function renderPortfolio(portfolio, market) {
             const container = document.getElementById('myHoldings');
             if (!portfolio || portfolio.length === 0) {
-                container.innerHTML = "<p>You don't own any stocks yet. Buy the dip!</p>";
+                container.innerHTML = "<p>No stocks owned.</p>";
                 return;
             }
-
             let html = "<table><thead><tr><th>Stock</th><th>Shares</th><th>Value</th></tr></thead><tbody>";
             portfolio.forEach(item => {
                 const stock = market.find(m => m[0] === item.ticker);
-                const currentVal = (item.shares * stock[2]).toFixed(2);
                 if(item.shares > 0) {
+                    const currentVal = (item.shares * stock[2]).toFixed(2);
                     html += `<tr><td>${item.ticker}</td><td>${item.shares}</td><td>$${currentVal}</td></tr>`;
                 }
             });
@@ -103,7 +125,6 @@
         function renderMarket(market) {
             const list = document.getElementById('marketList');
             list.innerHTML = '';
-
             market.forEach(stock => {
                 const isUp = parseFloat(stock[4]) >= 0;
                 const card = document.createElement('div');
@@ -111,7 +132,7 @@
                 card.innerHTML = `
                     <div>
                         <strong>${stock[1]} (${stock[0]})</strong><br>
-                        <small>Type: ${stock[5]}</small>
+                        <button onclick="showChart('${stock[0]}')" style="background: #3498db; padding: 2px 8px; font-size: 0.8em;">Trend 📈</button>
                     </div>
                     <div style="text-align: right;">
                         <span style="font-size: 1.2em;">$${parseFloat(stock[2]).toFixed(2)}</span><br>
@@ -120,20 +141,42 @@
                     <div class="trade-controls">
                         <input type="number" id="qty-${stock[0]}" placeholder="Qty" min="1">
                         <button onclick="executeTrade('${stock[0]}', 'BUY')" style="background: #2ecc71;">Buy</button>
-                        <button onclick="executeTrade('${stock[0]}', 'SELL')" style="background: #e74c3c;">Sell</button>
                     </div>
                 `;
                 list.appendChild(card);
             });
         }
 
+        async function showChart(ticker) {
+            document.getElementById('chartModal').style.display = 'block';
+            const res = await fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "getStockHistory", ticker: ticker })
+            });
+            const historyData = await res.json();
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('datetime', 'Time');
+            data.addColumn('number', 'Price');
+            historyData.forEach(row => data.addRow([new Date(row[0]), row[1]]));
+
+            const options = {
+                title: ticker + ' Price History',
+                curveType: 'function',
+                legend: { position: 'none' },
+                backgroundColor: '#2f3542',
+                hAxis: { textPosition: 'none', gridlines: {color: '#444'} },
+                vAxis: { gridlines: {color: '#444'}, textStyle: {color: '#fff'} },
+                titleTextStyle: { color: '#fff' },
+                colors: ['#2ecc71']
+            };
+            const chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+            chart.draw(data, options);
+        }
+
         async function executeTrade(ticker, type) {
             const qty = document.getElementById(`qty-${ticker}`).value;
             if (!qty || qty <= 0) return alert("Enter a quantity!");
-
-            const confirmTrade = confirm(`${type} ${qty} shares of ${ticker}?`);
-            if (!confirmTrade) return;
-
             const res = await fetch(WEB_APP_URL, {
                 method: "POST",
                 body: JSON.stringify({
@@ -144,23 +187,12 @@
                     type: type
                 })
             });
-
             const data = await res.json();
-            if (data.success) {
-                alert("Trade Complete!");
-                loadMarketData();
-            } else {
-                alert("Trade Failed: " + data.message);
-            }
+            if (data.success) { alert("Success!"); loadMarketData(); }
+            else { alert("Failed: " + data.message); }
         }
 
-        // Initialize
-        if (!studentID) {
-            alert("Please login through the Bank page first!");
-            location.href = 'student.html';
-        } else {
-            loadMarketData();
-        }
+        loadMarketData();
     </script>
 </body>
 </html>
