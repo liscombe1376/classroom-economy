@@ -1,218 +1,288 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <style>
-    /* ... your existing styles (body, buttons, etc.) ... */
+        body {
+            background-color: #12181f; /* Deep dark background */
+            color: #f1f2f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-    /* The main white box area */
-    .dashboard-container {
-        background-color: #2f3542; /* A dark slate grey */
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-        margin-bottom: 20px;
-        color: #f1f2f6; /* Off-white text */
-    }
+        #bankSection { display: none; }
 
-    /* The Pale Yellow Box (Portfolio/Savings) */
-    .info-box {
-        background-color: #1e272e !important; /* Very dark background */
-        color: #f1f2f6 !important; /* bright text */
-        border: 2px solid #3498db; /* A blue accent to make it "Bank" themed */
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-    }
-    
-    /* Make sure all list items ( VIBE: 2 Shares) inside are bright */
-    .info-box ul li {
-        color: #f1f2f6 !important;
-        opacity: 1 !important;
-    }
+        /* Main Account Cards (Checking/Savings) */
+        .balance-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
 
-    /* The Transfer Area */
-    #transferSection {
-        background-color: #1e272e; /* matches the other dark boxes */
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 20px;
-        border: 1px solid #444; /* subtle border */
-    }
+        .balance-card {
+            background: #1e272e;
+            border: 2px solid #3498db; /* Bank Blue */
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
 
-    /* Input Field ("Amount $0.00") */
-    input[type="number"] {
-        background: #f1f2f6 !important; /* Bright white input background */
-        color: #000000 !important; /* Black text while typing */
-        border: 1px solid #ccc;
-        font-size: 1.1em;
-    }
-    
-    /* The label "Amount" or "Internal Transfer" */
-    #transferSection label, #transferSection h3 {
-        color: #f1f2f6 !important;
-    }
+        .balance-card small {
+            color: #a4b0be;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
 
-    /* Transaction History Table */
-    #historyTable {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 15px;
-        color: #f1f2f6;
-    }
-    #historyTable th { background: #57606f; color: white; padding: 10px;}
-    #historyTable td { border-bottom: 1px solid #444; padding: 10px;}
-</style>
-  </head>
-  <body>
+        .balance-card h2 {
+            margin: 10px 0 0 0;
+            font-size: 1.8em;
+            color: #ffffff;
+        }
+
+        /* Portfolio Box (The separate container look) */
+        .portfolio-box {
+            background-color: #2f3542 !important;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 5px solid #2ecc71; /* Green accent */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .portfolio-box h3 { margin-top: 0; color: #2ecc71; }
+        
+        .portfolio-box ul { 
+            list-style: none; 
+            padding: 0; 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .portfolio-box li {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            color: #f1f2f6 !important;
+            font-weight: bold;
+            border: 1px solid #444;
+        }
+
+        /* Transfer Box (The internal action area) */
+        .transfer-box {
+            background-color: #1e272e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #34495e;
+        }
+
+        .transfer-box h3 { margin-top: 0; color: #f1f2f6; }
+
+        input[type="number"] {
+            background: #f1f2f6 !important;
+            color: #12181f !important;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 1.2em;
+            font-weight: bold;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        /* History Table */
+        table {
+            width: 100%;
+            background: #1e272e;
+            border-radius: 12px;
+            overflow: hidden;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: #2f3542;
+            color: #a4b0be;
+            text-align: left;
+            padding: 12px;
+        }
+
+        tbody td {
+            padding: 12px;
+            border-bottom: 1px solid #2f3542;
+        }
+
+        .pos { color: #2ecc71; font-weight: bold; }
+        .neg { color: #e74c3c; font-weight: bold; }
+
+        .market-btn {
+            width: 100%;
+            background: #3498db !important;
+            font-weight: bold;
+            padding: 15px;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
     <div id="loginSection">
-      <h1>💰 ClassBank Login</h1>
-      <input type="text" id="name" placeholder="Full Name">
-      <input type="password" id="pass" placeholder="Password">
-      <button onclick="login()">Sign In</button>
+        <h1>💰 ClassBank Login</h1>
+        <input type="text" id="name" placeholder="Full Name">
+        <input type="password" id="pass" placeholder="Password">
+        <button onclick="login()" style="width:100%">Sign In</button>
     </div>
 
     <div id="bankSection">
-      <h1 id="displayName"></h1>
-      
-      <button class="market-btn" onclick="location.href='market.html'">📈 Enter Wall Street Market</button>
-      <br><br>
+        <h1 id="displayName"></h1>
+        
+        <button class="market-btn" onclick="location.href='market.html'">📈 Enter Wall Street Market</button>
+        <br><br>
 
-      <div class="balance-grid">
-        <div class="balance-card">
-          <small>Checking</small>
-          <h2 id="balanceDisplay">$0.00</h2>
+        <div class="balance-grid">
+            <div class="balance-card">
+                <small>Checking</small>
+                <h2 id="balanceDisplay">$0.00</h2>
+            </div>
+            <div class="balance-card" style="border-color: #9b59b6;">
+                <small>Savings (5%)</small>
+                <h2 id="savingsDisplay" style="color: #9b59b6;">$0.00</h2>
+            </div>
         </div>
-        <div class="balance-card savings-card">
-          <small>Savings (5%)</small>
-          <h2 id="savingsDisplay" style="color: #3498db;">$0.00</h2>
-        </div>
-      </div>
 
-      <div class="portfolio-box" id="portfolioSection" style="display:none;">
-        <h3>My Stock Portfolio</h3>
-        <div id="portfolioBody"></div>
-      </div>
-
-      <div class="transfer-box">
-        <h3>Internal Transfer</h3>
-        <input type="number" id="transferAmount" placeholder="Amount $0.00">
-        <div style="display: flex; gap: 10px;">
-          <button onclick="transfer('toSavings')" style="flex: 1;">Save ➡️</button>
-          <button onclick="transfer('toChecking')" style="flex: 1; background: #666;">Spend ⬅️</button>
+        <div class="portfolio-box" id="portfolioSection" style="display:none;">
+            <h3>📂 My Stock Portfolio</h3>
+            <div id="portfolioBody"></div>
         </div>
-      </div>
-      
-      <h3>Transaction History</h3>
-      <table>
-        <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-      <button onclick="logout()" style="background: none; color: gray; font-size: 12px;">Logout / Refresh</button>
+
+        <div class="transfer-box">
+            <h3>💸 Internal Transfer</h3>
+            <input type="number" id="transferAmount" placeholder="Amount $0.00">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="transfer('toSavings')" style="flex: 1; background: #9b59b6;">Save ➡️</button>
+                <button onclick="transfer('toChecking')" style="flex: 1; background: #34495e;">Spend ⬅️</button>
+            </div>
+        </div>
+        
+        <h3>🕒 Transaction History</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+        </table>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button onclick="logout()" style="background: none; color: gray; font-size: 12px; border: none; cursor: pointer;">Logout / Refresh Session</button>
+        </div>
     </div>
 
     <script>
-      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxgRIXNm8Y7YIqnIP1yZ1bzcHLMz2BsYuYqfj6SzAgyFSr5JdpAPbHBxZKYxejVQ5v7/exec"; 
-      let currentStudentID = "";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxgRIXNm8Y7YIqnIP1yZ1bzcHLMz2BsYuYqfj6SzAgyFSr5JdpAPbHBxZKYxejVQ5v7/exec"; 
+        let currentStudentID = "";
 
-      async function login() {
-        const name = document.getElementById('name').value;
-        const pass = document.getElementById('pass').value;
-        
-        const res = await fetch(WEB_APP_URL, { 
-          method: "POST", 
-          body: JSON.stringify({ action: "loginStudent", name, password: pass }) 
-        });
-        const data = await res.json();
-        
-        if (data.success) {
-          // Store data for the Market Page to use
-          currentStudentID = data.student.id;
-          localStorage.setItem('studentID', currentStudentID);
-          localStorage.setItem('studentName', name);
-          localStorage.setItem('studentPass', pass);
-
-          document.getElementById('loginSection').style.display = 'none';
-          document.getElementById('bankSection').style.display = 'block';
-          document.getElementById('displayName').innerText = "Hello, " + data.student.name;
-          
-          document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
-          document.getElementById('savingsDisplay').innerText = "$" + parseFloat(data.student.savings).toFixed(2);
-          
-          // Render Portfolio if they own stocks
-          const portBody = document.getElementById('portfolioBody');
-          if (data.student.portfolio && data.student.portfolio.length > 0) {
-            document.getElementById('portfolioSection').style.display = 'block';
-            let portHtml = "<ul>";
-            data.student.portfolio.forEach(stock => {
-              if(stock.shares > 0) {
-                portHtml += `<li><strong>${stock.ticker}:</strong> ${stock.shares} Shares</li>`;
-              }
+        async function login() {
+            const name = document.getElementById('name').value;
+            const pass = document.getElementById('pass').value;
+            
+            const res = await fetch(WEB_APP_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ action: "loginStudent", name, password: pass }) 
             });
-            portHtml += "</ul>";
-            portBody.innerHTML = portHtml;
-          } else {
-            document.getElementById('portfolioSection').style.display = 'none';
-          }
+            const data = await res.json();
+            
+            if (data.success) {
+                currentStudentID = data.student.id;
+                localStorage.setItem('studentID', currentStudentID);
+                localStorage.setItem('studentName', name);
+                localStorage.setItem('studentPass', pass);
 
-          // Render History
-          const body = document.getElementById('historyBody');
-          body.innerHTML = '';
-          data.history.forEach(r => {
-            const amount = parseFloat(r[4]);
-            const sign = amount > 0 ? "+" : "";
-            const row = `<tr>
-              <td>${new Date(r[0]).toLocaleDateString()}</td>
-              <td>${r[3]}</td>
-              <td class="${amount > 0 ? 'pos' : 'neg'}">${sign}${amount.toFixed(2)}</td>
-            </tr>`;
-            body.innerHTML = row + body.innerHTML;
-          });
-        } else {
-          alert("Login failed. Check your name and password.");
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('bankSection').style.display = 'block';
+                document.getElementById('displayName').innerText = "Hello, " + data.student.name;
+                
+                document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
+                document.getElementById('savingsDisplay').innerText = "$" + parseFloat(data.student.savings).toFixed(2);
+                
+                // Render Portfolio
+                const portBody = document.getElementById('portfolioBody');
+                if (data.student.portfolio && data.student.portfolio.length > 0) {
+                    document.getElementById('portfolioSection').style.display = 'block';
+                    let portHtml = "<ul>";
+                    data.student.portfolio.forEach(stock => {
+                        if(stock.shares > 0) {
+                            portHtml += `<li>${stock.ticker}: ${stock.shares} Shrs</li>`;
+                        }
+                    });
+                    portHtml += "</ul>";
+                    portBody.innerHTML = portHtml;
+                } else {
+                    document.getElementById('portfolioSection').style.display = 'none';
+                }
+
+                // Render History
+                const body = document.getElementById('historyBody');
+                body.innerHTML = '';
+                data.history.forEach(r => {
+                    const amount = parseFloat(r[4]);
+                    const sign = amount > 0 ? "+" : "";
+                    const row = `<tr>
+                        <td>${new Date(r[0]).toLocaleDateString()}</td>
+                        <td>${r[3]}</td>
+                        <td class="${amount > 0 ? 'pos' : 'neg'}">${sign}${amount.toFixed(2)}</td>
+                    </tr>`;
+                    body.innerHTML = row + body.innerHTML;
+                });
+            } else {
+                alert("Login failed. Check your name and password.");
+            }
         }
-      }
 
-      async function transfer(direction) {
-        const amount = document.getElementById('transferAmount').value;
-        if (!amount || amount <= 0) return alert("Enter an amount!");
+        async function transfer(direction) {
+            const amount = document.getElementById('transferAmount').value;
+            if (!amount || amount <= 0) return alert("Enter an amount!");
 
-        const res = await fetch(WEB_APP_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "transferFunds",
-            studentID: currentStudentID,
-            amount: amount,
-            direction: direction
-          })
-        });
-        
-        const data = await res.json();
-        if (data.success) {
-          alert("Transfer Complete!");
-          login(); 
-          document.getElementById('transferAmount').value = "";
-        } else {
-          alert("Error: " + data.message);
+            const res = await fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "transferFunds",
+                    studentID: currentStudentID,
+                    amount: amount,
+                    direction: direction
+                })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                alert("Transfer Complete!");
+                login(); 
+                document.getElementById('transferAmount').value = "";
+            } else {
+                alert("Error: Insufficient Funds");
+            }
         }
-      }
 
-      function logout() {
-        localStorage.clear();
-        location.reload();
-      }
-
-      // Auto-login check (optional helper)
-      window.onload = () => {
-        const savedName = localStorage.getItem('studentName');
-        const savedPass = localStorage.getItem('studentPass');
-        if(savedName && savedPass) {
-          document.getElementById('name').value = savedName;
-          document.getElementById('pass').value = savedPass;
-          login();
+        function logout() {
+            localStorage.clear();
+            location.reload();
         }
-      }
+
+        window.onload = () => {
+            const savedName = localStorage.getItem('studentName');
+            const savedPass = localStorage.getItem('studentPass');
+            if(savedName && savedPass) {
+                document.getElementById('name').value = savedName;
+                document.getElementById('pass').value = savedPass;
+                login();
+            }
+        }
     </script>
-  </body>
+</body>
 </html>
