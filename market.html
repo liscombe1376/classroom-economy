@@ -34,9 +34,17 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
 
-        .trade-controls { display: flex; gap: 5px; }
-        input[type="number"] { width: 70px; background: #f1f2f6; color: black; }
+        .trade-controls { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            align-items: flex-end;
+        }
+
+        input[type="number"] { width: 80px; background: #f1f2f6; color: black; margin: 0; }
         
+        .btn-group { display: flex; gap: 5px; }
+
         /* Modal for Chart */
         #chartModal {
             display: none;
@@ -84,24 +92,28 @@
         google.charts.load('current', {'packages':['corechart']});
 
         async function loadMarketData() {
-            const res = await fetch(WEB_APP_URL, { 
-                method: "POST", 
-                body: JSON.stringify({ action: "getMarketData" }) 
-            });
-            const market = await res.json();
-            
-            const studentRes = await fetch(WEB_APP_URL, { 
-                method: "POST", 
-                body: JSON.stringify({ 
-                    action: "loginStudent", 
-                    name: localStorage.getItem('studentName'), 
-                    password: localStorage.getItem('studentPass') 
-                }) 
-            });
-            const sData = await studentRes.json();
-            
-            renderPortfolio(sData.student.portfolio, market);
-            renderMarket(market);
+            try {
+                const res = await fetch(WEB_APP_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ action: "getMarketData" }) 
+                });
+                const market = await res.json();
+                
+                const studentRes = await fetch(WEB_APP_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ 
+                        action: "loginStudent", 
+                        name: localStorage.getItem('studentName'), 
+                        password: localStorage.getItem('studentPass') 
+                    }) 
+                });
+                const sData = await studentRes.json();
+                
+                renderPortfolio(sData.student.portfolio, market);
+                renderMarket(market);
+            } catch (e) {
+                console.error("Load failed", e);
+            }
         }
 
         function renderPortfolio(portfolio, market) {
@@ -132,7 +144,7 @@
                 card.innerHTML = `
                     <div>
                         <strong>${stock[1]} (${stock[0]})</strong><br>
-                        <button onclick="showChart('${stock[0]}')" style="background: #3498db; padding: 2px 8px; font-size: 0.8em;">Trend 📈</button>
+                        <button onclick="showChart('${stock[0]}')" style="background: #3498db; padding: 2px 8px; font-size: 0.8em; margin-top:5px;">Trend 📈</button>
                     </div>
                     <div style="text-align: right;">
                         <span style="font-size: 1.2em;">$${parseFloat(stock[2]).toFixed(2)}</span><br>
@@ -140,7 +152,10 @@
                     </div>
                     <div class="trade-controls">
                         <input type="number" id="qty-${stock[0]}" placeholder="Qty" min="1">
-                        <button onclick="executeTrade('${stock[0]}', 'BUY')" style="background: #2ecc71;">Buy</button>
+                        <div class="btn-group">
+                            <button onclick="executeTrade('${stock[0]}', 'BUY')" style="background: #2ecc71; padding: 5px 12px;">Buy</button>
+                            <button onclick="executeTrade('${stock[0]}', 'SELL')" style="background: #e74c3c; padding: 5px 12px;">Sell</button>
+                        </div>
                     </div>
                 `;
                 list.appendChild(card);
@@ -168,7 +183,8 @@
                 hAxis: { textPosition: 'none', gridlines: {color: '#444'} },
                 vAxis: { gridlines: {color: '#444'}, textStyle: {color: '#fff'} },
                 titleTextStyle: { color: '#fff' },
-                colors: ['#2ecc71']
+                colors: ['#2ecc71'],
+                lineWidth: 3
             };
             const chart = new google.visualization.LineChart(document.getElementById('chart_div'));
             chart.draw(data, options);
@@ -177,6 +193,10 @@
         async function executeTrade(ticker, type) {
             const qty = document.getElementById(`qty-${ticker}`).value;
             if (!qty || qty <= 0) return alert("Enter a quantity!");
+            
+            const confirmMsg = type === "BUY" ? `Buy ${qty} shares of ${ticker}?` : `Sell ${qty} shares of ${ticker}?`;
+            if(!confirm(confirmMsg)) return;
+
             const res = await fetch(WEB_APP_URL, {
                 method: "POST",
                 body: JSON.stringify({
@@ -188,11 +208,19 @@
                 })
             });
             const data = await res.json();
-            if (data.success) { alert("Success!"); loadMarketData(); }
-            else { alert("Failed: " + data.message); }
+            if (data.success) { 
+                alert("Trade Successful!"); 
+                loadMarketData(); 
+            } else { 
+                alert("Trade Failed: " + data.message); 
+            }
         }
 
+        // Initial Load
         loadMarketData();
+
+        // Auto-refresh market every 2 minutes
+        setInterval(loadMarketData, 120000);
     </script>
 </body>
 </html>
