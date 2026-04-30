@@ -5,7 +5,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <style>
       input:disabled { background: transparent; border: none; color: inherit; }
-      .print-all-btn { background-color: #2ecc71; color: white; margin-bottom: 20px; width: 100%; }
+      /* Styled buttons to sit side-by-side */
+      .action-row { display: flex; gap: 10px; margin-bottom: 20px; }
+      .print-all-btn { background-color: #2ecc71; color: white; flex: 1; margin: 0; }
+      .leaderboard-btn { background-color: #f1c40f; color: #000; flex: 1; font-weight: bold; margin: 0; }
       table { width: 100%; }
     </style>
   </head>
@@ -13,8 +16,9 @@
     <h1>👨‍🏫 Teacher Admin Panel</h1>
     <a href="index.html">← Back to POS</a>
     
-    <section>
+    <section class="action-row">
       <button class="print-all-btn" onclick="runPrintClassQRs()">🖨️ Print All Class QR Codes</button>
+      <button class="leaderboard-btn" onclick="window.location.href='leaderboard.html'">🏆 View Leaderboard</button>
     </section>
     
     <section>
@@ -100,7 +104,7 @@
 
       function toggleEdit(id) {
         const n = document.getElementById(`name-${id}`);
-        const p = document.getElementById(`pass-${id}`); // Added password selector
+        const p = document.getElementById(`pass-${id}`); 
         const b = document.getElementById(`bal-${id}`);
         const btn = document.getElementById(`btn-${id}`);
 
@@ -110,7 +114,6 @@
           b.disabled = false; 
           btn.innerText = "💾 Save"; 
         } else { 
-          // Now passing p.value (password) to the save function
           saveStudent(id, n.value, b.value, p.value); 
           n.disabled = true; 
           p.disabled = true; 
