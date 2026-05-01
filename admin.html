@@ -5,25 +5,37 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <style>
       input:disabled { background: transparent; border: none; color: inherit; }
-      /* Styled buttons to sit side-by-side */
       .action-row { display: flex; gap: 10px; margin-bottom: 20px; }
       .print-all-btn { background-color: #2ecc71; color: white; flex: 1; margin: 0; }
       .leaderboard-btn { background-color: #f1c40f; color: #000; flex: 1; font-weight: bold; margin: 0; }
       
-      /* Market Control Styles */
-      .market-section { 
-        background: #fdf2f2; 
-        padding: 15px; 
-        border-radius: 8px; 
-        border: 1px solid #facccc; 
+      /* NEW Market Dashboard Styles */
+      .market-dashboard { 
+        background: #1e293b; 
+        color: white; 
+        padding: 20px; 
+        border-radius: 12px; 
         margin-top: 30px; 
-        margin-bottom: 30px;
+        border: 2px solid #3b82f6;
       }
-      .crisis-btn { color: white; flex: 1; font-weight: bold; border: none; }
+      .status-box {
+        background: #334155;
+        padding: 15px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .market-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      .market-table th { color: #94a3b8; text-align: left; }
+      .market-table td { border-bottom: 1px solid #334155; padding: 8px 0; }
+      
+      .crisis-btn { color: white; flex: 1; font-weight: bold; border: none; padding: 10px; cursor: pointer; border-radius: 4px; }
       .disaster { background-color: #e67e22; }
       .inflation { background-color: #d35400; }
       .war { background-color: #c0392b; }
-      .recovery { background-color: #27ae60; color: white; width: 100%; margin-top: 10px; }
+      .recovery { background-color: #27ae60; width: 100%; margin-top: 10px; border: none; color: white; padding: 10px; cursor: pointer; border-radius: 4px; }
       
       table { width: 100%; }
     </style>
@@ -32,14 +44,39 @@
     <h1>👨‍🏫 Teacher Admin Panel</h1>
     <a href="index.html">← Back to POS</a>
     
-    <section class="action-row">
+    <section class="action-row" style="margin-top:20px;">
       <button class="print-all-btn" onclick="runPrintClassQRs()">🖨️ Print All Class QR Codes</button>
       <button class="leaderboard-btn" onclick="window.location.href='leaderboard.html'">🏆 View Leaderboard</button>
     </section>
-    
-    <section class="market-section">
-      <h3 style="color: #c0392b; margin-top: 0;">📉 Global Economic Events</h3>
-      <p style="font-size: 0.9rem; color: #666;">Warning: These buttons instantly change all stock prices in the Market tab.</p>
+
+    <section class="market-dashboard">
+      <h2 style="color: #60a5fa; margin-top: 0;">🏛️ Wall Street Control Center</h2>
+      
+      <div class="status-box">
+        <div>
+          <span style="font-size: 0.8rem; color: #94a3b8; display: block;">EXCHANGE STATUS</span>
+          <strong id="marketStatusLabel" style="font-size: 1.2rem;">LOADING...</strong>
+        </div>
+        <div>
+          <button onclick="setMarketStatus('OPEN')" style="background: #22c55e; color: white; border:none; padding: 8px 15px; border-radius:4px; cursor:pointer;">OPEN</button>
+          <button onclick="setMarketStatus('CLOSED')" style="background: #ef4444; color: white; border:none; padding: 8px 15px; border-radius:4px; cursor:pointer;">CLOSE</button>
+        </div>
+      </div>
+
+      <h3>📊 Manual Price Adjustment</h3>
+      <table class="market-table">
+        <thead>
+          <tr>
+            <th>TICKER</th>
+            <th>PRICE</th>
+            <th>NEW PRICE</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody id="marketAdminBody"></tbody>
+      </table>
+
+      <h3 style="color: #f87171; margin-top: 20px;">📉 Global Economic Events</h3>
       <div class="action-row">
         <button class="crisis-btn disaster" onclick="triggerCrisis('Natural Disaster', 0.10)">🌪️ Disaster (-10%)</button>
         <button class="crisis-btn inflation" onclick="triggerCrisis('Oil Inflation', 0.25)">📉 Inflation (-25%)</button>
@@ -48,7 +85,7 @@
       <button class="recovery" onclick="triggerCrisis('Market Boom', -0.20)">🚀 Economic Recovery (+20%)</button>
     </section>
 
-    <section>
+    <section style="margin-top:40px;">
       <h3>Add New Student</h3>
       <input type="text" id="name" placeholder="Student Name">
       <input type="text" id="pass" placeholder="Password">
@@ -69,7 +106,6 @@
     </table>
 
     <script>
-      // MAKE SURE THIS URL MATCHES YOUR LATEST DEPLOYMENT
       const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwXedSG4RJLOAfAapGxS5pjv-6zZ4mJTvCzIuunT4NsPe3UIbnLFe2J3qpiNBs6SfOo/exec";
 
       async function callServer(payload) {
@@ -77,67 +113,71 @@
         return await response.json();
       }
 
-      // --- MARKET CRISIS FUNCTION ---
-      async function triggerCrisis(name, percent) {
-        const message = percent > 0 
-          ? `Are you sure? This will CRASH the market by ${percent * 100}%!` 
-          : `Apply a market recovery of ${Math.abs(percent * 100)}%?`;
-          
-        if (!confirm(message)) return;
+      // --- MARKET CONTROLS ---
+      async function loadMarketAdmin() {
+        const marketData = await callServer({ action: "getMarketData" });
+        const statusData = await callServer({ action: "getMarketStatus" });
         
-        try {
-          const res = await callServer({ 
-            action: "triggerMarketEvent", 
-            eventName: name, 
-            dropPercent: percent 
-          });
-          if(res.success) alert("Market Updated: " + name);
-          else alert("Error triggering event.");
-        } catch (err) {
-          alert("Connection failed.");
+        const statusLabel = document.getElementById('marketStatusLabel');
+        statusLabel.innerText = statusData.status;
+        statusLabel.style.color = statusData.status === "OPEN" ? "#22c55e" : "#ef4444";
+
+        const body = document.getElementById('marketAdminBody');
+        body.innerHTML = marketData.map(stock => `
+          <tr>
+            <td><strong>${stock[0]}</strong></td>
+            <td style="color: #22c55e;">$${parseFloat(stock[2]).toFixed(2)}</td>
+            <td><input type="number" id="price-${stock[0]}" style="width: 70px; padding: 4px; background:#334155; color:white; border:1px solid #475569;" placeholder="$"></td>
+            <td><button onclick="updatePrice('${stock[0]}')" style="background: #3b82f6; padding: 4px 8px; font-size: 0.7rem;">SET</button></td>
+          </tr>
+        `).join('');
+      }
+
+      async function setMarketStatus(status) {
+        await callServer({ action: "toggleMarket", status: status });
+        loadMarketAdmin();
+      }
+
+      async function updatePrice(ticker) {
+        const val = document.getElementById(`price-${ticker}`).value;
+        if(!val) return;
+        const res = await callServer({ action: "updateSingleStock", ticker: ticker, newPrice: val });
+        if(res.success) {
+          alert(`${ticker} set to $${val}`);
+          loadMarketAdmin();
         }
       }
 
+      async function triggerCrisis(name, percent) {
+        const message = percent > 0 ? `Crash market by ${percent * 100}%?` : `Recovery of ${Math.abs(percent * 100)}%?`;
+        if (!confirm(message)) return;
+        const res = await callServer({ action: "triggerMarketEvent", eventName: name, dropPercent: percent });
+        if(res.success) {
+          alert("Market Updated: " + name);
+          loadMarketAdmin();
+        }
+      }
+
+      // --- STUDENT CONTROLS ---
       async function runPrintClassQRs() {
         const win = window.open("", "_blank");
-        win.document.write("<html><body><h1 style='font-family:sans-serif;'>Generating QR Sheet... Please wait.</h1></body></html>");
-        
-        try {
-          const result = await callServer({ action: "getPrintData" });
-          if (typeof result === 'string' && result.startsWith("Error")) {
-            win.document.write("<h1>Server Error:</h1><p>" + result + "</p>");
-            return;
-          }
-
-          let html = `<html><body style="font-family:sans-serif; text-align:center;">`;
-          html += `<h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
-          
-          result.forEach(s => {
-            let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
-            html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px; margin:10px;">
-                        <p style="font-weight:bold;">${s[1]}</p>
-                        <img src="${qrUrl}" style="width:150px; height:150px;">
-                      </div>`;
-          });
-          
-          html += `</div><script>setTimeout(function(){ window.print(); }, 2000);<\/script></body></html>`;
-          win.document.open();
-          win.document.write(html);
-          win.document.close();
-        } catch (err) {
-          win.document.write("<h1>Connection Error:</h1><p>Check your internet or deployment settings.</p>");
-        }
+        win.document.write("<html><body><h1>Generating QR Sheet...</h1></body></html>");
+        const result = await callServer({ action: "getPrintData" });
+        let html = `<html><body style="font-family:sans-serif; text-align:center;"><h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
+        result.forEach(s => {
+          let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
+          html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px;">
+                    <p style="font-weight:bold;">${s[1]}</p>
+                    <img src="${qrUrl}" style="width:150px; height:150px;">
+                  </div>`;
+        });
+        html += `</div><script>setTimeout(function(){ window.print(); }, 2000);<\/script></body></html>`;
+        win.document.open(); win.document.write(html); win.document.close();
       }
 
       async function loadStudents() {
         const students = await callServer({ action: "getStudents" }); 
         const body = document.getElementById('studentBody');
-        
-        if (!students || students.length === 0) {
-            body.innerHTML = '<tr><td colspan="5">No students found.</td></tr>';
-            return;
-        }
-
         body.innerHTML = '';
         students.forEach(s => {
           body.innerHTML += `<tr>
@@ -145,7 +185,7 @@
             <td><input type="text" id="name-${s[0]}" value="${s[1]}" disabled></td>
             <td><input type="text" id="pass-${s[0]}" value="${s[2]}" disabled></td>
             <td><input type="number" id="bal-${s[0]}" value="${s[3]}" disabled></td>
-            <td><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')">✏️ Edit</button></td>
+            <td><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')">✏️</button></td>
           </tr>`;
         });
       }
@@ -155,31 +195,16 @@
         const p = document.getElementById(`pass-${id}`); 
         const b = document.getElementById(`bal-${id}`);
         const btn = document.getElementById(`btn-${id}`);
-
         if (n.disabled) { 
-          n.disabled = false; 
-          p.disabled = false; 
-          b.disabled = false; 
-          btn.innerText = "💾 Save"; 
+          n.disabled = p.disabled = b.disabled = false; btn.innerText = "💾"; 
         } else { 
           saveStudent(id, n.value, b.value, p.value); 
-          n.disabled = true; 
-          p.disabled = true; 
-          b.disabled = true; 
-          btn.innerText = "✏️ Edit"; 
+          n.disabled = p.disabled = b.disabled = true; btn.innerText = "✏️"; 
         }
       }
 
       async function saveStudent(id, name, balance, password) {
-        const res = await callServer({ 
-          action: "updateStudent", 
-          id: id, 
-          name: name, 
-          balance: balance, 
-          password: password 
-        });
-        if(res.success) alert("Student updated!");
-        else alert("Error saving student.");
+        await callServer({ action: "updateStudent", id: id, name: name, balance: balance, password: password });
       }
 
       async function createNewStudent() {
@@ -187,12 +212,13 @@
         const pass = document.getElementById('pass').value;
         if(!name || !pass) return alert("Enter name and password");
         await callServer({ action: "addStudent", name: name, password: pass });
-        document.getElementById('name').value = '';
-        document.getElementById('pass').value = '';
+        document.getElementById('name').value = document.getElementById('pass').value = '';
         loadStudents();
       }
 
+      // Start up
       loadStudents();
+      loadMarketAdmin();
     </script>
   </body>
 </html>
