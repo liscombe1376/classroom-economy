@@ -9,16 +9,34 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
         .glass-card { background: #161d2f; border: 1px solid #2d3748; }
+        
+        /* Loading Spinner Animation */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="p-8">
     <div class="max-w-5xl mx-auto">
         <header class="flex justify-between items-center mb-8">
             <div>
-                <h1 class="text-3xl font-bold">📦 Pending Orders</h1>
-                <p class="text-slate-400">Items waiting to be packaged and delivered</p>
+                <h1 class="text-3xl font-bold tracking-tight">📦 Pending Orders</h1>
+                <p class="text-slate-400 mt-1">Live fulfillment queue for STEM shop</p>
             </div>
-            <button onclick="location.href='admin.html'" class="text-slate-400 hover:text-white">← Back</button>
+            <div class="flex items-center gap-4">
+                <div id="statusIndicator" class="hidden flex items-center gap-2 text-xs font-bold text-blue-400 uppercase tracking-widest">
+                    <div class="spinner"></div> Updating
+                </div>
+                <button onclick="location.href='admin.html'" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition border border-slate-700">
+                    ← Back to Admin
+                </button>
+            </div>
         </header>
 
         <div class="glass-card rounded-3xl overflow-hidden shadow-2xl">
@@ -27,34 +45,64 @@
                     <tr>
                         <th class="p-5">Time</th>
                         <th class="p-5">Student</th>
-                        <th class="p-5">Items</th>
-                        <th class="p-5">Total</th>
+                        <th class="p-5">Items Purchased</th>
+                        <th class="p-5 text-right">Total Charge</th>
                     </tr>
                 </thead>
                 <tbody id="orderList" class="divide-y divide-slate-800">
-                    </tbody>
+                    <tr>
+                        <td colspan="4" class="p-20 text-center text-slate-500">
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="spinner mx-auto"></div>
+                                Connecting to ClassBank...
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>
 
     <script>
+        // Update this URL whenever you do a "New Deployment" in Apps Script
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwk2VOK1o5mmOj2BAAuekLOD5ti3bDZUToa0UAZ0Kov-Hm_MdX0kqnT8QUwz6Vkz6RP/exec";
 
         async function loadOrders() {
-            const res = await fetch(WEB_APP_URL + "?action=getOrders");
-            const orders = await res.json();
-            const list = document.getElementById('orderList');
-            list.innerHTML = orders.reverse().map(o => `
-                <tr class="hover:bg-slate-800/30">
-                    <td class="p-5 text-xs text-slate-500 font-mono">${new Date(o[0]).toLocaleTimeString()}</td>
-                    <td class="p-5 font-bold text-white">${o[1]}</td>
-                    <td class="p-5 text-sm text-slate-300">${o[2]}</td>
-                    <td class="p-5 font-mono text-emerald-400 font-bold">$${parseFloat(o[3]).toFixed(2)}</td>
-                </tr>
-            `).join('');
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.classList.remove('hidden');
+
+            try {
+                // Fetch with action and a timestamp to force fresh data
+                const res = await fetch(`${WEB_APP_URL}?action=getOrders&t=${Date.now()}`);
+                const orders = await res.json();
+                const list = document.getElementById('orderList');
+                
+                if (!orders || orders.length === 0) {
+                    list.innerHTML = `<tr><td colspan="4" class="p-20 text-center text-slate-500 font-medium italic">No pending orders found in the sheet.</td></tr>`;
+                } else {
+                    // Show newest orders at the top
+                    list.innerHTML = orders.reverse().map(o => `
+                        <tr class="hover:bg-slate-800/30 transition-colors">
+                            <td class="p-5 text-xs text-slate-500 font-mono">${new Date(o[0]).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                            <td class="p-5 font-bold text-white">${o[1]}</td>
+                            <td class="p-5 text-sm text-slate-300 leading-relaxed">${o[2]}</td>
+                            <td class="p-5 font-mono text-emerald-400 font-bold text-right">$${parseFloat(o[3]).toFixed(2)}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error("Fetch Error:", err);
+                document.getElementById('orderList').innerHTML = `<tr><td colspan="4" class="p-20 text-center text-rose-400">⚠️ Error connecting to server. Check deployment URL.</td></tr>`;
+            } finally {
+                statusIndicator.classList.add('hidden');
+            }
         }
+
+        // Run immediately
         loadOrders();
-        setInterval(loadOrders, 30000); // Auto-refresh every 30 seconds
+        
+        // Auto-refresh every 20 seconds
+        setInterval(loadOrders, 20000);
     </script>
 </body>
 </html>
