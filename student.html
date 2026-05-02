@@ -70,9 +70,14 @@
     <div id="bankSection" class="w-full max-w-2xl space-y-6 mx-auto">
         <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <h1 id="displayName" class="text-3xl font-bold text-white tracking-tight"></h1>
-            <button onclick="location.href='market.html'" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-6 py-3 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2">
-                📈 Wall Street Market
-            </button>
+            <div class="flex gap-2">
+                <button onclick="location.href='store.html'" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-4 py-3 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2">
+                    🏎️ Car Shop
+                </button>
+                <button onclick="location.href='market.html'" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-4 py-3 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2">
+                    📈 Wall Street
+                </button>
+            </div>
         </header>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -132,7 +137,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvxl71LVk2Z1SohSZtrAbWRFRvpoUCrtXN3E7T6sdl9Q-bNG2-uUZggq9BU1WUOzT4/exec"; 
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyxIWLy0J30R7w2cnlTN9EFiGUt4UoSqqu54MYPD6a_s6O6AVldVnxrgZHEVY03ChG4/exec"; 
         let currentStudentID = "";
 
         async function login() {
