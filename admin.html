@@ -23,15 +23,18 @@
             <a href="index.html" class="text-blue-400 hover:text-blue-300 font-semibold text-sm transition">← Exit to POS</a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <button onclick="runPrintClassQRs()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition">
-                🖨️ Generate Class QR Sheet
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <button onclick="runPrintClassQRs()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">
+                🖨️ Class QR Sheet
             </button>
-            <button onclick="window.location.href='leaderboard.html'" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 px-6 rounded-xl shadow-lg transition">
-                🏆 Global Wealth Leaderboard
+            <button onclick="window.location.href='leaderboard.html'" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">
+                🏆 Wealth Leaderboard
             </button>
-            <button onclick="window.location.href='inventory.html'" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition">
-                📦 Manage Store Inventory
+            <button onclick="window.location.href='inventory.html'" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">
+                📦 Manage Inventory
+            </button>
+            <button onclick="window.location.href='orders.html'" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">
+                📋 View Customer Orders
             </button>
         </div>
 
@@ -101,7 +104,8 @@
     </div>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw-znjofeXV5QyLj0P41uxd33tcQFhIAUlbIm9wgLo6dz9imJFNvw2fMfKRj_BmBxPm/exec";
+        // Updated URL from your previous store configuration
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyxIWLy0J30R7w2cnlTN9EFiGUt4UoSqqu54MYPD6a_s6O6AVldVnxrgZHEVY03ChG4/exec";
 
         async function callServer(payload) {
             const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
