@@ -1,110 +1,171 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>POS Terminal | ClassBank</title>
     <link rel="apple-touch-icon" href="https://drive.google.com/uc?id=1J5VOPR10n0AcOZwQlCvSxiKuIBV8cTrw">
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-      body { max-width: 500px; margin: auto; text-align: center; font-size: 1.2rem; }
-      select, button { font-size: 1.5rem !important; padding: 15px !important; margin: 10px 0 !important; width: 100% !important; }
-      h1 { font-size: 2rem; }
-      #reader { width: 100%; border: 4px solid #333; border-radius: 12px; margin: 20px 0; }
-      .secondary { background-color: #555; color: white; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
+        .glass-card { background: #161d2f; border: 1px solid #2d3748; }
+        /* Style the QR reader container */
+        #reader { border: none !important; overflow: hidden; border-radius: 1rem; }
+        #reader__scan_region { background: #000; }
+        video { border-radius: 1rem; }
     </style>
-  </head>
-  <body>
-    <h1>💰 Classroom POS</h1>
-    
-    <label>Action</label>
-    <select id="actionSelect" onchange="updateDropdown()">
-      <option value="Sale">Store Sale</option>
-      <option value="Reward">Reward/Income</option>
-      <option value="Custom">Custom Reward</option>
-      <option value="Pool">Group Purchase (Split Bill)</option>
-    </select>
-    
-    <select id="itemSelect"></select>
-    
-    <button class="secondary" onclick="payClass()">🚀 Pay Class Bonus</button>
-    <button onclick="confirmAndScan()">📷 Start Scanner</button>
-    
-    <div id="reader"></div>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md glass-card rounded-3xl shadow-2xl p-6 md:p-8">
+        <div class="text-center mb-8">
+            <div class="inline-block bg-blue-600/20 text-blue-500 p-3 rounded-2xl mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">POS Terminal</h1>
+            <p class="text-slate-400 text-sm">Scan QR to process transaction</p>
+        </div>
+
+        <div class="space-y-6">
+            <div>
+                <label class="block text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 ml-1">Transaction Type</label>
+                <select id="actionSelect" onchange="updateDropdown()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-4 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                    <option value="Sale">🛒 Store Sale</option>
+                    <option value="Reward">🎁 Reward / Income</option>
+                    <option value="Custom">✨ Custom Reward</option>
+                    <option value="Pool">👥 Group Purchase</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 ml-1">Select Item</label>
+                <select id="itemSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-4 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                    </select>
+            </div>
+
+            <button onclick="confirmAndScan()" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-5 rounded-2xl shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-3 text-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Launch Scanner
+            </button>
+
+            <div class="grid grid-cols-1 gap-3 pt-4 border-t border-slate-800">
+                <button onclick="payClass()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 rounded-xl transition text-sm">
+                    🚀 Pay Class Bonus
+                </button>
+                <button onclick="window.location.href='admin.html'" class="w-full text-slate-500 hover:text-slate-300 py-2 text-xs font-bold uppercase tracking-widest transition">
+                    Admin Panel
+                </button>
+            </div>
+        </div>
+
+        <div id="reader" class="mt-6"></div>
+    </div>
 
     <script>
-      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyxIWLy0J30R7w2cnlTN9EFiGUt4UoSqqu54MYPD6a_s6O6AVldVnxrgZHEVY03ChG4/exec";
-      let isPooling = false, studentsToPool = 0, studentsScanned = 0, finalPrice = 0;
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyxIWLy0J30R7w2cnlTN9EFiGUt4UoSqqu54MYPD6a_s6O6AVldVnxrgZHEVY03ChG4/exec";
+        let isPooling = false, studentsToPool = 0, studentsScanned = 0, finalPrice = 0;
 
-      async function callServer(payload) {
-        const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
-        return await response.json();
-      }
-
-      async function updateDropdown() {
-        const action = document.getElementById('actionSelect').value;
-        const data = await callServer({ action: (action === "Sale" || action === "Pool") ? "getItems" : "getGoals" });
-        const select = document.getElementById('itemSelect');
-        select.innerHTML = '';
-        select.style.display = (action === "Custom") ? "none" : "block";
-        if (action !== "Custom") {
-          data.forEach(row => {
-            let opt = document.createElement('option');
-            opt.value = row[1]; opt.text = row[0] + " ($" + row[1] + ")";
-            select.appendChild(opt);
-          });
+        async function callServer(payload) {
+            const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
+            return await response.json();
         }
-      }
 
-      async function confirmAndScan() {
-        const action = document.getElementById('actionSelect').value;
-        let amount = 0;
-        if (action === "Custom") {
-          amount = parseFloat(prompt("Enter custom reward amount:", "50"));
-          if (!amount || isNaN(amount)) return alert("Invalid amount.");
-        } else {
-          amount = parseFloat(document.getElementById('itemSelect').value);
-          if (!amount) return alert("Please select an item.");
-        }
-        const tax = (action === "Sale" || action === "Pool") ? 0.13 : 0;
-        finalPrice = (amount * (1 + tax)).toFixed(2);
-        if(action === "Pool") {
-            studentsToPool = parseInt(prompt("How many students are splitting the total of $"+finalPrice+"?", "2"));
-            finalPrice = (finalPrice / studentsToPool).toFixed(2);
-            isPooling = true;
-        } else { isPooling = false; }
-        if(confirm(`Amount per student: $${finalPrice}. Confirm?`)) { startScan(); }
-      }
-
-      function startScan() {
-        const scanner = new Html5Qrcode("reader");
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (data) => {
-          scanner.stop();
-          const result = await callServer({ 
-            action: isPooling ? "poolTransaction" : "processTransaction", 
-            studentID: data, amount: finalPrice, 
-            type: document.getElementById('actionSelect').value, 
-            description: "Purchase/Reward" 
-          });
-          if(result.success) {
-            alert("✅ SUCCESS!");
-            if(isPooling) {
-                studentsScanned++;
-                if(studentsScanned < studentsToPool) { alert(`Next student...`); startScan(); }
-                else { alert("All done!"); isPooling = false; studentsScanned = 0; }
+        async function updateDropdown() {
+            const action = document.getElementById('actionSelect').value;
+            const data = await callServer({ action: (action === "Sale" || action === "Pool") ? "getItems" : "getGoals" });
+            const select = document.getElementById('itemSelect');
+            select.innerHTML = '';
+            select.parentElement.style.display = (action === "Custom") ? "none" : "block";
+            
+            if (action !== "Custom") {
+                data.forEach(row => {
+                    let opt = document.createElement('option');
+                    opt.value = row[1]; 
+                    opt.text = `${row[0]} ($${parseFloat(row[1]).toFixed(2)})`;
+                    select.appendChild(opt);
+                });
             }
-          } else { alert("❌ DECLINED: " + result.message); isPooling = false; }
-        });
-      }
-
-      async function payClass() {
-        const amt = prompt("How many credits for every student?", "100");
-        if(amt && confirm("Give "+amt+" credits to everyone?")) {
-            const res = await callServer({ action: "payClass", amount: amt });
-            alert(res.success ? "Bonus sent!" : "Error");
         }
-      }
-      updateDropdown();
+
+        async function confirmAndScan() {
+            const action = document.getElementById('actionSelect').value;
+            let amount = 0;
+            if (action === "Custom") {
+                amount = parseFloat(prompt("Enter custom reward amount:", "50"));
+                if (!amount || isNaN(amount)) return;
+            } else {
+                amount = parseFloat(document.getElementById('itemSelect').value);
+                if (!amount) return alert("Please select an item.");
+            }
+            
+            const tax = (action === "Sale" || action === "Pool") ? 0.13 : 0;
+            finalPrice = (amount * (1 + tax)).toFixed(2);
+            
+            if(action === "Pool") {
+                studentsToPool = parseInt(prompt(`The total is $${finalPrice}. How many students are splitting it?`, "2"));
+                if(!studentsToPool) return;
+                finalPrice = (finalPrice / studentsToPool).toFixed(2);
+                isPooling = true;
+            } else { isPooling = false; }
+            
+            if(confirm(`Process $${finalPrice} for this student?`)) { startScan(); }
+        }
+
+        function startScan() {
+            const scanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            scanner.start({ facingMode: "environment" }, config, async (data) => {
+                scanner.stop();
+                document.getElementById('reader').classList.add('opacity-50');
+                
+                const result = await callServer({ 
+                    action: isPooling ? "poolTransaction" : "processTransaction", 
+                    studentID: data, 
+                    amount: finalPrice, 
+                    type: document.getElementById('actionSelect').value, 
+                    description: "POS Checkout" 
+                });
+
+                document.getElementById('reader').classList.remove('opacity-50');
+
+                if(result.success) {
+                    // Using a simple alert, but styled to feel like a success
+                    if(isPooling) {
+                        studentsScanned++;
+                        if(studentsScanned < studentsToPool) {
+                            alert(`✅ Payment Accepted! (${studentsScanned}/${studentsToPool})\n\nScan the next student.`);
+                            startScan();
+                        } else {
+                            alert("✅ Group purchase complete! All students have paid.");
+                            isPooling = false; studentsScanned = 0;
+                        }
+                    } else {
+                        alert("✅ TRANSACTION COMPLETE\nBalance Updated Successfully.");
+                    }
+                } else {
+                    alert("❌ DECLINED\n" + result.message);
+                    isPooling = false;
+                }
+            });
+        }
+
+        async function payClass() {
+            const amt = prompt("Enter bonus amount for EVERY student:", "100");
+            if(amt && confirm(`Are you sure you want to distribute $${amt} to everyone?`)) {
+                const res = await callServer({ action: "payClass", amount: amt });
+                alert(res.success ? "💰 Class Bonus Distributed!" : "Error processing bonus.");
+            }
+        }
+        
+        updateDropdown();
     </script>
-  </body>
+</body>
 </html>
