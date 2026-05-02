@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEM Car Shop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
+        .glass-card { background: #161d2f; border: 1px solid #2d3748; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-white tracking-tight">🏎️ STEM Car Shop</h1>
+                <p class="text-slate-400">Inventory synced from Google Sheets</p>
+            </div>
+            <button onclick="location.href='index.html'" class="text-blue-400 hover:text-white font-bold transition">← Back to Bank</button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-4" id="partGrid">
+                <div class="p-10 text-center text-slate-500 animate-pulse">Loading parts catalog...</div>
+            </div>
+
+            <div class="glass-card p-6 rounded-3xl h-fit sticky top-8 shadow-2xl">
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-2">🛒 Your Cart</h2>
+                <div id="cartItems" class="space-y-4 mb-6 border-b border-slate-800 pb-6 max-h-[400px] overflow-y-auto">
+                    <p class="text-slate-500 text-sm italic text-center">No parts selected</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400 font-bold text-xs uppercase">Total Cost</span>
+                        <span id="cartTotal" class="text-2xl font-bold text-emerald-400 font-mono">$0.00</span>
+                    </div>
+                    <button onclick="checkout()" id="checkoutBtn" disabled class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white font-bold py-4 rounded-2xl transition transform active:scale-95">
+                        Confirm Purchase
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "YOUR_APPS_SCRIPT_URL"; 
+        let cart = [];
+
+        async function loadParts() {
+            try {
+                const response = await fetch(WEB_APP_URL + "?action=getStoreItems");
+                const parts = await response.json();
+                const grid = document.getElementById('partGrid');
+                grid.innerHTML = '';
+
+                parts.forEach((part, idx) => {
+                    grid.innerHTML += `
+                        <div class="glass-card p-6 rounded-2xl flex justify-between items-center gap-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-white">${part[0]}</h3>
+                                <p class="text-slate-400 text-sm">${part[2] || 'Standard Part'}</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-lg font-mono font-bold text-blue-400">$${parseFloat(part[1]).toFixed(2)}</span>
+                                <input type="number" id="qty-${idx}" value="1" min="1" class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center font-bold">
+                                <button onclick="addToCart('${part[0]}', ${part[1]}, 'qty-${idx}')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition">Add</button>
+                            </div>
+                        </div>`;
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function addToCart(name, price, qtyId) {
+            const qty = parseInt(document.getElementById(qtyId).value);
+            const existing = cart.find(i => i.name === name);
+            if (existing) { existing.qty += qty; } else { cart.push({ name, price, qty }); }
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cartItems');
+            const totalEl = document.getElementById('cartTotal');
+            container.innerHTML = '';
+            let total = 0;
+            cart.forEach((item, idx) => {
+                total += item.price * item.qty;
+                container.innerHTML += `<div class="flex justify-between text-sm"><span>${item.qty}x ${item.name}</span><span>$${(item.price * item.qty).toFixed(2)}</span></div>`;
+            });
+            totalEl.innerText = `$${total.toFixed(2)}`;
+            document.getElementById('checkoutBtn').disabled = cart.length === 0;
+        }
+
+        async function checkout() {
+            const studentID = localStorage.getItem('studentID');
+            const studentName = localStorage.getItem('studentName');
+            
+            const btn = document.getElementById('checkoutBtn');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+
+            const res = await fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "purchaseItems",
+                    studentID: studentID,
+                    studentName: studentName,
+                    cart: cart,
+                    total: parseFloat(document.getElementById('cartTotal').innerText.replace('$', ''))
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert("Purchase complete! Order sent to teacher.");
+                cart = []; renderCart();
+            } else { alert("Error: " + data.message); btn.innerText = "Confirm Purchase"; btn.disabled = false; }
+        }
+        loadParts();
+    </script>
+</body>
+</html>
