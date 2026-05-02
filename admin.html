@@ -23,12 +23,15 @@
             <a href="index.html" class="text-blue-400 hover:text-blue-300 font-semibold text-sm transition">← Exit to POS</a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <button onclick="runPrintClassQRs()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition">
                 🖨️ Generate Class QR Sheet
             </button>
             <button onclick="window.location.href='leaderboard.html'" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 px-6 rounded-xl shadow-lg transition">
                 🏆 Global Wealth Leaderboard
+            </button>
+            <button onclick="window.location.href='inventory.html'" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition">
+                📦 Manage Store Inventory
             </button>
         </div>
 
@@ -54,8 +57,7 @@
                             <th class="pb-3 text-right">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="marketAdminBody" class="divide-y divide-slate-800">
-                        </tbody>
+                    <tbody id="marketAdminBody" class="divide-y divide-slate-800"></tbody>
                 </table>
             </div>
 
@@ -92,8 +94,7 @@
                             <th class="pb-3 text-right">Edit</th>
                         </tr>
                     </thead>
-                    <tbody id="studentBody" class="divide-y divide-slate-800">
-                        </tbody>
+                    <tbody id="studentBody" class="divide-y divide-slate-800"></tbody>
                 </table>
             </div>
         </div>
@@ -146,7 +147,6 @@
             `).join('');
         }
 
-        // Logic functions remain identical to your original code
         function toggleEdit(id) {
             const n = document.getElementById(`name-${id}`);
             const p = document.getElementById(`pass-${id}`); 
