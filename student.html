@@ -1,186 +1,133 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <title>ClassBank Student Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        
         body {
-            background-color: #12181f; /* Deep dark background */
-            color: #f1f2f6;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f1a;
+            color: #f8fafc;
+        }
+
+        .glass-card {
+            background: #161d2f;
+            border: 1px solid #2d3748;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        input {
+            background: #1f2937 !important;
+            border: 1px solid #374151 !important;
+            color: white !important;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            border-color: #3b82f6 !important;
+            ring: 2px #3b82f6;
+            outline: none;
         }
 
         #bankSection { display: none; }
 
-        /* Main Account Cards (Checking/Savings) */
-        .balance-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .balance-card {
-            background: #1e272e;
-            border: 2px solid #3498db; /* Bank Blue */
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-
-        .balance-card small {
-            color: #a4b0be;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: bold;
-        }
-
-        .balance-card h2 {
-            margin: 10px 0 0 0;
-            font-size: 1.8em;
-            color: #ffffff;
-        }
-
-        /* Portfolio Box (The separate container look) */
-        .portfolio-box {
-            background-color: #2f3542 !important;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border-left: 5px solid #2ecc71; /* Green accent */
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .portfolio-box h3 { margin-top: 0; color: #2ecc71; }
+        .pos { color: #10b981; font-weight: bold; }
+        .neg { color: #f43f5e; font-weight: bold; }
         
-        .portfolio-box ul { 
-            list-style: none; 
-            padding: 0; 
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-        }
-
-        .portfolio-box li {
-            background: rgba(0,0,0,0.3);
-            padding: 10px;
-            border-radius: 8px;
-            color: #f1f2f6 !important;
-            font-weight: bold;
-            border: 1px solid #444;
-        }
-
-        /* Transfer Box (The internal action area) */
-        .transfer-box {
-            background-color: #1e272e;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid #34495e;
-        }
-
-        .transfer-box h3 { margin-top: 0; color: #f1f2f6; }
-
-        input[type="number"] {
-            background: #f1f2f6 !important;
-            color: #12181f !important;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 1.2em;
-            font-weight: bold;
-            width: 100%;
-            margin-bottom: 15px;
-        }
-
-        /* History Table */
-        table {
-            width: 100%;
-            background: #1e272e;
-            border-radius: 12px;
-            overflow: hidden;
-            border-collapse: collapse;
-        }
-
-        thead th {
-            background: #2f3542;
-            color: #a4b0be;
-            text-align: left;
-            padding: 12px;
-        }
-
-        tbody td {
-            padding: 12px;
-            border-bottom: 1px solid #2f3542;
-        }
-
-        .pos { color: #2ecc71; font-weight: bold; }
-        .neg { color: #e74c3c; font-weight: bold; }
-
-        .market-btn {
-            width: 100%;
-            background: #3498db !important;
-            font-weight: bold;
-            padding: 15px;
-            font-size: 1.1em;
-            margin-bottom: 10px;
-        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0b0f1a; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div id="loginSection">
-        <h1>💰 ClassBank Login</h1>
-        <input type="text" id="name" placeholder="Full Name">
-        <input type="password" id="pass" placeholder="Password">
-        <button onclick="login()" style="width:100%">Sign In</button>
+    <div id="loginSection" class="w-full max-w-md glass-card rounded-3xl p-8 space-y-6">
+        <div class="text-center">
+            <h1 class="text-4xl font-extrabold text-white tracking-tight">💰 ClassBank</h1>
+            <p class="text-slate-400 mt-2">Secure Student Access</p>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-400 mb-1">Identity</label>
+                <input type="text" id="name" placeholder="Full Name" class="w-full px-4 py-3 rounded-xl">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-400 mb-1">Access Key</label>
+                <input type="password" id="pass" placeholder="Password" class="w-full px-4 py-3 rounded-xl">
+            </div>
+            <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition duration-200 shadow-lg shadow-blue-900/20">
+                Sign In
+            </button>
+        </div>
     </div>
 
-    <div id="bankSection">
-        <h1 id="displayName"></h1>
-        
-        <button class="market-btn" onclick="location.href='market.html'">📈 Enter Wall Street Market</button>
-        <br><br>
+    <div id="bankSection" class="w-full max-w-2xl space-y-6 py-8">
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <h1 id="displayName" class="text-3xl font-bold text-white tracking-tight"></h1>
+            <button onclick="location.href='market.html'" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-6 py-3 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2">
+                📈 Wall Street Market
+            </button>
+        </header>
 
-        <div class="balance-grid">
-            <div class="balance-card">
-                <small>Checking</small>
-                <h2 id="balanceDisplay">$0.00</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass-card p-6 rounded-2xl border-l-4 border-blue-500">
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Checking</p>
+                <h2 id="balanceDisplay" class="text-4xl font-bold mt-2">$0.00</h2>
             </div>
-            <div class="balance-card" style="border-color: #9b59b6;">
-                <small>Savings (5%)</small>
-                <h2 id="savingsDisplay" style="color: #9b59b6;">$0.00</h2>
+            <div class="glass-card p-6 rounded-2xl border-l-4 border-purple-500">
+                <div class="flex justify-between items-center">
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Savings</p>
+                    <span class="bg-purple-900/30 text-purple-400 text-[10px] px-2 py-0.5 rounded-full border border-purple-500/30">5% APY</span>
+                </div>
+                <h2 id="savingsDisplay" class="text-4xl font-bold mt-2 text-purple-400">$0.00</h2>
             </div>
         </div>
 
-        <div class="portfolio-box" id="portfolioSection" style="display:none;">
-            <h3>📂 My Stock Portfolio</h3>
+        <div id="portfolioSection" class="glass-card p-6 rounded-2xl border-l-4 border-emerald-500" style="display:none;">
+            <h3 class="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4">📂 My Stock Portfolio</h3>
             <div id="portfolioBody"></div>
         </div>
 
-        <div class="transfer-box">
-            <h3>💸 Internal Transfer</h3>
-            <input type="number" id="transferAmount" placeholder="Amount $0.00">
-            <div style="display: flex; gap: 10px;">
-                <button onclick="transfer('toSavings')" style="flex: 1; background: #9b59b6;">Save ➡️</button>
-                <button onclick="transfer('toChecking')" style="flex: 1; background: #34495e;">Spend ⬅️</button>
+        <div class="glass-card p-6 rounded-2xl">
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">💸 Internal Transfer</h3>
+            <div class="flex flex-col md:flex-row gap-4">
+                <input type="number" id="transferAmount" placeholder="Amount $0.00" class="flex-grow px-4 py-3 rounded-xl font-bold text-lg">
+                <div class="flex gap-2">
+                    <button onclick="transfer('toSavings')" class="bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-xl font-bold transition">Save ➡️</button>
+                    <button onclick="transfer('toChecking')" class="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-xl font-bold transition">Spend ⬅️</button>
+                </div>
             </div>
         </div>
-        
-        <h3>🕒 Transaction History</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-        </table>
-        
-        <div style="text-align: center; margin-top: 30px;">
-            <button onclick="logout()" style="background: none; color: gray; font-size: 12px; border: none; cursor: pointer;">Logout / Refresh Session</button>
+
+        <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800">
+                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">🕒 Transaction History</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-900/50">
+                        <tr>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Description</th>
+                            <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody" class="divide-y divide-slate-800">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="text-center pt-4">
+            <button onclick="logout()" class="text-slate-500 hover:text-slate-300 text-xs font-bold uppercase tracking-widest transition">
+                Logout / Refresh Session
+            </button>
         </div>
     </div>
 
@@ -205,20 +152,20 @@
                 localStorage.setItem('studentPass', pass);
 
                 document.getElementById('loginSection').style.display = 'none';
+                document.body.classList.remove('flex', 'items-center', 'justify-center'); // Center for login, top for bank
                 document.getElementById('bankSection').style.display = 'block';
                 document.getElementById('displayName').innerText = "Hello, " + data.student.name;
                 
                 document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
                 document.getElementById('savingsDisplay').innerText = "$" + parseFloat(data.student.savings).toFixed(2);
                 
-                // Render Portfolio
                 const portBody = document.getElementById('portfolioBody');
                 if (data.student.portfolio && data.student.portfolio.length > 0) {
                     document.getElementById('portfolioSection').style.display = 'block';
-                    let portHtml = "<ul>";
+                    let portHtml = "<ul class='grid grid-cols-2 sm:grid-cols-3 gap-3'>";
                     data.student.portfolio.forEach(stock => {
                         if(stock.shares > 0) {
-                            portHtml += `<li>${stock.ticker}: ${stock.shares} Shrs</li>`;
+                            portHtml += `<li class="bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex justify-between items-center"><span class="font-bold">${stock.ticker}</span> <span class="text-emerald-400 text-sm">${stock.shares} Shrs</span></li>`;
                         }
                     });
                     portHtml += "</ul>";
@@ -227,16 +174,15 @@
                     document.getElementById('portfolioSection').style.display = 'none';
                 }
 
-                // Render History
                 const body = document.getElementById('historyBody');
                 body.innerHTML = '';
                 data.history.forEach(r => {
                     const amount = parseFloat(r[4]);
                     const sign = amount > 0 ? "+" : "";
-                    const row = `<tr>
-                        <td>${new Date(r[0]).toLocaleDateString()}</td>
-                        <td>${r[3]}</td>
-                        <td class="${amount > 0 ? 'pos' : 'neg'}">${sign}${amount.toFixed(2)}</td>
+                    const row = `<tr class="hover:bg-slate-800/30 transition">
+                        <td class="px-6 py-4 text-sm text-slate-400 font-mono">${new Date(r[0]).toLocaleDateString()}</td>
+                        <td class="px-6 py-4 text-sm text-slate-200">${r[3]}</td>
+                        <td class="px-6 py-4 text-sm text-right ${amount > 0 ? 'pos' : 'neg'}">${sign}${amount.toFixed(2)}</td>
                     </tr>`;
                     body.innerHTML = row + body.innerHTML;
                 });
