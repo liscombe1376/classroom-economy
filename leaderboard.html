@@ -1,133 +1,106 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <title>Leaderboard | ClassBank</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
     body { 
-      max-width: 1200px; 
-      text-align: center; 
-      background-color: #121212; 
-      color: white; 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Inter', sans-serif; 
+      background-color: #0b0f1a; 
+      color: #f8fafc; 
+      margin: 0;
+      padding: 20px;
+    }
+
+    .glass-card { 
+      background: #161d2f; 
+      border: 1px solid #2d3748; 
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Column Hover Effects */
+    .column-card {
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+    .column-card:hover {
+      transform: translateY(-8px);
+      border-color: #3b82f6;
+    }
+
+    /* Badge Styles */
+    .badge-base {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
     }
     
-    h1 { margin-top: 10px; font-size: 2.5rem; color: #f1c40f; }
-    .date-range { color: #888; font-style: italic; margin-bottom: 20px; }
-
-    /* --- NEW: BACK BUTTON & HALL OF FAME --- */
-    .nav-container { margin-top: 20px; text-align: left; }
-    .back-btn {
-      display: inline-block;
-      padding: 8px 16px;
-      background-color: #333;
-      color: #fff !important;
-      text-decoration: none;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      border: 1px solid #444;
-      transition: background 0.3s;
-    }
-    .back-btn:hover { background-color: #444; text-decoration: none; }
-
-    #hall-of-fame {
-      background: #1e1e1e;
-      border-radius: 15px;
-      padding: 15px;
-      margin: 20px auto;
-      max-width: 800px;
-      border: 1px solid #333;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .hof-title { color: #f1c40f; margin-bottom: 10px; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
-    .hof-winners { font-weight: bold; font-size: 1rem; color: #ddd; }
-    /* -------------------------------------- */
-
-    .container { 
-      display: flex; 
-      justify-content: center; 
-      align-items: flex-start;
-      flex-wrap: wrap; 
-      gap: 30px; 
-      margin-top: 20px;
-    }
-
-    .column { 
-      flex: 1; 
-      max-width: 350px; 
-      min-width: 300px; 
-      background: #1e1e1e; 
-      padding: 30px; 
-      border-radius: 20px; 
-      border: 2px solid #333; 
-      transition: transform 0.3s ease;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    .column:hover { transform: translateY(-10px); border-color: #666; }
-
-    .badge { width: 100px; height: 100px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
-    
-    .gold { 
+    .gold-badge { 
       background: radial-gradient(circle, #f1c40f, #d4af37); 
       border-radius: 50%; 
-      box-shadow: 0 0 40px rgba(241, 196, 15, 0.4); 
-      border: 4px solid rgba(255,255,255,0.2);
+      box-shadow: 0 0 30px rgba(241, 196, 15, 0.3); 
     }
     
-    .emerald { 
+    .emerald-badge { 
       background: linear-gradient(135deg, #2ecc71, #27ae60); 
       border-radius: 20%; 
-      box-shadow: 0 0 40px rgba(46, 204, 113, 0.6); 
-      border: 4px solid rgba(255,255,255,0.1);
+      box-shadow: 0 0 30px rgba(46, 204, 113, 0.4); 
     }
     
-    .crystal { 
-      background: rgba(255, 255, 255, 0.1); 
+    .crystal-badge { 
+      background: rgba(255, 255, 255, 0.05); 
       backdrop-filter: blur(10px); 
-      border: 3px solid #00d2ff; 
+      border: 2px solid #3b82f6; 
       transform: rotate(45deg); 
-      box-shadow: 0 0 40px rgba(0, 210, 255, 0.4);
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
     }
-    .crystal span { transform: rotate(-45deg); }
+    .crystal-badge span { transform: rotate(-45deg); }
 
-    .winner-box { 
-      background: #2a2a2a; 
-      margin: 15px 0; 
-      padding: 15px; 
-      border-radius: 12px; 
-      display: flex; 
-      align-items: center; 
-      border: 1px solid #444;
-    }
-    .rank { font-size: 1.8rem; margin-right: 15px; font-weight: bold; width: 40px; }
+    /* Rank Text Colors */
     .gold-text { color: #f1c40f; } 
     .silver-text { color: #bdc3c7; } 
     .bronze-text { color: #cd7f32; }
-    
-    .name { flex-grow: 1; text-align: left; font-weight: bold; font-size: 1.1rem; }
-    .tally { font-size: 0.8rem; color: #f1c40f; margin-left: 5px; vertical-align: middle; }
-    .amount { font-family: monospace; color: #2ecc71; font-size: 1.2rem; }
-
-    .loader { font-size: 1.5rem; margin-top: 100px; color: #888; }
   </style>
 </head>
 <body>
 
-  <div class="nav-container">
-    <a href="admin.html" class="back-btn">← Back to Admin Panel</a>
-  </div>
+  <div class="max-w-6xl mx-auto">
+    <div class="mb-8">
+      <a href="admin.html" class="inline-flex items-center text-sm font-semibold text-blue-400 hover:text-blue-300 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Back to Admin Panel
+      </a>
+    </div>
 
-  <h1 id="title">🏆 Classroom Hall of Fame</h1>
-  
-  <div id="hall-of-fame">
-    <div class="hof-title">🎖️ Last Week's Champions</div>
-    <div id="winners-display" class="hof-winners">Loading history...</div>
-  </div>
+    <div class="text-center mb-10">
+      <h1 class="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+        🏆 Classroom <span class="text-amber-400">Hall of Fame</span>
+      </h1>
+      <p class="text-slate-500 font-medium italic" id="period">Calculating weekly window...</p>
+    </div>
+    
+    <div class="glass-card p-6 mb-12 max-w-3xl mx-auto border-amber-500/30">
+      <div class="text-center">
+        <div class="text-amber-500 text-xs font-bold uppercase tracking-widest mb-2">🎖️ Last Week's Champions</div>
+        <div id="winners-display" class="text-lg md:text-xl font-semibold text-slate-200">Loading history...</div>
+      </div>
+    </div>
 
-  <p class="date-range" id="period">Calculating weekly window...</p>
-
-  <div class="container" id="board">
-    <div class="loader">Gathering the data...</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12" id="board">
+      <div class="text-center text-slate-500 py-20 col-span-3">
+        <div class="inline-block animate-pulse text-xl">Gathering the data...</div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -135,24 +108,27 @@
 
     async function loadLeaderboard() {
       try {
-        // 1. Fetch Current Live Race
         const response = await fetch(WEB_APP_URL, { 
           method: "POST", 
           body: JSON.stringify({ action: "getLeaderboard" }) 
         });
         const data = await response.json();
 
-        // 2. Fetch Last Week's Logged Winners
         const winResponse = await fetch(WEB_APP_URL, { 
           method: "POST", 
           body: JSON.stringify({ action: "getLastWinners" }) 
         });
         const lastWinners = await winResponse.json();
         
-        // Update the Hall of Fame text
         const hofDisplay = document.getElementById('winners-display');
         if (lastWinners.wealth && lastWinners.wealth !== "None") {
-          hofDisplay.innerHTML = `💰 ${lastWinners.wealth} | 🌟 ${lastWinners.achievers} | 📈 ${lastWinners.savers}`;
+          hofDisplay.innerHTML = `
+            <span class="inline-block mx-2">💰 ${lastWinners.wealth}</span>
+            <span class="text-slate-700 mx-2">|</span>
+            <span class="inline-block mx-2">🌟 ${lastWinners.achievers}</span>
+            <span class="text-slate-700 mx-2">|</span>
+            <span class="inline-block mx-2">📈 ${lastWinners.savers}</span>
+          `;
         } else {
           hofDisplay.innerText = "No winners recorded yet for the season!";
         }
@@ -161,43 +137,48 @@
         const board = document.getElementById('board');
         board.innerHTML = '';
 
-        // Render the 3 Columns
-        board.innerHTML += renderCol("Wealth Master", "gold", "💰", data.wealth, "Top Weekly Income");
-        board.innerHTML += renderCol("Goal Crusher", "emerald", "🌟", data.achievers, "Top Weekly Rewards");
-        board.innerHTML += renderCol("Super Saver", "crystal", "<span>📈</span>", data.savers, "Top Interest Gained");
+        board.innerHTML += renderCol("Wealth Master", "gold-badge", "💰", data.wealth, "Top Weekly Income");
+        board.innerHTML += renderCol("Goal Crusher", "emerald-badge", "🌟", data.achievers, "Top Weekly Rewards");
+        board.innerHTML += renderCol("Super Saver", "crystal-badge", "<span>📈</span>", data.savers, "Top Interest Gained");
 
       } catch (err) {
         console.error(err);
-        document.getElementById('board').innerHTML = "<p>Error loading data. Make sure you deployed as a New Version.</p>";
+        document.getElementById('board').innerHTML = "<div class='col-span-3 text-rose-500'>Error loading data. Make sure you deployed as a New Version.</div>";
       }
     }
 
     function renderCol(title, style, icon, winners, subtext) {
       let html = `
-        <div class="column">
-          <div class="badge ${style}">${icon}</div>
-          <h2>${title}</h2>
-          <p style="color: #aaa; margin-bottom: 20px;">${subtext}</p>
+        <div class="glass-card p-8 text-center column-card flex flex-col h-full">
+          <div class="badge-base ${style}">${icon}</div>
+          <h2 class="text-2xl font-bold text-white mb-1">${title}</h2>
+          <p class="text-slate-500 text-sm mb-8">${subtext}</p>
+          <div class="space-y-4 flex-grow text-left">
       `;
 
       if (!winners || winners.length === 0) {
-        html += `<div class="winner-box"><div class="name">No entries yet!</div></div>`;
+        html += `
+          <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-center text-slate-500 italic">
+            No entries yet!
+          </div>`;
       } else {
         winners.forEach((w, i) => {
           let rankColors = ["gold-text", "silver-text", "bronze-text"];
           let medals = ["🥇", "🥈", "🥉"];
-          let winDisplay = (w.wins && w.wins > 0) ? `<span class="tally">${w.wins}x 🏆</span>` : "";
+          let winDisplay = (w.wins && w.wins > 0) ? `<span class="ml-2 text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">${w.wins}x 🏆</span>` : "";
           
           html += `
-            <div class="winner-box">
-              <div class="rank ${rankColors[i]}">${medals[i]}</div>
-              <div class="name">${w.name}${winDisplay}</div>
-              <div class="amount">$${w.amount.toFixed(2)}</div>
+            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center">
+              <div class="text-2xl mr-4 w-8 text-center ${rankColors[i]} font-bold">${medals[i]}</div>
+              <div class="flex-grow">
+                <div class="text-white font-bold text-sm leading-tight">${w.name}${winDisplay}</div>
+                <div class="text-emerald-400 font-mono text-sm mt-1">$${w.amount.toFixed(2)}</div>
+              </div>
             </div>`;
         });
       }
 
-      html += `</div>`;
+      html += `</div></div>`;
       return html;
     }
 
