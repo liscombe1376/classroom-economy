@@ -1,246 +1,197 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <title>Bank Admin | Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* Force Dark Mode Consistency */
-      :root { color-scheme: dark; }
-      
-      body { 
-        max-width: 1200px; 
-        background-color: #121212 !important; 
-        color: #e0e0e0 !important; 
-      }
-
-      input:disabled { background: transparent; border: none; color: inherit; }
-      
-      .action-row { display: flex; gap: 10px; margin-bottom: 20px; }
-      .print-all-btn { background-color: #2ecc71; color: white; flex: 1; margin: 0; }
-      .leaderboard-btn { background-color: #f1c40f; color: #000; flex: 1; font-weight: bold; margin: 0; }
-      
-      /* Market Dashboard Styles */
-      .market-dashboard { 
-        background: #1e1e1e; 
-        color: white; 
-        padding: 20px; 
-        border-radius: 12px; 
-        margin-top: 30px; 
-        border: 2px solid #333;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      }
-      .status-box {
-        background: #2a2a2a;
-        padding: 15px;
-        border-radius: 8px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-        border: 1px solid #444;
-      }
-      .market-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-      .market-table th { color: #94a3b8; text-align: left; }
-      .market-table td { border-bottom: 1px solid #333; padding: 12px 0; }
-      
-      .crisis-btn { color: white; flex: 1; font-weight: bold; border: none; padding: 10px; cursor: pointer; border-radius: 4px; }
-      .disaster { background-color: #e67e22; }
-      .inflation { background-color: #d35400; }
-      .war { background-color: #c0392b; }
-      .recovery { background-color: #27ae60; width: 100%; margin-top: 10px; border: none; color: white; padding: 10px; cursor: pointer; border-radius: 4px; }
-      
-      /* Student Table Cleanup */
-      table { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
-      thead th { background: #121212; position: sticky; top: 0; }
-      tbody tr { background: #1e1e1e; transition: background 0.2s; }
-      tbody tr:hover { background: #252525; }
-      td, th { padding: 12px !important; text-align: left; border-bottom: 1px solid #333 !important; }
-      
-      input[type="text"], input[type="number"] {
-        background: #2a2a2a !important;
-        border: 1px solid #444 !important;
-        color: white !important;
-      }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
+        .glass-card { background: #161d2f; border: 1px solid #2d3748; }
+        input:disabled { background: transparent !important; border: none !important; color: #94a3b8 !important; }
     </style>
-  </head>
-  <body>
-    <h1>👨‍🏫 Teacher Admin Panel</h1>
-    <a href="index.html" style="color: #60a5fa;">← Back to POS</a>
-    
-    <section class="action-row" style="margin-top:20px;">
-      <button class="print-all-btn" onclick="runPrintClassQRs()">🖨️ Print All Class QR Codes</button>
-      <button class="leaderboard-btn" onclick="window.location.href='leaderboard.html'">🏆 View Leaderboard</button>
-    </section>
+</head>
+<body class="p-4 md:p-8">
 
-    <section class="market-dashboard">
-      <h2 style="color: #f1c40f; margin-top: 0;">🏛️ Wall Street Control Center</h2>
-      
-      <div class="status-box">
-        <div>
-          <span style="font-size: 0.8rem; color: #94a3b8; display: block;">EXCHANGE STATUS</span>
-          <strong id="marketStatusLabel" style="font-size: 1.2rem;">LOADING...</strong>
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-white">Teacher Admin Terminal</h1>
+                <p class="text-slate-400 text-sm">Economy Management & Student Oversight</p>
+            </div>
+            <a href="index.html" class="text-blue-400 hover:text-blue-300 font-semibold text-sm transition">← Exit to POS</a>
         </div>
-        <div>
-          <button onclick="setMarketStatus('OPEN')" style="background: #22c55e; color: white; border:none; padding: 8px 15px; border-radius:4px; cursor:pointer;">OPEN</button>
-          <button onclick="setMarketStatus('CLOSED')" style="background: #ef4444; color: white; border:none; padding: 8px 15px; border-radius:4px; cursor:pointer;">CLOSE</button>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <button onclick="runPrintClassQRs()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition">
+                🖨️ Generate Class QR Sheet
+            </button>
+            <button onclick="window.location.href='leaderboard.html'" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 px-6 rounded-xl shadow-lg transition">
+                🏆 Global Wealth Leaderboard
+            </button>
         </div>
-      </div>
 
-      <h3>📊 Manual Price Adjustment</h3>
-      <table class="market-table">
-        <thead>
-          <tr>
-            <th>TICKER</th>
-            <th>PRICE</th>
-            <th>NEW PRICE</th>
-            <th>ACTION</th>
-          </tr>
-        </thead>
-        <tbody id="marketAdminBody"></tbody>
-      </table>
+        <div class="glass-card rounded-2xl p-6 mb-8 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-6">
+                <h2 class="text-xl font-semibold flex items-center gap-2">
+                    <span class="text-blue-500">🏛️</span> Wall Street Control
+                </h2>
+                <div class="flex items-center gap-3 bg-slate-900 p-1.5 rounded-lg border border-slate-700">
+                    <span id="marketStatusLabel" class="px-3 font-bold text-xs uppercase tracking-wider">LOADING...</span>
+                    <button onclick="setMarketStatus('OPEN')" class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1 rounded text-xs font-bold transition">OPEN</button>
+                    <button onclick="setMarketStatus('CLOSED')" class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1 rounded text-xs font-bold transition">CLOSE</button>
+                </div>
+            </div>
 
-      <h3 style="color: #f87171; margin-top: 20px;">📉 Global Economic Events</h3>
-      <div class="action-row">
-        <button class="crisis-btn disaster" onclick="triggerCrisis('Natural Disaster', 0.10)">🌪️ Disaster (-10%)</button>
-        <button class="crisis-btn inflation" onclick="triggerCrisis('Oil Inflation', 0.25)">📉 Inflation (-25%)</button>
-        <button class="crisis-btn war" onclick="triggerCrisis('Global Conflict', 0.50)">💣 War (-50%)</button>
-      </div>
-      <button class="recovery" onclick="triggerCrisis('Market Boom', -0.20)">🚀 Economic Recovery (+20%)</button>
-    </section>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-slate-500 text-xs uppercase tracking-widest border-b border-slate-800">
+                            <th class="pb-3 pl-2">Ticker</th>
+                            <th class="pb-3">Live Price</th>
+                            <th class="pb-3">Manual Adjustment</th>
+                            <th class="pb-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marketAdminBody" class="divide-y divide-slate-800">
+                        </tbody>
+                </table>
+            </div>
 
-    <section style="margin-top:40px; background: #1e1e1e; padding: 20px; border-radius: 12px; border: 1px solid #333;">
-      <h3 style="margin-top:0;">Add New Student</h3>
-      <div style="display: flex; gap: 10px;">
-        <input type="text" id="name" placeholder="Student Name" style="flex: 2;">
-        <input type="text" id="pass" placeholder="Password" style="flex: 1;">
-        <button onclick="createNewStudent()" style="margin:0;">➕ Add</button>
-      </div>
-    </section>
+            <div class="mt-8 pt-6 border-t border-slate-800">
+                <h3 class="text-rose-500 text-sm font-bold uppercase tracking-tighter mb-4">Macro-Economic Triggers</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button class="bg-slate-800 hover:bg-orange-600 text-white text-xs py-2 px-3 rounded-lg transition" onclick="triggerCrisis('Natural Disaster', 0.10)">🌪️ Disaster (-10%)</button>
+                    <button class="bg-slate-800 hover:bg-orange-700 text-white text-xs py-2 px-3 rounded-lg transition" onclick="triggerCrisis('Oil Inflation', 0.25)">📉 Inflation (-25%)</button>
+                    <button class="bg-slate-800 hover:bg-rose-700 text-white text-xs py-2 px-3 rounded-lg transition" onclick="triggerCrisis('Global Conflict', 0.50)">💣 War (-50%)</button>
+                    <button class="bg-emerald-600/20 text-emerald-500 hover:bg-emerald-600 hover:text-white text-xs py-2 px-3 rounded-lg transition" onclick="triggerCrisis('Market Boom', -0.20)">🚀 Recovery (+20%)</button>
+                </div>
+            </div>
+        </div>
 
-    <table style="margin-top: 20px;">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Password</th>
-          <th>Balance</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="studentBody"></tbody>
-    </table>
+        <div class="glass-card rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                <span class="text-blue-500">👥</span> Student Roster
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                <input type="text" id="name" placeholder="Full Name" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                <input type="text" id="pass" placeholder="Initial PIN" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                <button onclick="createNewStudent()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition">+ Add Student</button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-slate-500 text-xs uppercase tracking-widest border-b border-slate-800">
+                            <th class="pb-3 pl-2">ID</th>
+                            <th class="pb-3">Name</th>
+                            <th class="pb-3">Pin</th>
+                            <th class="pb-3">Balance</th>
+                            <th class="pb-3 text-right">Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentBody" class="divide-y divide-slate-800">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
     <script>
-      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyxIWLy0J30R7w2cnlTN9EFiGUt4UoSqqu54MYPD6a_s6O6AVldVnxrgZHEVY03ChG4/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyxIWLy0J30R7w2cnlTN9EFiGUt4UoSqqu54MYPD6a_s6O6AVldVnxrgZHEVY03ChG4/exec";
 
-      async function callServer(payload) {
-        const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
-        return await response.json();
-      }
-
-      async function loadMarketAdmin() {
-        const marketData = await callServer({ action: "getMarketData" });
-        const statusData = await callServer({ action: "getMarketStatus" });
-        
-        const statusLabel = document.getElementById('marketStatusLabel');
-        statusLabel.innerText = statusData.status;
-        statusLabel.style.color = statusData.status === "OPEN" ? "#22c55e" : "#ef4444";
-
-        const body = document.getElementById('marketAdminBody');
-        body.innerHTML = marketData.map(stock => `
-          <tr>
-            <td><strong>${stock[0]}</strong></td>
-            <td style="color: #2ecc71;">$${parseFloat(stock[2]).toFixed(2)}</td>
-            <td><input type="number" id="price-${stock[0]}" style="width: 80px; padding: 4px; margin:0;" placeholder="$"></td>
-            <td><button onclick="updatePrice('${stock[0]}')" style="background: #3b82f6; padding: 4px 8px; font-size: 0.7rem; margin:0;">SET</button></td>
-          </tr>
-        `).join('');
-      }
-
-      async function setMarketStatus(status) {
-        await callServer({ action: "toggleMarket", status: status });
-        loadMarketAdmin();
-      }
-
-      async function updatePrice(ticker) {
-        const val = document.getElementById(`price-${ticker}`).value;
-        if(!val) return;
-        const res = await callServer({ action: "updateSingleStock", ticker: ticker, newPrice: val });
-        if(res.success) {
-          alert(`${ticker} set to $${val}`);
-          loadMarketAdmin();
+        async function callServer(payload) {
+            const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
+            return await response.json();
         }
-      }
 
-      async function triggerCrisis(name, percent) {
-        const message = percent > 0 ? `Crash market by ${percent * 100}%?` : `Recovery of ${Math.abs(percent * 100)}%?`;
-        if (!confirm(message)) return;
-        const res = await callServer({ action: "triggerMarketEvent", eventName: name, dropPercent: percent });
-        if(res.success) {
-          alert("Market Updated: " + name);
-          loadMarketAdmin();
+        async function loadMarketAdmin() {
+            const marketData = await callServer({ action: "getMarketData" });
+            const statusData = await callServer({ action: "getMarketStatus" });
+            
+            const statusLabel = document.getElementById('marketStatusLabel');
+            statusLabel.innerText = statusData.status;
+            statusLabel.className = `px-3 font-bold text-xs uppercase tracking-wider ${statusData.status === 'OPEN' ? 'text-emerald-500' : 'text-rose-500'}`;
+
+            const body = document.getElementById('marketAdminBody');
+            body.innerHTML = marketData.map(stock => `
+                <tr class="hover:bg-slate-800/30 transition">
+                    <td class="py-4 pl-2 font-bold text-white">${stock[0]}</td>
+                    <td class="py-4 text-emerald-400 font-mono">$${parseFloat(stock[2]).toFixed(2)}</td>
+                    <td class="py-4">
+                        <input type="number" id="price-${stock[0]}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm w-24 focus:border-blue-500 outline-none" placeholder="$">
+                    </td>
+                    <td class="py-4 text-right">
+                        <button onclick="updatePrice('${stock[0]}')" class="text-blue-400 hover:text-white text-xs font-bold uppercase">Update</button>
+                    </td>
+                </tr>
+            `).join('');
         }
-      }
 
-      async function runPrintClassQRs() {
-        const win = window.open("", "_blank");
-        win.document.write("<html><body><h1>Generating QR Sheet...</h1></body></html>");
-        const result = await callServer({ action: "getPrintData" });
-        let html = `<html><body style="font-family:sans-serif; text-align:center;"><h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
-        result.forEach(s => {
-          let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
-          html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px;">
-                    <p style="font-weight:bold;">${s[1]}</p>
-                    <img src="${qrUrl}" style="width:150px; height:150px;">
-                  </div>`;
-        });
-        html += `</div><script>setTimeout(function(){ window.print(); }, 2000);<\/script></body></html>`;
-        win.document.open(); win.document.write(html); win.document.close();
-      }
-
-      async function loadStudents() {
-        const students = await callServer({ action: "getStudents" }); 
-        const body = document.getElementById('studentBody');
-        body.innerHTML = '';
-        students.forEach(s => {
-          body.innerHTML += `<tr>
-            <td>${s[0]}</td>
-            <td><input type="text" id="name-${s[0]}" value="${s[1]}" disabled></td>
-            <td><input type="text" id="pass-${s[0]}" value="${s[2]}" disabled></td>
-            <td><input type="number" id="bal-${s[0]}" value="${parseFloat(s[3]).toFixed(2)}" disabled></td>
-            <td><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')" style="margin:0;">✏️</button></td>
-          </tr>`;
-        });
-      }
-
-      function toggleEdit(id) {
-        const n = document.getElementById(`name-${id}`);
-        const p = document.getElementById(`pass-${id}`); 
-        const b = document.getElementById(`bal-${id}`);
-        const btn = document.getElementById(`btn-${id}`);
-        if (n.disabled) { 
-          n.disabled = p.disabled = b.disabled = false; btn.innerText = "💾"; 
-        } else { 
-          saveStudent(id, n.value, b.value, p.value); 
-          n.disabled = p.disabled = b.disabled = true; btn.innerText = "✏️"; 
+        async function loadStudents() {
+            const students = await callServer({ action: "getStudents" }); 
+            const body = document.getElementById('studentBody');
+            body.innerHTML = students.map(s => `
+                <tr class="hover:bg-slate-800/30 transition">
+                    <td class="py-4 pl-2 text-slate-500 text-xs font-mono">${s[0]}</td>
+                    <td class="py-4"><input type="text" id="name-${s[0]}" value="${s[1]}" disabled class="bg-transparent text-slate-200"></td>
+                    <td class="py-4"><input type="text" id="pass-${s[0]}" value="${s[2]}" disabled class="bg-transparent text-slate-400 w-16"></td>
+                    <td class="py-4 text-white font-semibold">$${parseFloat(s[3]).toFixed(2)}</td>
+                    <td class="py-4 text-right">
+                        <button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')" class="text-slate-400 hover:text-white transition">✏️</button>
+                    </td>
+                </tr>
+            `).join('');
         }
-      }
 
-      async function saveStudent(id, name, balance, password) {
-        await callServer({ action: "updateStudent", id: id, name: name, balance: balance, password: password });
-      }
+        // Logic functions remain identical to your original code
+        function toggleEdit(id) {
+            const n = document.getElementById(`name-${id}`);
+            const p = document.getElementById(`pass-${id}`); 
+            const btn = document.getElementById(`btn-${id}`);
+            if (n.disabled) { 
+                n.disabled = p.disabled = false; btn.innerText = "💾"; 
+            } else { 
+                saveStudent(id, n.value, 0, p.value); 
+                n.disabled = p.disabled = true; btn.innerText = "✏️"; 
+            }
+        }
 
-      async function createNewStudent() {
-        const name = document.getElementById('name').value;
-        const pass = document.getElementById('pass').value;
-        if(!name || !pass) return alert("Enter name and password");
-        await callServer({ action: "addStudent", name: name, password: pass });
-        document.getElementById('name').value = document.getElementById('pass').value = '';
+        async function saveStudent(id, name, balance, password) { await callServer({ action: "updateStudent", id, name, balance, password }); }
+        async function setMarketStatus(status) { await callServer({ action: "toggleMarket", status }); loadMarketAdmin(); }
+        async function updatePrice(ticker) {
+            const val = document.getElementById(`price-${ticker}`).value;
+            if(!val) return;
+            await callServer({ action: "updateSingleStock", ticker, newPrice: val });
+            loadMarketAdmin();
+        }
+        async function triggerCrisis(name, percent) {
+            if (!confirm(`Trigger ${name}?`)) return;
+            await callServer({ action: "triggerMarketEvent", eventName: name, dropPercent: percent });
+            loadMarketAdmin();
+        }
+        async function createNewStudent() {
+            const name = document.getElementById('name').value;
+            const pass = document.getElementById('pass').value;
+            if(!name || !pass) return alert("Missing info");
+            await callServer({ action: "addStudent", name, password: pass });
+            location.reload();
+        }
+        async function runPrintClassQRs() {
+            const result = await callServer({ action: "getPrintData" });
+            let html = `<body style="font-family:sans-serif; text-align:center;"><h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
+            result.forEach(s => {
+                let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
+                html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px;"><p><b>${s[1]}</b></p><img src="${qrUrl}"></div>`;
+            });
+            const win = window.open();
+            win.document.write(html + "</div><script>setTimeout(()=>window.print(), 1000)<\/script>");
+        }
+
         loadStudents();
-      }
-
-      loadStudents();
-      loadMarketAdmin();
+        loadMarketAdmin();
     </script>
-  </body>
+</body>
 </html>
