@@ -10,6 +10,8 @@
         body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
         .glass-card { background: #161d2f; border: 1px solid #2d3748; }
         input:disabled { background: transparent !important; border: none !important; color: #94a3b8 !important; }
+        /* Style for the active edit mode */
+        .edit-mode { background: #1e293b !important; border: 1px solid #3b82f6 !important; border-radius: 4px; padding: 2px 4px; color: white !important; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -93,7 +95,7 @@
                             <th class="pb-3 pl-2">ID</th>
                             <th class="pb-3">Name</th>
                             <th class="pb-3">Pin</th>
-                            <th class="pb-3">Balance</th>
+                            <th class="pb-3">Balance ($)</th>
                             <th class="pb-3 text-right">Edit</th>
                         </tr>
                     </thead>
@@ -104,7 +106,6 @@
     </div>
 
     <script>
-        // Updated URL from your previous store configuration
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwW8LvSc4XFl194ys8voT2xxmhjwysDburlZ3XD97TuyTb09q9XtzFZIsOilDNEuv1j/exec";
 
         async function callServer(payload) {
@@ -141,9 +142,15 @@
             body.innerHTML = students.map(s => `
                 <tr class="hover:bg-slate-800/30 transition">
                     <td class="py-4 pl-2 text-slate-500 text-xs font-mono">${s[0]}</td>
-                    <td class="py-4"><input type="text" id="name-${s[0]}" value="${s[1]}" disabled class="bg-transparent text-slate-200"></td>
-                    <td class="py-4"><input type="text" id="pass-${s[0]}" value="${s[2]}" disabled class="bg-transparent text-slate-400 w-16"></td>
-                    <td class="py-4 text-white font-semibold">$${parseFloat(s[3]).toFixed(2)}</td>
+                    <td class="py-4">
+                        <input type="text" id="name-${s[0]}" value="${s[1]}" disabled class="bg-transparent text-slate-200 focus:outline-none">
+                    </td>
+                    <td class="py-4">
+                        <input type="text" id="pass-${s[0]}" value="${s[2]}" disabled class="bg-transparent text-slate-400 w-16 focus:outline-none">
+                    </td>
+                    <td class="py-4">
+                        <input type="number" id="bal-${s[0]}" value="${parseFloat(s[3]).toFixed(2)}" disabled class="bg-transparent text-white font-semibold w-24 focus:outline-none">
+                    </td>
                     <td class="py-4 text-right">
                         <button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')" class="text-slate-400 hover:text-white transition">✏️</button>
                     </td>
@@ -153,29 +160,48 @@
 
         function toggleEdit(id) {
             const n = document.getElementById(`name-${id}`);
-            const p = document.getElementById(`pass-${id}`); 
+            const p = document.getElementById(`pass-${id}`);
+            const b = document.getElementById(`bal-${id}`);
             const btn = document.getElementById(`btn-${id}`);
+            
             if (n.disabled) { 
-                n.disabled = p.disabled = false; btn.innerText = "💾"; 
+                // Unlock fields
+                n.disabled = p.disabled = b.disabled = false; 
+                n.classList.add('edit-mode');
+                p.classList.add('edit-mode');
+                b.classList.add('edit-mode');
+                btn.innerText = "💾"; 
             } else { 
-                saveStudent(id, n.value, 0, p.value); 
-                n.disabled = p.disabled = true; btn.innerText = "✏️"; 
+                // Save and Lock fields
+                saveStudent(id, n.value, b.value, p.value); 
+                n.disabled = p.disabled = b.disabled = true; 
+                n.classList.remove('edit-mode');
+                p.classList.remove('edit-mode');
+                b.classList.remove('edit-mode');
+                btn.innerText = "✏️"; 
             }
         }
 
-        async function saveStudent(id, name, balance, password) { await callServer({ action: "updateStudent", id, name, balance, password }); }
+        async function saveStudent(id, name, balance, password) { 
+            await callServer({ action: "updateStudent", id, name, balance, password }); 
+            // Optional: loadStudents(); // Refresh to ensure numbers are formatted correctly
+        }
+
         async function setMarketStatus(status) { await callServer({ action: "toggleMarket", status }); loadMarketAdmin(); }
+        
         async function updatePrice(ticker) {
             const val = document.getElementById(`price-${ticker}`).value;
             if(!val) return;
             await callServer({ action: "updateSingleStock", ticker, newPrice: val });
             loadMarketAdmin();
         }
+
         async function triggerCrisis(name, percent) {
             if (!confirm(`Trigger ${name}?`)) return;
             await callServer({ action: "triggerMarketEvent", eventName: name, dropPercent: percent });
             loadMarketAdmin();
         }
+
         async function createNewStudent() {
             const name = document.getElementById('name').value;
             const pass = document.getElementById('pass').value;
@@ -183,6 +209,7 @@
             await callServer({ action: "addStudent", name, password: pass });
             location.reload();
         }
+
         async function runPrintClassQRs() {
             const result = await callServer({ action: "getPrintData" });
             let html = `<body style="font-family:sans-serif; text-align:center;"><h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
