@@ -6,12 +6,54 @@
     <title>Bank Admin | Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
         .glass-card { background: #161d2f; border: 1px solid #2d3748; }
         input:disabled { background: transparent !important; border: none !important; color: #94a3b8 !important; }
         .edit-mode { background: #1e293b !important; border: 1px solid #3b82f6 !important; border-radius: 4px; padding: 2px 4px; color: white !important; }
         select { color-scheme: dark; }
+
+        /* --- DEBIT CARD PRINT STYLES --- */
+        @media print {
+            body { background: white !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .card-grid { display: flex !important; flex-wrap: wrap !important; gap: 15px !important; justify-content: center !important; }
+            .debit-card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; margin-bottom: 10px; }
+        }
+
+        .debit-card {
+            width: 350px;
+            height: 200px;
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            text-align: left;
+        }
+
+        .card-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+            opacity: 0.4;
+        }
+
+        .bce-logo { position: absolute; top: 20px; left: 20px; z-index: 2; }
+        .bce-logo h1 { font-size: 32px; font-weight: 800; line-height: 1; margin: 0; letter-spacing: -1px; }
+        .bce-logo p { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; margin: 0; color: #94a3b8; }
+
+        .card-qr-box { position: absolute; top: 20px; right: 20px; background: white; padding: 5px; border-radius: 8px; z-index: 2; }
+        .card-name-label { position: absolute; bottom: 25px; left: 20px; z-index: 2; }
+        .card-name-label .label { font-size: 8px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; }
+        .card-name-label .name { font-size: 18px; font-weight: 600; text-transform: uppercase; }
+
+        .chip {
+            position: absolute; top: 85px; left: 20px; width: 40px; height: 30px;
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            border-radius: 4px; opacity: 0.8;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -185,7 +227,6 @@
             loadMarketAdmin();
         }
 
-        // --- Student Functions ---
         async function loadStudents() {
             const students = await callServer({ action: "getStudents" }); 
             const body = document.getElementById('studentBody');
@@ -239,15 +280,49 @@
             location.reload();
         }
 
+        // --- UPDATED PRINT FUNCTION FOR DEBIT CARDS ---
         async function runPrintClassQRs() {
             const result = await callServer({ action: "getPrintData" });
-            let html = `<body style="font-family:sans-serif; text-align:center;"><h1>Class QR Codes</h1><div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">`;
+            
+            let html = `
+            <html>
+            <head>
+                <title>Print BCE Debit Cards</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+                ${document.querySelector('style').outerHTML}
+            </head>
+            <body>
+                <div class="card-grid">`;
+
             result.forEach(s => {
                 let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
-                html += `<div style="border:1px solid #ccc; padding:10px; border-radius:8px; width:160px;"><p><b>${s[1]}</b></p><img src="${qrUrl}"></div>`;
+                
+                html += `
+                    <div class="debit-card">
+                        <div class="card-overlay"></div>
+                        <div class="chip"></div>
+                        <div class="bce-logo">
+                            <h1>BCE</h1>
+                            <p>Bank of Classroom Economy</p>
+                        </div>
+                        <div class="card-qr-box">
+                            <img src="${qrUrl}" width="70">
+                        </div>
+                        <div class="card-name-label">
+                            <div class="label">Authorized User</div>
+                            <div class="name">${s[1]}</div>
+                        </div>
+                    </div>
+                `;
             });
-            const win = window.open();
-            win.document.write(html + "</div><script>setTimeout(()=>window.print(), 1000)<\/script>");
+
+            html += `</div></body></html>`;
+
+            const win = window.open('', '_blank');
+            win.document.write(html);
+            win.document.close();
+            
+            setTimeout(() => { win.print(); }, 1500);
         }
 
         loadStudents();
