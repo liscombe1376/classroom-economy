@@ -13,12 +13,12 @@
         .edit-mode { background: #1e293b !important; border: 1px solid #3b82f6 !important; border-radius: 4px; padding: 2px 4px; color: white !important; }
         select { color-scheme: dark; }
 
-        /* --- UPDATED DEBIT CARD PRINT STYLES --- */
+        /* --- DEBIT CARD PRINT STYLES --- */
         @media print {
             body { background: white !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            .card-grid { display: flex !important; flex-wrap: wrap !important; gap: 15px !important; justify-content: center !important; }
-            .debit-card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; margin-bottom: 10px; }
+            .card-grid { display: flex !important; flex-wrap: wrap !important; gap: 20px !important; justify-content: center !important; padding: 20px !important; }
+            .debit-card { box-shadow: none !important; break-inside: avoid; margin-bottom: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
 
         .debit-card {
@@ -27,51 +27,64 @@
             position: relative;
             border-radius: 14px;
             overflow: hidden;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background: #0f172a; /* Solid dark base */
             color: white;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             text-align: left;
         }
 
-        .card-overlay {
+        /* The Digital Circuitry Pattern */
+        .card-circuit-overlay {
             position: absolute;
             inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
-            opacity: 0.4;
+            opacity: 0.15;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1' stroke-opacity='0.5'%3E%3Cpath d='M0 20h40v40h40V20h40v80h-40v40h-40v40H0M160 0v60h40v40h40V60h40V0M340 200v-60h-40v-40h-40v40h-40v60M400 120h-60v-40h-40v40h-40v40h-60'/%3E%3Ccircle cx='40' cy='60' r='2' fill='%23ffffff'/%3E%3Ccircle cx='120' cy='100' r='2' fill='%23ffffff'/%3E%3Ccircle cx='200' cy='60' r='2' fill='%23ffffff'/%3E%3Ccircle cx='300' cy='140' r='2' fill='%23ffffff'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: cover;
+            z-index: 1;
         }
 
-        /* Fixed Brand Layout */
         .bce-logo { 
-            position: absolute; top: 15px; left: 20px; z-index: 2; 
-            display: flex; flex-direction: column; align-items: flex-start;
+            position: absolute; top: 18px; left: 22px; z-index: 2; 
+            display: flex; flex-direction: column; 
         }
         .bce-logo h1 { 
-            font-size: 58px; font-weight: 800; line-height: 0.9; margin: 0; 
+            font-size: 54px; font-weight: 800; line-height: 0.85; margin: 0; 
             letter-spacing: -3px; color: white; 
-            background: linear-gradient(180deg, #ffffff 30%, #94a3b8 100%);
+            background: linear-gradient(180deg, #ffffff 40%, #94a3b8 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .bce-logo p { 
-            font-size: 7px; text-transform: uppercase; letter-spacing: 2.8px; 
-            margin: 0; margin-top: 4px; color: #94a3b8; font-weight: 600;
+            font-size: 7.5px; text-transform: uppercase; letter-spacing: 2.5px; 
+            margin: 4px 0 0 2px; color: #64748b; font-weight: 700;
         }
 
-        .card-qr-box { position: absolute; top: 20px; right: 20px; background: white; padding: 5px; border-radius: 8px; z-index: 2; }
-        .card-name-label { position: absolute; bottom: 25px; left: 20px; z-index: 2; }
-        .card-name-label .label { font-size: 8px; text-transform: uppercase; color: #64748b; letter-spacing: 1.2px; margin-bottom: 2px; }
-        .card-name-label .name { font-size: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .card-qr-box { 
+            position: absolute; top: 20px; right: 20px; 
+            background: white; padding: 5px; border-radius: 8px; z-index: 2; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        
+        .card-name-label { position: absolute; bottom: 22px; left: 22px; z-index: 2; }
+        .card-name-label .label { font-size: 7px; text-transform: uppercase; color: #475569; letter-spacing: 1.5px; margin-bottom: 2px; }
+        .card-name-label .name { font-size: 19px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .chip {
-            position: absolute; top: 90px; left: 20px; width: 42px; height: 32px;
-            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-            border-radius: 5px; opacity: 0.8; border: 1px solid rgba(0,0,0,0.1);
+            position: absolute; top: 92px; left: 22px; width: 42px; height: 32px;
+            background: linear-gradient(135deg, #d4af37 0%, #f1c40f 50%, #9a7b0c 100%);
+            border-radius: 5px; opacity: 0.9; z-index: 2;
+            border: 0.5px solid rgba(0,0,0,0.2);
+        }
+
+        .valid-thru {
+            position: absolute; bottom: 22px; right: 22px; z-index: 2;
+            text-align: right; font-family: monospace; font-size: 10px; color: #94a3b8;
         }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-6xl mx-auto no-print">
         <div class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-2xl font-bold text-white">Teacher Admin Terminal</h1>
@@ -100,7 +113,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-8 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                <input type="text" id="newTicker" placeholder="Ticker (BUBL)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white uppercase">
+                <input type="text" id="newTicker" placeholder="Ticker" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white uppercase">
                 <input type="text" id="newName" placeholder="Company Name" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
                 <input type="number" id="newPrice" placeholder="Price" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
                 <select id="newVolatility" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
@@ -124,16 +137,6 @@
                     <tbody id="marketAdminBody" class="divide-y divide-slate-800"></tbody>
                 </table>
             </div>
-
-            <div class="mt-8 pt-6 border-t border-slate-800">
-                <h3 class="text-rose-500 text-sm font-bold uppercase tracking-tighter mb-4">Macro-Economic Triggers</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <button class="bg-slate-800 hover:bg-orange-600 text-white text-xs py-2 px-3 rounded-lg transition" onclick="triggerCrisis('Natural Disaster', 0.10)">🌪️ Disaster (-10%)</button>
-                    <button class="bg-slate-800 hover:bg-orange-700 text-white text-xs py-2 px-3 rounded-lg transition" onclick="triggerCrisis('Oil Inflation', 0.25)">📉 Inflation (-25%)</button>
-                    <button class="bg-slate-800 hover:bg-rose-700 text-white text-xs py-2 px-3 rounded-lg transition" onclick="triggerCrisis('Global Conflict', 0.50)">💣 War (-50%)</button>
-                    <button class="bg-emerald-600/20 text-emerald-500 hover:bg-emerald-600 hover:text-white text-xs py-2 px-3 rounded-lg transition" onclick="triggerCrisis('Market Boom', -0.20)">🚀 Recovery (+20%)</button>
-                </div>
-            </div>
         </div>
 
         <div class="glass-card rounded-2xl p-6 shadow-2xl">
@@ -141,8 +144,8 @@
                 <span class="text-blue-500">👥</span> Student Roster
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                <input type="text" id="name" placeholder="Full Name" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
-                <input type="text" id="pass" placeholder="Initial PIN" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition">
+                <input type="text" id="name" placeholder="Full Name" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm">
+                <input type="text" id="pass" placeholder="Initial PIN" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm">
                 <button onclick="createNewStudent()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition">+ Add Student</button>
             </div>
             <div class="overflow-x-auto">
@@ -170,32 +173,33 @@
             return await response.json();
         }
 
-        // Market Functions (Original)
         async function loadMarketAdmin() {
-            const marketData = await callServer({ action: "getMarketData" });
-            const statusData = await callServer({ action: "getMarketStatus" });
-            const statusLabel = document.getElementById('marketStatusLabel');
-            statusLabel.innerText = statusData.status;
-            statusLabel.className = `px-3 font-bold text-xs uppercase tracking-wider ${statusData.status === 'OPEN' ? 'text-emerald-500' : 'text-rose-500'}`;
+            try {
+                const marketData = await callServer({ action: "getMarketData" });
+                const statusData = await callServer({ action: "getMarketStatus" });
+                const statusLabel = document.getElementById('marketStatusLabel');
+                statusLabel.innerText = statusData.status;
+                statusLabel.className = `px-3 font-bold text-xs uppercase tracking-wider ${statusData.status === 'OPEN' ? 'text-emerald-500' : 'text-rose-500'}`;
 
-            const body = document.getElementById('marketAdminBody');
-            body.innerHTML = marketData.map((stock, index) => {
-                const volColor = stock[5] === 'Volatile' ? 'text-orange-400 border-orange-400/30' : 'text-emerald-400 border-emerald-400/30';
-                return `
-                <tr class="hover:bg-slate-800/30 transition">
-                    <td class="py-4 pl-2">
-                        <div class="font-bold text-white">${stock[0]}</div>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-tight">${stock[1]}</div>
-                    </td>
-                    <td class="py-4 text-emerald-400 font-mono font-bold">$${parseFloat(stock[2]).toFixed(2)}</td>
-                    <td class="py-4"><span class="text-[10px] px-2 py-0.5 rounded border ${volColor}">${stock[5] || 'Safe'}</span></td>
-                    <td class="py-4"><input type="number" id="price-${stock[0]}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm w-20 focus:border-blue-500 outline-none" placeholder="$"></td>
-                    <td class="py-4 text-right flex justify-end gap-3">
-                        <button onclick="updatePrice('${stock[0]}')" class="text-blue-400 hover:text-white text-[10px] font-bold uppercase">Update</button>
-                        <button onclick="deleteStock(${index + 2}, '${stock[0]}')" class="text-slate-600 hover:text-rose-500 transition text-[10px] font-bold">✕</button>
-                    </td>
-                </tr>`;
-            }).join('');
+                const body = document.getElementById('marketAdminBody');
+                body.innerHTML = marketData.map((stock, index) => {
+                    const volColor = stock[5] === 'Volatile' ? 'text-orange-400 border-orange-400/30' : 'text-emerald-400 border-emerald-400/30';
+                    return `
+                    <tr class="hover:bg-slate-800/30 transition">
+                        <td class="py-4 pl-2">
+                            <div class="font-bold text-white">${stock[0]}</div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-tight">${stock[1]}</div>
+                        </td>
+                        <td class="py-4 text-emerald-400 font-mono font-bold">$${parseFloat(stock[2]).toFixed(2)}</td>
+                        <td class="py-4"><span class="text-[10px] px-2 py-0.5 rounded border ${volColor}">${stock[5] || 'Safe'}</span></td>
+                        <td class="py-4"><input type="number" id="price-${stock[0]}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm w-20 outline-none" placeholder="$"></td>
+                        <td class="py-4 text-right flex justify-end gap-3">
+                            <button onclick="updatePrice('${stock[0]}')" class="text-blue-400 hover:text-white text-[10px] font-bold uppercase">Update</button>
+                            <button onclick="deleteStock(${index + 2}, '${stock[0]}')" class="text-slate-600 hover:text-rose-500 transition text-[10px] font-bold">✕</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch(e) { console.error(e); }
         }
 
         async function addNewStock() {
@@ -209,7 +213,7 @@
         }
 
         async function deleteStock(row, ticker) {
-            if(!confirm(`Delist ${ticker}? This cannot be undone.`)) return;
+            if(!confirm(`Delist ${ticker}?`)) return;
             await callServer({ action: "deleteRow", tab: "Market", row: row });
             loadMarketAdmin();
         }
@@ -222,22 +226,16 @@
         }
 
         async function setMarketStatus(status) { await callServer({ action: "toggleMarket", status }); loadMarketAdmin(); }
-        async function triggerCrisis(name, percent) {
-            if (!confirm(`Trigger ${name}?`)) return;
-            await callServer({ action: "triggerMarketEvent", eventName: name, dropPercent: percent });
-            loadMarketAdmin();
-        }
 
-        // Student Functions (Original)
         async function loadStudents() {
             const students = await callServer({ action: "getStudents" }); 
             const body = document.getElementById('studentBody');
             body.innerHTML = students.map(s => `
                 <tr class="hover:bg-slate-800/30 transition">
                     <td class="py-4 pl-2 text-slate-500 text-xs font-mono">${s[0]}</td>
-                    <td class="py-4"><input type="text" id="name-${s[0]}" value="${s[1]}" disabled class="bg-transparent text-slate-200 focus:outline-none"></td>
-                    <td class="py-4"><input type="text" id="pass-${s[0]}" value="${s[2]}" disabled class="bg-transparent text-slate-400 w-16 focus:outline-none"></td>
-                    <td class="py-4"><input type="number" id="bal-${s[0]}" value="${parseFloat(s[3]).toFixed(2)}" disabled class="bg-transparent text-white font-semibold w-24 focus:outline-none"></td>
+                    <td class="py-4"><input type="text" id="name-${s[0]}" value="${s[1]}" disabled class="bg-transparent text-slate-200"></td>
+                    <td class="py-4"><input type="text" id="pass-${s[0]}" value="${s[2]}" disabled class="bg-transparent text-slate-400 w-16"></td>
+                    <td class="py-4"><input type="number" id="bal-${s[0]}" value="${parseFloat(s[3]).toFixed(2)}" disabled class="bg-transparent text-white font-semibold w-24"></td>
                     <td class="py-4 text-right"><button id="btn-${s[0]}" onclick="toggleEdit('${s[0]}')" class="text-slate-400 hover:text-white transition">✏️</button></td>
                 </tr>`).join('');
         }
@@ -258,6 +256,7 @@
         }
 
         async function saveStudent(id, name, balance, password) { await callServer({ action: "updateStudent", id, name, balance, password }); }
+        
         async function createNewStudent() {
             const name = document.getElementById('name').value;
             const pass = document.getElementById('pass').value;
@@ -266,15 +265,14 @@
             location.reload();
         }
 
-        // --- THE UPDATED PRINT FUNCTION ---
+        // --- PRINT FUNCTION ---
         async function runPrintClassQRs() {
             const result = await callServer({ action: "getPrintData" });
             let html = `
             <html>
             <head>
-                <title>Print Student Cards</title>
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
-                ${document.querySelector('style').outerHTML}
+                <style>${document.querySelector('style').innerHTML}</style>
             </head>
             <body>
                 <div class="card-grid">`;
@@ -283,19 +281,20 @@
                 let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
                 html += `
                     <div class="debit-card">
-                        <div class="card-overlay"></div>
+                        <div class="card-circuit-overlay"></div>
                         <div class="chip"></div>
                         <div class="bce-logo">
                             <h1>BCE</h1>
                             <p>Bank of Classroom Economy</p>
                         </div>
                         <div class="card-qr-box">
-                            <img src="${qrUrl}" width="70">
+                            <img src="${qrUrl}" width="65">
                         </div>
                         <div class="card-name-label">
                             <div class="label">Authorized User</div>
                             <div class="name">${s[1]}</div>
                         </div>
+                        <div class="valid-thru">VALID<br>THRU 12/26</div>
                     </div>`;
             });
 
@@ -303,7 +302,7 @@
             const win = window.open('', '_blank');
             win.document.write(html);
             win.document.close();
-            setTimeout(() => { win.print(); }, 1500);
+            setTimeout(() => { win.print(); }, 1000);
         }
 
         loadStudents();
