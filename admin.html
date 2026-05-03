@@ -10,8 +10,8 @@
         body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
         .glass-card { background: #161d2f; border: 1px solid #2d3748; }
         input:disabled { background: transparent !important; border: none !important; color: #94a3b8 !important; }
-        /* Style for the active edit mode */
         .edit-mode { background: #1e293b !important; border: 1px solid #3b82f6 !important; border-radius: 4px; padding: 2px 4px; color: white !important; }
+        select { color-scheme: dark; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -26,21 +26,13 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <button onclick="runPrintClassQRs()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">
-                🖨️ Class QR Sheet
-            </button>
-            <button onclick="window.location.href='leaderboard.html'" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">
-                🏆 Wealth Leaderboard
-            </button>
-            <button onclick="window.location.href='inventory.html'" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">
-                📦 Manage Inventory
-            </button>
-            <button onclick="window.location.href='orders.html'" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">
-                📋 View Customer Orders
-            </button>
+            <button onclick="runPrintClassQRs()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">🖨️ Class QR Sheet</button>
+            <button onclick="window.location.href='leaderboard.html'" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">🏆 Wealth Leaderboard</button>
+            <button onclick="window.location.href='inventory.html'" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">📦 Manage Inventory</button>
+            <button onclick="window.location.href='orders.html'" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition text-sm">📋 View Customer Orders</button>
         </div>
 
-        <div class="glass-card rounded-2xl p-6 mb-8 shadow-2xl">
+        <div class="glass-card rounded-2xl p-6 mb-8 shadow-2xl border-t-4 border-t-blue-500">
             <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-6">
                 <h2 class="text-xl font-semibold flex items-center gap-2">
                     <span class="text-blue-500">🏛️</span> The Exchange Control
@@ -52,14 +44,26 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-8 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                <input type="text" id="newTicker" placeholder="Ticker (BUBL)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white uppercase">
+                <input type="text" id="newName" placeholder="Company Name" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                <input type="number" id="newPrice" placeholder="Price" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                <select id="newVolatility" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                    <option value="Safe">🛡️ Safe</option>
+                    <option value="Volatile">⚡ Volatile</option>
+                </select>
+                <button onclick="addNewStock()" class="md:col-span-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-sm transition">+ List New Stock</button>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead>
                         <tr class="text-slate-500 text-xs uppercase tracking-widest border-b border-slate-800">
-                            <th class="pb-3 pl-2">Ticker</th>
+                            <th class="pb-3 pl-2">Ticker / Name</th>
                             <th class="pb-3">Live Price</th>
-                            <th class="pb-3">Manual Adjustment</th>
-                            <th class="pb-3 text-right">Action</th>
+                            <th class="pb-3">Risk Level</th>
+                            <th class="pb-3">Manual Adj.</th>
+                            <th class="pb-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="marketAdminBody" class="divide-y divide-slate-800"></tbody>
@@ -106,7 +110,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzAmQONzpcpOUVu4IuJjkQ-dqPHN1fmxvQBR_WuV3AiB7mhlilOOxK50jVhPQl74E0/exec";
+        const WEB_APP_URL = "YOUR_WEB_APP_URL_HERE";
 
         async function callServer(payload) {
             const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
@@ -122,20 +126,66 @@
             statusLabel.className = `px-3 font-bold text-xs uppercase tracking-wider ${statusData.status === 'OPEN' ? 'text-emerald-500' : 'text-rose-500'}`;
 
             const body = document.getElementById('marketAdminBody');
-            body.innerHTML = marketData.map(stock => `
+            body.innerHTML = marketData.map((stock, index) => {
+                const volColor = stock[5] === 'Volatile' ? 'text-orange-400 border-orange-400/30' : 'text-emerald-400 border-emerald-400/30';
+                return `
                 <tr class="hover:bg-slate-800/30 transition">
-                    <td class="py-4 pl-2 font-bold text-white">${stock[0]}</td>
-                    <td class="py-4 text-emerald-400 font-mono">$${parseFloat(stock[2]).toFixed(2)}</td>
-                    <td class="py-4">
-                        <input type="number" id="price-${stock[0]}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm w-24 focus:border-blue-500 outline-none" placeholder="$">
+                    <td class="py-4 pl-2">
+                        <div class="font-bold text-white">${stock[0]}</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-tight">${stock[1]}</div>
                     </td>
-                    <td class="py-4 text-right">
-                        <button onclick="updatePrice('${stock[0]}')" class="text-blue-400 hover:text-white text-xs font-bold uppercase">Update</button>
+                    <td class="py-4 text-emerald-400 font-mono font-bold">$${parseFloat(stock[2]).toFixed(2)}</td>
+                    <td class="py-4">
+                        <span class="text-[10px] px-2 py-0.5 rounded border ${volColor}">${stock[5] || 'Safe'}</span>
+                    </td>
+                    <td class="py-4">
+                        <input type="number" id="price-${stock[0]}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm w-20 focus:border-blue-500 outline-none" placeholder="$">
+                    </td>
+                    <td class="py-4 text-right flex justify-end gap-3">
+                        <button onclick="updatePrice('${stock[0]}')" class="text-blue-400 hover:text-white text-[10px] font-bold uppercase">Update</button>
+                        <button onclick="deleteStock(${index + 2}, '${stock[0]}')" class="text-slate-600 hover:text-rose-500 transition text-[10px] font-bold">✕</button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
+        async function addNewStock() {
+            const ticker = document.getElementById('newTicker').value.toUpperCase();
+            const name = document.getElementById('newName').value;
+            const price = document.getElementById('newPrice').value;
+            const volatility = document.getElementById('newVolatility').value;
+            
+            if(!ticker || !name || !price) return alert("Missing stock data!");
+            
+            await callServer({ action: "addStock", ticker, name, price, volatility });
+            location.reload();
+        }
+
+        async function deleteStock(row, ticker) {
+            if(!confirm(`Delist ${ticker}? This cannot be undone.`)) return;
+            await callServer({ action: "deleteRow", tab: "Market", row: row });
+            loadMarketAdmin();
+        }
+
+        async function updatePrice(ticker) {
+            const val = document.getElementById(`price-${ticker}`).value;
+            if(!val) return;
+            await callServer({ action: "updateSingleStock", ticker, newPrice: val });
+            loadMarketAdmin();
+        }
+
+        async function setMarketStatus(status) { 
+            await callServer({ action: "toggleMarket", status }); 
+            loadMarketAdmin(); 
+        }
+
+        async function triggerCrisis(name, percent) {
+            if (!confirm(`Trigger ${name}?`)) return;
+            await callServer({ action: "triggerMarketEvent", eventName: name, dropPercent: percent });
+            loadMarketAdmin();
+        }
+
+        // --- Student Functions ---
         async function loadStudents() {
             const students = await callServer({ action: "getStudents" }); 
             const body = document.getElementById('studentBody');
@@ -159,47 +209,26 @@
         }
 
         function toggleEdit(id) {
-            const n = document.getElementById(`name-${id}`);
-            const p = document.getElementById(`pass-${id}`);
-            const b = document.getElementById(`bal-${id}`);
+            const fields = [`name-${id}`, `pass-${id}`, `bal-${id}`];
             const btn = document.getElementById(`btn-${id}`);
-            
-            if (n.disabled) { 
-                // Unlock fields
-                n.disabled = p.disabled = b.disabled = false; 
-                n.classList.add('edit-mode');
-                p.classList.add('edit-mode');
-                b.classList.add('edit-mode');
-                btn.innerText = "💾"; 
-            } else { 
-                // Save and Lock fields
-                saveStudent(id, n.value, b.value, p.value); 
-                n.disabled = p.disabled = b.disabled = true; 
-                n.classList.remove('edit-mode');
-                p.classList.remove('edit-mode');
-                b.classList.remove('edit-mode');
-                btn.innerText = "✏️"; 
+            const isDisabled = document.getElementById(fields[0]).disabled;
+
+            fields.forEach(f => {
+                const el = document.getElementById(f);
+                el.disabled = !isDisabled;
+                el.classList.toggle('edit-mode', isDisabled);
+            });
+
+            if (!isDisabled) {
+                saveStudent(id, document.getElementById(`name-${id}`).value, document.getElementById(`bal-${id}`).value, document.getElementById(`pass-${id}`).value);
+                btn.innerText = "✏️";
+            } else {
+                btn.innerText = "💾";
             }
         }
 
         async function saveStudent(id, name, balance, password) { 
             await callServer({ action: "updateStudent", id, name, balance, password }); 
-            // Optional: loadStudents(); // Refresh to ensure numbers are formatted correctly
-        }
-
-        async function setMarketStatus(status) { await callServer({ action: "toggleMarket", status }); loadMarketAdmin(); }
-        
-        async function updatePrice(ticker) {
-            const val = document.getElementById(`price-${ticker}`).value;
-            if(!val) return;
-            await callServer({ action: "updateSingleStock", ticker, newPrice: val });
-            loadMarketAdmin();
-        }
-
-        async function triggerCrisis(name, percent) {
-            if (!confirm(`Trigger ${name}?`)) return;
-            await callServer({ action: "triggerMarketEvent", eventName: name, dropPercent: percent });
-            loadMarketAdmin();
         }
 
         async function createNewStudent() {
