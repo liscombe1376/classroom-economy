@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>POS Terminal | ClassBank</title>
-    <link rel="icon" type="image/png" href="https://drive.google.com/file/d/1wQfvUrpnaONwqB8jCic3cbkMS0lvHefS/view?usp=drivesdk">
+    
+    <link rel="apple-touch-icon" href="https://drive.google.com/uc?export=view&id=1wQfvUrpnaONwqB8jCic3cbkMS0lvHefS">
+    <link rel="icon" type="image/png" href="https://drive.google.com/uc?export=view&id=1wQfvUrpnaONwqB8jCic3cbkMS0lvHefS">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -19,6 +21,15 @@
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="fixed top-4 right-4 z-50">
+        <a href="settings.html" class="bg-slate-800/50 hover:bg-slate-700 p-2 rounded-full border border-slate-700 block shadow-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </a>
+    </div>
 
     <div class="w-full max-w-md glass-card rounded-3xl shadow-2xl p-6 md:p-8">
         <div class="text-center mb-8">
@@ -138,7 +149,6 @@
                 document.getElementById('reader').classList.remove('opacity-50');
 
                 if(result.success) {
-                    // Using a simple alert, but styled to feel like a success
                     if(isPooling) {
                         studentsScanned++;
                         if(studentsScanned < studentsToPool) {
