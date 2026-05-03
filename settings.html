@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCE Settings | Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
+        .glass-card { background: #161d2f; border: 1px solid #2d3748; }
+    </style>
+</head>
+<body class="p-4 pb-20">
+
+    <div class="max-w-md mx-auto space-y-6">
+        <h1 class="text-2xl font-bold text-center text-blue-400">Classroom Settings</h1>
+
+        <div class="glass-card p-6 rounded-2xl shadow-xl">
+            <h2 class="text-lg font-semibold mb-4 border-b border-gray-700 pb-2">🛒 POS Items (Costs)</h2>
+            
+            <div class="flex gap-2 mb-4">
+                <input id="itemName" type="text" placeholder="Item Name" class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <input id="itemCost" type="number" placeholder="Cost" class="w-20 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <button onclick="addItem()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-bold">+</button>
+            </div>
+
+            <div id="itemsList" class="space-y-2">
+                <p class="text-gray-500 text-sm italic">Loading items...</p>
+            </div>
+        </div>
+
+        <div class="glass-card p-6 rounded-2xl shadow-xl">
+            <h2 class="text-lg font-semibold mb-4 border-b border-gray-700 pb-2">🎯 Class Goals (Rewards)</h2>
+            
+            <div class="flex gap-2 mb-4">
+                <input id="goalName" type="text" placeholder="Goal Name" class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <input id="goalAmount" type="number" placeholder="Reward" class="w-20 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <button onclick="addGoal()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-bold">+</button>
+            </div>
+
+            <div id="goalsList" class="space-y-2">
+                <p class="text-gray-500 text-sm italic">Loading goals...</p>
+            </div>
+        </div>
+
+        <button onclick="window.location.href='index.html'" class="w-full py-3 text-gray-400 font-medium italic underline">Back to POS Terminal</button>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "YOUR_APPS_SCRIPT_URL_HERE";
+
+        async function loadSettings() {
+            const res = await fetch(`${WEB_APP_URL}?action=getPOSSettings`);
+            const data = await res.json();
+            
+            renderList('itemsList', data.items, 'deleteItem');
+            renderList('goalsList', data.goals, 'deleteGoal');
+        }
+
+        function renderList(elementId, data, deleteFuncName) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = data.map((row, index) => `
+                <div class="flex justify-between items-center bg-gray-800/50 p-3 rounded-xl border border-gray-700">
+                    <div>
+                        <span class="block font-medium">${row[0]}</span>
+                        <span class="text-xs ${row[1] < 0 ? 'text-red-400' : 'text-green-400'}">${row[1]} BCE</span>
+                    </div>
+                    <button onclick="${deleteFuncName}(${index + 2})" class="text-gray-500 hover:text-red-500 px-2">✕</button>
+                </div>
+            `).join('') || '<p class="text-gray-600 text-sm">No items found.</p>';
+        }
+
+        async function addItem() {
+            const name = document.getElementById('itemName').value;
+            const cost = document.getElementById('itemCost').value;
+            if(!name || !cost) return;
+
+            // Force it to be negative for the POS
+            const formattedCost = cost > 0 ? cost * -1 : cost;
+
+            await fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'addPOSItem', itemName: name, itemCost: formattedCost })
+            });
+            location.reload();
+        }
+
+        async function addGoal() {
+            const name = document.getElementById('goalName').value;
+            const amt = document.getElementById('goalAmount').value;
+            if(!name || !amt) return;
+
+            await fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'addGoal', goalName: name, goalAmount: amt })
+            });
+            location.reload();
+        }
+
+        // Logic for delete buttons (removes the row from Google Sheets)
+        async function deleteItem(rowIdx) {
+            if(!confirm("Delete this item?")) return;
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteRow', tab: 'Items', row: rowIdx }) });
+            location.reload();
+        }
+
+        async function deleteGoal(rowIdx) {
+            if(!confirm("Delete this goal?")) return;
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteRow', tab: 'Goals', row: rowIdx }) });
+            location.reload();
+        }
+
+        loadSettings();
+    </script>
+</body>
+</html>
