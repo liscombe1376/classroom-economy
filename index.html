@@ -21,9 +21,16 @@
         #reader { border: none !important; overflow: hidden; border-radius: 1rem; }
         #reader__scan_region { background: #000; }
         video { border-radius: 1rem; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="processingOverlay" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[9999] flex flex-col items-center justify-center text-center p-6">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-slate-700 mb-6"></div>
+        <h2 class="text-white text-xl font-bold tracking-tight">Syncing with Bank...</h2>
+        <p class="text-slate-400 text-sm mt-2 italic">Updating ledger and verifying funds. Please wait.</p>
+    </div>
 
     <div class="fixed top-4 right-4 z-50">
         <a href="settings.html" class="bg-slate-800/50 hover:bg-slate-700 p-2 rounded-full border border-slate-700 block shadow-lg transition-colors">
@@ -86,6 +93,7 @@
     <script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxH0Ym5l89oCfJtVRQMZcl1gjhyT3xBprFl9oTAIHQSgpJfzb8Ngf-iYydUeN6HmcVw/exec";
         let isPooling = false, studentsToPool = 0, studentsScanned = 0, finalPrice = 0;
+        let isBusy = false; // Guard variable to prevent double processing
 
         async function callServer(payload) {
             const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
@@ -136,46 +144,73 @@
         function startScan() {
             const scanner = new Html5Qrcode("reader");
             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            const overlay = document.getElementById('processingOverlay');
             
             scanner.start({ facingMode: "environment" }, config, async (data) => {
-                scanner.stop();
-                document.getElementById('reader').classList.add('opacity-50');
+                if (isBusy) return; // Ignore secondary scans while processing
                 
-                const result = await callServer({ 
-                    action: isPooling ? "poolTransaction" : "processTransaction", 
-                    studentID: data, 
-                    amount: finalPrice, 
-                    type: document.getElementById('actionSelect').value, 
-                    description: "POS Checkout" 
-                });
+                isBusy = true;
+                scanner.stop();
+                overlay.classList.remove('hidden');
+                
+                try {
+                    const result = await callServer({ 
+                        action: isPooling ? "poolTransaction" : "processTransaction", 
+                        studentID: data, 
+                        amount: finalPrice, 
+                        type: document.getElementById('actionSelect').value, 
+                        description: "POS Checkout" 
+                    });
 
-                document.getElementById('reader').classList.remove('opacity-50');
-
-                if(result.success) {
-                    if(isPooling) {
-                        studentsScanned++;
-                        if(studentsScanned < studentsToPool) {
-                            alert(`✅ Payment Accepted! (${studentsScanned}/${studentsToPool})\n\nScan the next student.`);
-                            startScan();
+                    if(result.success) {
+                        if(isPooling) {
+                            studentsScanned++;
+                            if(studentsScanned < studentsToPool) {
+                                alert(`✅ Payment Accepted! (${studentsScanned}/${studentsToPool})\n\nScan the next student.`);
+                                overlay.classList.add('hidden');
+                                isBusy = false;
+                                startScan();
+                            } else {
+                                alert("✅ Group purchase complete! All students have paid.");
+                                isPooling = false; studentsScanned = 0;
+                                overlay.classList.add('hidden');
+                                isBusy = false;
+                            }
                         } else {
-                            alert("✅ Group purchase complete! All students have paid.");
-                            isPooling = false; studentsScanned = 0;
+                            alert("✅ TRANSACTION COMPLETE\nBalance Updated Successfully.");
+                            overlay.classList.add('hidden');
+                            isBusy = false;
                         }
                     } else {
-                        alert("✅ TRANSACTION COMPLETE\nBalance Updated Successfully.");
+                        alert("❌ DECLINED\n" + result.message);
+                        isPooling = false;
+                        overlay.classList.add('hidden');
+                        isBusy = false;
                     }
-                } else {
-                    alert("❌ DECLINED\n" + result.message);
-                    isPooling = false;
+                } catch (e) {
+                    alert("⚠️ Network Error. Check Ledger.");
+                    overlay.classList.add('hidden');
+                    isBusy = false;
                 }
             });
         }
 
         async function payClass() {
             const amt = prompt("Enter bonus amount for EVERY student:", "100");
+            const overlay = document.getElementById('processingOverlay');
+            
             if(amt && confirm(`Are you sure you want to distribute $${amt} to everyone?`)) {
-                const res = await callServer({ action: "payClass", amount: amt });
-                alert(res.success ? "💰 Class Bonus Distributed!" : "Error processing bonus.");
+                isBusy = true;
+                overlay.classList.remove('hidden');
+                try {
+                    const res = await callServer({ action: "payClass", amount: amt });
+                    alert(res.success ? "💰 Class Bonus Distributed!" : "Error processing bonus.");
+                } catch (e) {
+                    alert("⚠️ Network Error.");
+                } finally {
+                    overlay.classList.add('hidden');
+                    isBusy = false;
+                }
             }
         }
         
