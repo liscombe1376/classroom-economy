@@ -344,7 +344,7 @@
             setTimeout(() => { win.print(); }, 1000);
         }
 
-        // NEW LEDGER LOGIC
+        // --- UPDATED LEDGER LOGIC ---
         async function loadLedger() {
             try {
                 const ledger = await callServer({ action: "getLedger" });
@@ -363,17 +363,30 @@
                 // Reverse ledger to show newest at top
                 body.innerHTML = ledger.reverse().map(entry => {
                     const studentName = nameLookup[entry[1]] || entry[1];
+                    const type = entry[2] || "";
                     const amount = parseFloat(entry[4]) || 0;
-                    const typeColor = entry[2] === "Reward" || entry[2] === "Deposit" ? "text-emerald-400" : "text-rose-400";
-                    const timestamp = entry[0].toString().split('T')[0] + ' ' + entry[0].toString().split('T')[1]?.substring(0,5) || entry[0];
+                    
+                    // Fixed Color Logic: Bonus and Income are now green
+                    const greenTypes = ["Income", "Reward", "Deposit", "Interest", "Bonus"];
+                    const isPositive = greenTypes.includes(type);
+                    
+                    const typeColor = isPositive ? "text-emerald-400" : "text-rose-400";
+                    const prefix = isPositive ? "+" : "-";
+
+                    // Handle date formatting
+                    let timestamp = "---";
+                    try {
+                        const dateObj = new Date(entry[0]);
+                        timestamp = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } catch(e) { timestamp = entry[0]; }
 
                     return `
                     <tr class="hover:bg-slate-800/20 transition">
                         <td class="py-3 pl-2 text-slate-500 font-mono text-[10px]">${timestamp}</td>
                         <td class="py-3 font-semibold text-slate-200">${studentName}</td>
-                        <td class="py-3"><span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[9px] uppercase font-bold text-slate-400">${entry[2]}</span></td>
+                        <td class="py-3"><span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[9px] uppercase font-bold text-slate-400">${type}</span></td>
                         <td class="py-3 text-slate-400 italic text-xs">${entry[3]}</td>
-                        <td class="py-3 text-right pr-2 font-bold ${typeColor}">$${amount.toFixed(2)}</td>
+                        <td class="py-3 text-right pr-2 font-bold ${typeColor}">${prefix}$${Math.abs(amount).toFixed(2)}</td>
                     </tr>`;
                 }).join('');
             } catch(e) { 
