@@ -364,7 +364,7 @@
                 body.innerHTML = ledger.reverse().map(entry => {
                     const studentName = nameLookup[entry[1]] || entry[1];
                     const amount = parseFloat(entry[4]) || 0;
-                    const typeColor = entry[2] === "bonus" || entry[2] === "Reward" || entry[2] === "Deposit" ? "text-emerald-400" : "text-rose-400";
+                    const typeColor = entry[2] === "Reward" || entry[2] === "Deposit" ? "text-emerald-400" : "text-rose-400";
                     const timestamp = entry[0].toString().split('T')[0] + ' ' + entry[0].toString().split('T')[1]?.substring(0,5) || entry[0];
 
                     return `
