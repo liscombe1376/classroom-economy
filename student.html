@@ -38,7 +38,6 @@
         .pos { color: #10b981; font-weight: bold; }
         .neg { color: #f43f5e; font-weight: bold; }
         
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0b0f1a; }
         ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
@@ -88,7 +87,7 @@
             <div class="glass-card p-6 rounded-2xl border-l-4 border-purple-500">
                 <div class="flex justify-between items-center">
                     <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Savings</p>
-                    <span class="bg-purple-900/30 text-purple-400 text-[10px] px-2 py-0.5 rounded-full border border-purple-500/30">5% APY</span>
+                    <span id="interestBadge" class="bg-purple-900/30 text-purple-400 text-[10px] px-2 py-0.5 rounded-full border border-purple-500/30">Loading...</span>
                 </div>
                 <h2 id="savingsDisplay" class="text-4xl font-bold mt-2 text-purple-400 font-mono">$0.00</h2>
             </div>
@@ -162,6 +161,9 @@
                 
                 document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
                 document.getElementById('savingsDisplay').innerText = "$" + parseFloat(data.student.savings).toFixed(2);
+
+                // UPDATED: Fetch interest rate from market status to update badge
+                fetchInterestRate();
                 
                 const portBody = document.getElementById('portfolioBody');
                 if (data.student.portfolio && data.student.portfolio.length > 0) {
@@ -192,6 +194,22 @@
                 });
             } else {
                 alert("Login failed. Check your name and password.");
+            }
+        }
+
+        // NEW FUNCTION: Updates the % APY badge on student dashboard
+        async function fetchInterestRate() {
+            try {
+                const res = await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "getMarketStatus" })
+                });
+                const data = await res.json();
+                if (data.interestRate) {
+                    document.getElementById('interestBadge').innerText = data.interestRate + "% APY";
+                }
+            } catch (e) {
+                console.log("Error loading interest rate");
             }
         }
 
