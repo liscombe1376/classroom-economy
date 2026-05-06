@@ -39,7 +39,6 @@
             position: relative;
             border-radius: 14px;
             overflow: hidden;
-            /* Royal Blue Gradient */
             background: linear-gradient(135deg, #004aad 0%, #002d6a 100%);
             color: white;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
@@ -75,9 +74,9 @@
 
         .card-qr-box { 
             position: absolute; 
-            top: 65px; /* Shifted up slightly to avoid text overlap */
+            top: 65px; 
             left: 22px; 
-            background: #ffd700; /* Gold Background */
+            background: #ffd700; 
             padding: 5px; 
             border-radius: 6px; 
             z-index: 2; 
@@ -85,7 +84,7 @@
         }
         
         .card-qr-box img {
-            mix-blend-mode: multiply; /* Ensures QR black marks stay crisp on gold */
+            mix-blend-mode: multiply;
         }
         
         .card-name-label { position: absolute; bottom: 22px; left: 22px; z-index: 2; }
@@ -117,14 +116,23 @@
         </div>
 
         <div class="glass-card rounded-2xl p-6 mb-8 shadow-2xl border-t-4 border-t-blue-500">
-            <div class="flex justify-between items-center border-b border-slate-700 pb-4 mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700 pb-4 mb-6 gap-4">
                 <h2 class="text-xl font-semibold flex items-center gap-2">
                     <span class="text-blue-500">🏛️</span> The Exchange Control
                 </h2>
-                <div class="flex items-center gap-3 bg-slate-900 p-1.5 rounded-lg border border-slate-700">
-                    <span id="marketStatusLabel" class="px-3 font-bold text-xs uppercase tracking-wider">LOADING...</span>
-                    <button onclick="setMarketStatus('OPEN')" class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1 rounded text-xs font-bold transition">OPEN</button>
-                    <button onclick="setMarketStatus('CLOSED')" class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1 rounded text-xs font-bold transition">CLOSE</button>
+                
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2 bg-slate-900 p-1.5 rounded-lg border border-slate-700">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase pl-2">Savings Interest %</span>
+                        <input type="number" id="interestRateInput" step="0.1" class="bg-slate-800 border-none rounded w-16 text-center text-emerald-400 font-bold py-1 text-xs" value="2.0">
+                        <button onclick="updateInterestRate()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-[10px] font-bold transition uppercase">Set</button>
+                    </div>
+
+                    <div class="flex items-center gap-3 bg-slate-900 p-1.5 rounded-lg border border-slate-700">
+                        <span id="marketStatusLabel" class="px-3 font-bold text-xs uppercase tracking-wider">LOADING...</span>
+                        <button onclick="setMarketStatus('OPEN')" class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1 rounded text-xs font-bold transition">OPEN</button>
+                        <button onclick="setMarketStatus('CLOSED')" class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1 rounded text-xs font-bold transition">CLOSE</button>
+                    </div>
                 </div>
             </div>
 
@@ -221,6 +229,11 @@
                 const statusLabel = document.getElementById('marketStatusLabel');
                 statusLabel.innerText = statusData.status;
                 statusLabel.className = `px-3 font-bold text-xs uppercase tracking-wider ${statusData.status === 'OPEN' ? 'text-emerald-500' : 'text-rose-500'}`;
+                
+                // Set the current interest rate in the input field
+                if(statusData.interestRate) {
+                    document.getElementById('interestRateInput').value = statusData.interestRate;
+                }
 
                 const body = document.getElementById('marketAdminBody');
                 body.innerHTML = marketData.map((stock, index) => {
@@ -241,6 +254,17 @@
                     </tr>`;
                 }).join('');
             } catch(e) { console.error(e); }
+        }
+
+        async function updateInterestRate() {
+            const newRate = document.getElementById('interestRateInput').value;
+            if(!newRate) return;
+            try {
+                await callServer({ action: "setInterestRate", rate: newRate });
+                alert("Savings interest rate updated to " + newRate + "%");
+            } catch(e) {
+                alert("Error updating interest rate.");
+            }
         }
 
         async function addNewStock() {
@@ -344,7 +368,6 @@
             setTimeout(() => { win.print(); }, 1000);
         }
 
-        // --- UPDATED LEDGER LOGIC ---
         async function loadLedger() {
             try {
                 const ledger = await callServer({ action: "getLedger" });
@@ -356,24 +379,20 @@
                     return;
                 }
 
-                // Map Student ID to Name for better readability
                 const nameLookup = {};
                 students.forEach(s => { nameLookup[s[0]] = s[1]; });
 
-                // Reverse ledger to show newest at top
                 body.innerHTML = ledger.reverse().map(entry => {
                     const studentName = nameLookup[entry[1]] || entry[1];
                     const type = entry[2] || "";
                     const amount = parseFloat(entry[4]) || 0;
                     
-                    // Fixed Color Logic: Bonus and Income are now green
                     const greenTypes = ["Income", "Reward", "Deposit", "Interest", "Bonus"];
                     const isPositive = greenTypes.includes(type);
                     
                     const typeColor = isPositive ? "text-emerald-400" : "text-rose-400";
                     const prefix = isPositive ? "+" : "-";
 
-                    // Handle date formatting
                     let timestamp = "---";
                     try {
                         const dateObj = new Date(entry[0]);
