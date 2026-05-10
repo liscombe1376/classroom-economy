@@ -17,84 +17,35 @@
         @media print {
             body { background: white !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            
-            .card-grid { 
-                display: grid !important; 
-                grid-template-columns: 1fr 1fr !important; 
-                gap: 15px !important; 
-                justify-items: center !important; 
-                padding: 10px !important; 
-            }
-            .debit-card { 
-                box-shadow: none !important; 
-                border: 1px solid #ddd !important; 
-                break-inside: avoid; 
-                margin-bottom: 10px; 
-            }
+            .card-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 15px !important; justify-items: center !important; padding: 10px !important; }
+            .debit-card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; margin-bottom: 10px; }
         }
 
         .debit-card {
-            width: 350px;
-            height: 200px;
-            position: relative;
-            border-radius: 14px;
-            overflow: hidden;
-            background: linear-gradient(135deg, #004aad 0%, #002d6a 100%);
-            color: white;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-            text-align: left;
+            width: 350px; height: 200px; position: relative; border-radius: 14px; overflow: hidden;
+            background: linear-gradient(135deg, #004aad 0%, #002d6a 100%); color: white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3); text-align: left;
         }
 
         .card-circuit-overlay {
-            position: absolute;
-            inset: 0;
-            opacity: 0.3;
+            position: absolute; inset: 0; opacity: 0.3; z-index: 1;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1'%3E%3Cpath d='M0 20h40v40h40V20h40v80h-40v40h-40v40H0M160 0v60h40v40h40V60h40V0M340 200v-60h-40v-40h-40v40h-40v60M400 120h-60v-40h-40v40h-40v40h-60'/%3E%3C/g%3E%3C/svg%3E");
             background-size: cover;
-            z-index: 1;
         }
 
-        .bce-logo { 
-            position: absolute; 
-            top: 22px; 
-            right: 22px; 
-            z-index: 2; 
-        }
-
+        .bce-logo { position: absolute; top: 22px; right: 22px; z-index: 2; }
         .bce-logo h1 { 
-            font-size: 48px; 
-            font-weight: 800; 
-            line-height: 1; 
-            margin: 0; 
-            letter-spacing: -2px; 
+            font-size: 48px; font-weight: 800; line-height: 1; margin: 0; letter-spacing: -2px;
             background: linear-gradient(180deg, #ffffff 40%, #cbd5e1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        .card-qr-box { 
-            position: absolute; 
-            top: 65px; 
-            left: 22px; 
-            background: #ffd700; 
-            padding: 5px; 
-            border-radius: 6px; 
-            z-index: 2; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        
-        .card-qr-box img {
-            mix-blend-mode: multiply;
-        }
-        
+        .card-qr-box { position: absolute; top: 65px; left: 22px; background: #ffd700; padding: 5px; border-radius: 6px; z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .card-qr-box img { mix-blend-mode: multiply; }
         .card-name-label { position: absolute; bottom: 22px; left: 22px; z-index: 2; }
         .card-name-label .label { font-size: 7px; text-transform: uppercase; color: #cbd5e1; letter-spacing: 1.5px; margin-bottom: 2px; }
         .card-name-label .name { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #ffffff; }
-
-        .valid-thru {
-            position: absolute; bottom: 22px; right: 22px; z-index: 2;
-            text-align: right; font-family: monospace; font-size: 9px; color: #cbd5e1;
-        }
+        .valid-thru { position: absolute; bottom: 22px; right: 22px; z-index: 2; text-align: right; font-family: monospace; font-size: 9px; color: #cbd5e1; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -117,17 +68,13 @@
 
         <div class="glass-card rounded-2xl p-6 mb-8 shadow-2xl border-t-4 border-t-blue-500">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700 pb-4 mb-6 gap-4">
-                <h2 class="text-xl font-semibold flex items-center gap-2">
-                    <span class="text-blue-500">🏛️</span> The Exchange Control
-                </h2>
-                
+                <h2 class="text-xl font-semibold flex items-center gap-2"><span class="text-blue-500">🏛️</span> The Exchange Control</h2>
                 <div class="flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2 bg-slate-900 p-1.5 rounded-lg border border-slate-700">
                         <span class="text-[10px] text-slate-500 font-bold uppercase pl-2">Savings Interest %</span>
                         <input type="number" id="interestRateInput" step="0.1" class="bg-slate-800 border-none rounded w-16 text-center text-emerald-400 font-bold py-1 text-xs" value="2.0">
                         <button onclick="updateInterestRate()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-[10px] font-bold transition uppercase">Set</button>
                     </div>
-
                     <div class="flex items-center gap-3 bg-slate-900 p-1.5 rounded-lg border border-slate-700">
                         <span id="marketStatusLabel" class="px-3 font-bold text-xs uppercase tracking-wider">LOADING...</span>
                         <button onclick="setMarketStatus('OPEN')" class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1 rounded text-xs font-bold transition">OPEN</button>
@@ -164,9 +111,7 @@
         </div>
 
         <div class="glass-card rounded-2xl p-6 shadow-2xl mb-8">
-            <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
-                <span class="text-blue-500">👥</span> Student Roster
-            </h2>
+            <h2 class="text-xl font-semibold mb-6 flex items-center gap-2"><span class="text-blue-500">👥</span> Student Roster</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
                 <input type="text" id="name" placeholder="Full Name" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm">
                 <input type="text" id="pass" placeholder="Initial PIN" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm">
@@ -190,9 +135,7 @@
 
         <div class="glass-card rounded-2xl p-6 shadow-2xl border-t-4 border-t-amber-500">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-semibold flex items-center gap-2">
-                    <span class="text-amber-500">📜</span> Master Transaction Ledger
-                </h2>
+                <h2 class="text-xl font-semibold flex items-center gap-2"><span class="text-amber-500">📜</span> Master Transaction Ledger</h2>
                 <button onclick="loadLedger()" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-lg border border-slate-700 transition">🔄 Refresh Ledger</button>
             </div>
             <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
@@ -218,8 +161,13 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzLgxJX3nvNNfyEjKvIigpd3o5QHPTMqrZkXUQJqIAmpd3Q7yIgzQDwO9DG6UeVVnt3/exec";
 
         async function callServer(payload) {
-            const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
-            return await response.json();
+            try {
+                const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
+                return await response.json();
+            } catch (e) {
+                console.error("Server Error:", e);
+                throw e;
+            }
         }
 
         async function loadMarketAdmin() {
@@ -230,10 +178,7 @@
                 statusLabel.innerText = statusData.status;
                 statusLabel.className = `px-3 font-bold text-xs uppercase tracking-wider ${statusData.status === 'OPEN' ? 'text-emerald-500' : 'text-rose-500'}`;
                 
-                // Set the current interest rate in the input field
-                if(statusData.interestRate) {
-                    document.getElementById('interestRateInput').value = statusData.interestRate;
-                }
+                if(statusData.interestRate) document.getElementById('interestRateInput').value = statusData.interestRate;
 
                 const body = document.getElementById('marketAdminBody');
                 body.innerHTML = marketData.map((stock, index) => {
@@ -259,12 +204,8 @@
         async function updateInterestRate() {
             const newRate = document.getElementById('interestRateInput').value;
             if(!newRate) return;
-            try {
-                await callServer({ action: "setInterestRate", rate: newRate });
-                alert("Savings interest rate updated to " + newRate + "%");
-            } catch(e) {
-                alert("Error updating interest rate.");
-            }
+            await callServer({ action: "setInterestRate", rate: newRate });
+            alert("Rate updated to " + newRate + "%");
         }
 
         async function addNewStock() {
@@ -290,12 +231,14 @@
             loadMarketAdmin();
         }
 
-        async function setMarketStatus(status) { await callServer({ action: "toggleMarket", status }); loadMarketAdmin(); }
+        async function setMarketStatus(status) { 
+            await callServer({ action: "toggleMarket", status }); 
+            loadMarketAdmin(); 
+        }
 
         async function loadStudents() {
             const students = await callServer({ action: "getStudents" }); 
             const body = document.getElementById('studentBody');
-            if(!body) return;
             body.innerHTML = students.map(s => `
                 <tr class="hover:bg-slate-800/30 transition">
                     <td class="py-4 pl-2 text-slate-500 text-xs font-mono">${s[0]}</td>
@@ -321,7 +264,9 @@
             } else { btn.innerText = "💾"; }
         }
 
-        async function saveStudent(id, name, balance, password) { await callServer({ action: "updateStudent", id, name, balance, password }); }
+        async function saveStudent(id, name, balance, password) { 
+            await callServer({ action: "updateStudent", id, name, balance, password }); 
+        }
         
         async function createNewStudent() {
             const name = document.getElementById('name').value;
@@ -333,26 +278,14 @@
 
         async function runPrintClassQRs() {
             const result = await callServer({ action: "getPrintData" });
-            let html = `
-            <html>
-            <head>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
-                <style>${document.querySelector('style').innerHTML}</style>
-            </head>
-            <body>
-                <div class="card-grid">`;
-
+            let html = `<html><head><style>${document.querySelector('style').innerHTML}</style></head><body><div class="card-grid">`;
             result.forEach(s => {
                 let qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(s[0]);
                 html += `
                     <div class="debit-card">
                         <div class="card-circuit-overlay"></div>
-                        <div class="bce-logo">
-                            <h1>BCE</h1>
-                        </div>
-                        <div class="card-qr-box">
-                            <img src="${qrUrl}" width="55">
-                        </div>
+                        <div class="bce-logo"><h1>BCE</h1></div>
+                        <div class="card-qr-box"><img src="${qrUrl}" width="55"></div>
                         <div class="card-name-label">
                             <div class="label">Authorized User</div>
                             <div class="name">${s[1]}</div>
@@ -360,7 +293,6 @@
                         <div class="valid-thru">VALID<br>THRU 12/26</div>
                     </div>`;
             });
-
             html += `</div></body></html>`;
             const win = window.open('', '_blank');
             win.document.write(html);
@@ -373,51 +305,35 @@
                 const ledger = await callServer({ action: "getLedger" });
                 const students = await callServer({ action: "getStudents" });
                 const body = document.getElementById('ledgerBody');
-                
                 if(!ledger || ledger.length === 0) {
-                    body.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500 italic">No transactions found.</td></tr>';
+                    body.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500 italic">No transactions.</td></tr>';
                     return;
                 }
-
                 const nameLookup = {};
                 students.forEach(s => { nameLookup[s[0]] = s[1]; });
-
                 body.innerHTML = ledger.reverse().map(entry => {
                     const studentName = nameLookup[entry[1]] || entry[1];
-                    const type = entry[2] || "";
-                    const amount = parseFloat(entry[4]) || 0;
-                    
                     const greenTypes = ["Income", "Reward", "Deposit", "Interest", "Bonus"];
-                    const isPositive = greenTypes.includes(type);
-                    
+                    const isPositive = greenTypes.includes(entry[2]);
                     const typeColor = isPositive ? "text-emerald-400" : "text-rose-400";
-                    const prefix = isPositive ? "+" : "-";
-
-                    let timestamp = "---";
-                    try {
-                        const dateObj = new Date(entry[0]);
-                        timestamp = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    } catch(e) { timestamp = entry[0]; }
-
                     return `
                     <tr class="hover:bg-slate-800/20 transition">
-                        <td class="py-3 pl-2 text-slate-500 font-mono text-[10px]">${timestamp}</td>
+                        <td class="py-3 pl-2 text-slate-500 font-mono text-[10px]">${entry[0]}</td>
                         <td class="py-3 font-semibold text-slate-200">${studentName}</td>
-                        <td class="py-3"><span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[9px] uppercase font-bold text-slate-400">${type}</span></td>
+                        <td class="py-3"><span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[9px] uppercase font-bold text-slate-400">${entry[2]}</span></td>
                         <td class="py-3 text-slate-400 italic text-xs">${entry[3]}</td>
-                        <td class="py-3 text-right pr-2 font-bold ${typeColor}">${prefix}$${Math.abs(amount).toFixed(2)}</td>
+                        <td class="py-3 text-right pr-2 font-bold ${typeColor}">${isPositive?'+':'-'}$${Math.abs(entry[4]).toFixed(2)}</td>
                     </tr>`;
                 }).join('');
-            } catch(e) { 
-                console.error("Ledger Load Error:", e); 
-                document.getElementById('ledgerBody').innerHTML = '<tr><td colspan="5" class="py-8 text-center text-rose-500 italic">Failed to load ledger data.</td></tr>';
-            }
+            } catch(e) { console.error(e); }
         }
 
         // Initialization
-        loadStudents();
-        loadMarketAdmin();
-        loadLedger(); 
+        window.onload = () => {
+            loadStudents();
+            loadMarketAdmin();
+            loadLedger();
+        };
     </script>
 </body>
 </html>
