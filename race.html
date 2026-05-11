@@ -10,22 +10,19 @@
         canvas { display: block; }
         .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; pointer-events: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         select, input { background: #1e293b; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; color: white; font-size: 0.85rem; outline: none; }
-        select:focus { border-color: #3b82f6; }
     </style>
 </head>
 <body>
 
     <div class="admin-panel fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center px-8">
         <div class="flex items-center gap-6">
-            <div>
-                <h1 class="text-2xl font-black italic tracking-tighter uppercase text-white">BCE <span class="text-blue-500">GP</span></h1>
-            </div>
+            <h1 class="text-2xl font-black italic tracking-tighter uppercase text-white">BCE <span class="text-blue-500">GP</span></h1>
             
             <div class="flex flex-col">
                 <label class="text-[10px] uppercase font-bold text-slate-400">Track</label>
                 <select id="trackSelect" onchange="initRaceData()">
                     <option value="pro">Pro Circuit (Balanced)</option>
-                    <option value="mud">Mud Track (Technical)</option>
+                    <option value="mud">The Snake (Technical)</option>
                     <option value="oval">The Oval (Speedway)</option>
                     <option value="drag">Drag Strip (Sprint)</option>
                 </select>
@@ -59,34 +56,49 @@
         const ctx = canvas.getContext('2d');
         
         let racers = [];
+        let scenery = [];
         let raceActive = false;
         let raceFinished = false;
 
         const tracks = {
             pro: [
-                {x: 0.15, y: 0.8}, {x: 0.15, y: 0.25}, {x: 0.35, y: 0.2}, 
-                {x: 0.5, y: 0.45}, {x: 0.65, y: 0.2}, {x: 0.85, y: 0.25}, 
-                {x: 0.85, y: 0.75}, {x: 0.6, y: 0.85}, {x: 0.45, y: 0.65}, {x: 0.15, y: 0.8}
+                {x: 0.15, y: 0.8}, {x: 0.1, y: 0.3}, {x: 0.4, y: 0.2}, 
+                {x: 0.5, y: 0.45}, {x: 0.7, y: 0.2}, {x: 0.9, y: 0.3}, 
+                {x: 0.85, y: 0.75}, {x: 0.6, y: 0.85}, {x: 0.4, y: 0.6}, {x: 0.15, y: 0.8}
             ],
             mud: [
                 {x: 0.2, y: 0.8}, {x: 0.1, y: 0.5}, {x: 0.25, y: 0.2}, 
-                {x: 0.5, y: 0.35}, {x: 0.45, y: 0.1}, {x: 0.75, y: 0.15}, 
-                {x: 0.65, y: 0.45}, {x: 0.9, y: 0.55}, {x: 0.8, y: 0.85}, 
+                {x: 0.5, y: 0.4}, {x: 0.45, y: 0.1}, {x: 0.75, y: 0.2}, 
+                {x: 0.65, y: 0.5}, {x: 0.9, y: 0.6}, {x: 0.8, y: 0.9}, 
                 {x: 0.5, y: 0.7}, {x: 0.2, y: 0.8}
             ],
             oval: [
-                {x: 0.2, y: 0.75}, {x: 0.2, y: 0.25}, {x: 0.3, y: 0.15},
-                {x: 0.7, y: 0.15}, {x: 0.8, y: 0.25}, {x: 0.8, y: 0.75}, 
-                {x: 0.7, y: 0.85}, {x: 0.3, y: 0.85}, {x: 0.2, y: 0.75}
+                {x: 0.2, y: 0.7}, {x: 0.2, y: 0.3}, {x: 0.4, y: 0.15},
+                {x: 0.6, y: 0.15}, {x: 0.8, y: 0.3}, {x: 0.8, y: 0.7}, 
+                {x: 0.6, y: 0.85}, {x: 0.4, y: 0.85}, {x: 0.2, y: 0.7}
             ],
             drag: [
                 {x: 0.1, y: 0.5}, {x: 0.9, y: 0.5} 
             ]
         };
 
+        function generateScenery() {
+            scenery = [];
+            for(let i=0; i<40; i++) {
+                scenery.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: 10 + Math.random() * 20,
+                    type: Math.random() > 0.3 ? 'tree' : 'rock',
+                    color: Math.random() > 0.5 ? '#14532d' : '#166534'
+                });
+            }
+        }
+
         async function initRaceData() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            generateScenery();
             
             try {
                 const res = await fetch(WEB_APP_URL, {
@@ -98,8 +110,8 @@
                 racers = data.racers.map((r, i) => {
                     let speed = 1.0;
                     let handling = 1.0;
-                    if(r.motor === "V8 Engine") speed += 2.0;
-                    if(r.tires === "Slicks") handling += 1.8;
+                    if(r.motor === "V8 Engine") speed += 1.8;
+                    if(r.tires === "Slicks") handling += 1.6;
 
                     return {
                         ...r,
@@ -113,7 +125,7 @@
                     };
                 });
                 draw();
-            } catch (e) { console.error("Data Load Error", e); }
+            } catch (e) { console.error(e); }
         }
 
         function getPointOnPath(t, trackType) {
@@ -124,59 +136,81 @@
             const p1 = path[section];
             const p2 = path[section + 1];
 
-            const dx = (p2.x - p1.x);
-            const dy = (p2.y - p1.y);
-            const angle = Math.atan2(dy, dx) + Math.PI/2;
-
             return {
-                x: (p1.x + dx * sectionT) * canvas.width,
-                y: (p1.y + dy * sectionT) * canvas.height,
-                angle: angle,
+                x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width,
+                y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height,
+                angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x)) + Math.PI/2,
                 isCorner: (sectionT < 0.2 || sectionT > 0.8) && trackType !== 'drag'
             };
         }
 
-        function drawWorld() {
-            // Background Noise/Dirt Texture (No image needed)
-            ctx.fillStyle = "#1a2421"; 
+        function drawBackground() {
+            // Grass base
+            ctx.fillStyle = "#064e3b";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Draw faint ground speckles
-            ctx.fillStyle = "rgba(255,255,255,0.03)";
-            for(let i=0; i<400; i++) {
-                ctx.fillRect((i*137)%canvas.width, (i*243)%canvas.height, 2, 2);
+            // Texture
+            ctx.fillStyle = "rgba(0,0,0,0.1)";
+            for(let i=0; i<200; i++) {
+                ctx.fillRect((i*193)%canvas.width, (i*211)%canvas.height, 4, 4);
             }
+
+            scenery.forEach(s => {
+                if(s.type === 'tree') {
+                    ctx.fillStyle = s.color;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle = "rgba(0,0,0,0.2)"; // Shadow
+                    ctx.beginPath(); ctx.arc(s.x+5, s.y+5, s.size, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.fillStyle = "#475569";
+                    ctx.beginPath();
+                    ctx.roundRect(s.x, s.y, s.size, s.size*0.7, 5);
+                    ctx.fill();
+                }
+            });
         }
 
         function drawTrack() {
             const type = document.getElementById('trackSelect').value;
             const path = tracks[type];
 
-            // 1. Outer Kerb (Red/White)
+            // Road Edge (Kerbs)
             ctx.strokeStyle = "white";
-            ctx.lineWidth = 92;
+            ctx.lineWidth = 90;
             ctx.lineJoin = "round";
+            ctx.lineCap = type === 'drag' ? "butt" : "round";
             ctx.setLineDash([20, 20]);
             ctx.beginPath();
             path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*canvas.width, p.y*canvas.height) : ctx.lineTo(p.x*canvas.width, p.y*canvas.height));
             ctx.stroke();
 
-            ctx.strokeStyle = "#e11d48"; // Red
+            ctx.strokeStyle = "#ef4444";
             ctx.lineDashOffset = 20;
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // 2. Main Asphalt
-            ctx.strokeStyle = "#2d3748";
+            // Asphalt
+            ctx.strokeStyle = "#1e293b";
             ctx.lineWidth = 80;
             ctx.stroke();
 
-            // 3. Center Line
-            ctx.strokeStyle = "rgba(255,255,255,0.1)";
-            ctx.lineWidth = 2;
-            ctx.setLineDash([30, 30]);
-            ctx.stroke();
-            ctx.setLineDash([]);
+            // Start/Finish Line
+            const start = path[0];
+            const next = path[1];
+            const angle = Math.atan2((next.y - start.y), (next.x - start.x));
+            
+            ctx.save();
+            ctx.translate(start.x * canvas.width, start.y * canvas.height);
+            ctx.rotate(angle);
+            ctx.fillStyle = "white";
+            for(let i=-40; i<40; i+=10) {
+                for(let j=0; j<20; j+=10) {
+                    if((i+j)%20==0) ctx.fillRect(j-10, i, 10, 10);
+                }
+            }
+            ctx.restore();
         }
 
         function drawCar(r) {
@@ -185,49 +219,29 @@
             ctx.translate(pos.x + r.laneOffset, pos.y + r.laneOffset);
             ctx.rotate(pos.angle);
 
-            // Shadow
-            ctx.fillStyle = "rgba(0,0,0,0.4)";
-            ctx.fillRect(-10, -10, 20, 35);
-
-            // Car Body (F1 Style)
+            // Car Styling
+            ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-10, -5, 20, 30);
             ctx.fillStyle = r.color;
             ctx.beginPath();
-            ctx.moveTo(0, -20); // Nose
-            ctx.lineTo(12, 15); // Rear R
-            ctx.lineTo(-12, 15); // Rear L
-            ctx.closePath();
-            ctx.fill();
+            ctx.moveTo(0, -18); ctx.lineTo(10, 12); ctx.lineTo(-10, 12);
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = "#000"; ctx.fillRect(-12, 8, 24, 4);
 
-            // Wings & Wheels
-            ctx.fillStyle = "#000";
-            ctx.fillRect(-14, 10, 28, 6); // Rear Wing
-            ctx.fillRect(-15, -8, 6, 10); // Front L Wheel
-            ctx.fillRect(9, -8, 6, 10);  // Front R Wheel
-
-            // UI
             ctx.rotate(-pos.angle);
             ctx.fillStyle = "white";
-            ctx.font = "bold 13px Inter";
-            ctx.textAlign = "center";
-            ctx.shadowColor = "black";
-            ctx.shadowBlur = 4;
-            ctx.fillText(r.name, 0, -40);
-            ctx.fillStyle = "#94a3b8";
-            ctx.font = "9px Inter";
-            ctx.fillText("LAP " + r.lap, 0, -28);
+            ctx.font = "bold 12px Inter"; ctx.textAlign = "center";
+            ctx.fillText(r.name, 0, -35);
             ctx.restore();
         }
 
         function draw() {
-            drawWorld();
+            drawBackground();
             drawTrack();
             racers.forEach(r => drawCar(r));
         }
 
         function startRace() {
-            if(raceActive) return;
-            raceActive = true;
-            raceFinished = false;
+            raceActive = true; raceFinished = false;
             document.getElementById('startBtn').classList.add('hidden');
             gameLoop();
         }
@@ -240,15 +254,14 @@
             racers.forEach(r => {
                 if(r.finished) return;
                 const pos = getPointOnPath(r.progress, type);
-                
                 let step = 0.0016;
-                if(pos.isCorner) step *= (r.handlingBase * 0.75 + Math.random()*0.2);
-                else step *= (r.speedBase * 0.95 + Math.random()*0.3);
+                if(pos.isCorner) step *= (r.handlingBase * 0.7 + Math.random()*0.2);
+                else step *= (r.speedBase * 0.9 + Math.random()*0.3);
 
                 r.progress += step;
 
                 if(r.progress >= 0.99) {
-                    if(type === 'drag') r.finished = true;
+                    if(type === 'drag') { r.finished = true; if(!raceFinished) announceWinner(r); }
                     else {
                         if(r.lap < maxLaps) { r.lap++; r.progress = 0; }
                         else { r.finished = true; if(!raceFinished) announceWinner(r); }
@@ -257,7 +270,7 @@
             });
 
             const leader = [...racers].sort((a,b) => (b.lap * 100 + b.progress) - (a.lap * 100 + a.progress))[0];
-            document.getElementById('leaderName').innerText = leader.name;
+            if(leader) document.getElementById('leaderName').innerText = leader.name + " (L" + leader.lap + ")";
 
             draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
@@ -266,12 +279,8 @@
         async function announceWinner(w) {
             raceFinished = true;
             const prize = document.getElementById('prizeAmt').value;
-            alert("🏁 CHECKERED FLAG: " + w.name + " WINS $" + prize + "!");
-            
-            await fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) })
-            });
+            alert("🏁 WINNER: " + w.name + " wins $" + prize + "!");
+            await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) }) });
         }
 
         window.onload = () => initRaceData();
