@@ -3,48 +3,52 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
-    <title>BCE GRAND PRIX | PRO</title>
+    <title>BCE GRAND PRIX | LIVE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #020617; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
+        body { background: #131a1c; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
         canvas { display: block; }
-        .admin-panel { background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid #334155; pointer-events: auto; }
-        select, input { background: #0f172a; border: 1px solid #334155; padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.8rem; }
+        .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; pointer-events: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        select, input { background: #1e293b; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; color: white; font-size: 0.85rem; outline: none; }
+        select:focus { border-color: #3b82f6; }
     </style>
 </head>
 <body>
 
     <div class="admin-panel fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center px-8">
         <div class="flex items-center gap-6">
-            <h1 class="text-xl font-black italic tracking-tighter uppercase text-blue-500">BCE Grand Prix</h1>
+            <div>
+                <h1 class="text-2xl font-black italic tracking-tighter uppercase text-white">BCE <span class="text-blue-500">GP</span></h1>
+            </div>
             
             <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-slate-400">Select Track</label>
+                <label class="text-[10px] uppercase font-bold text-slate-400">Track</label>
                 <select id="trackSelect" onchange="initRaceData()">
                     <option value="pro">Pro Circuit (Balanced)</option>
-                    <option value="mud">Mud Track (Technical/Grip)</option>
-                    <option value="oval">The Oval (Speed)</option>
-                    <option value="drag">Drag Strip (Pure Speed)</option>
+                    <option value="mud">Mud Track (Technical)</option>
+                    <option value="oval">The Oval (Speedway)</option>
+                    <option value="drag">Drag Strip (Sprint)</option>
                 </select>
             </div>
 
             <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-slate-400">Total Laps</label>
-                <input type="number" id="totalLaps" value="3" min="1" max="20" class="w-16">
+                <label class="text-[10px] uppercase font-bold text-slate-400">Laps</label>
+                <input type="number" id="totalLaps" value="3" min="1" class="w-16">
             </div>
 
             <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-slate-400">Winning Prize ($)</label>
-                <input type="number" id="prizeAmt" value="100" class="w-24">
+                <label class="text-[10px] uppercase font-bold text-slate-400">Prize ($)</label>
+                <input type="number" id="prizeAmt" value="100" class="w-20">
             </div>
         </div>
 
-        <div id="raceStats" class="text-right hidden">
-            <div class="text-xs font-bold text-slate-400">LEADER</div>
-            <div id="leaderName" class="text-lg font-black text-white">---</div>
+        <div id="raceStats" class="flex gap-8 items-center">
+            <div class="text-right">
+                <div class="text-[10px] font-bold text-slate-400 uppercase">Leader</div>
+                <div id="leaderName" class="text-xl font-black text-blue-400">---</div>
+            </div>
+            <button onclick="startRace()" id="startBtn" class="bg-blue-600 px-8 py-3 rounded-md font-bold hover:bg-blue-500 shadow-lg transition-all active:scale-95 uppercase tracking-widest text-sm">Start Race</button>
         </div>
-
-        <button onclick="startRace()" id="startBtn" class="bg-blue-600 px-6 py-2 rounded-full font-bold hover:bg-blue-500 transition-all">START ENGINES</button>
     </div>
 
     <canvas id="raceCanvas"></canvas>
@@ -58,24 +62,25 @@
         let raceActive = false;
         let raceFinished = false;
 
-        // --- Track Definitions (Normalized 0-1 coordinates) ---
         const tracks = {
             pro: [
-                {x: 0.1, y: 0.8}, {x: 0.1, y: 0.2}, {x: 0.4, y: 0.2}, 
-                {x: 0.5, y: 0.4}, {x: 0.8, y: 0.4}, {x: 0.9, y: 0.2}, 
-                {x: 0.9, y: 0.8}, {x: 0.6, y: 0.8}, {x: 0.5, y: 0.6}, {x: 0.1, y: 0.8} // Loop
+                {x: 0.15, y: 0.8}, {x: 0.15, y: 0.25}, {x: 0.35, y: 0.2}, 
+                {x: 0.5, y: 0.45}, {x: 0.65, y: 0.2}, {x: 0.85, y: 0.25}, 
+                {x: 0.85, y: 0.75}, {x: 0.6, y: 0.85}, {x: 0.45, y: 0.65}, {x: 0.15, y: 0.8}
             ],
             mud: [
-                {x: 0.2, y: 0.8}, {x: 0.1, y: 0.6}, {x: 0.2, y: 0.4}, 
-                {x: 0.1, y: 0.2}, {x: 0.4, y: 0.1}, {x: 0.6, y: 0.2}, 
-                {x: 0.8, y: 0.1}, {x: 0.9, y: 0.4}, {x: 0.8, y: 0.6}, 
-                {x: 0.9, y: 0.8}, {x: 0.5, y: 0.9}, {x: 0.2, y: 0.8} // Very curvy
+                {x: 0.2, y: 0.8}, {x: 0.1, y: 0.5}, {x: 0.25, y: 0.2}, 
+                {x: 0.5, y: 0.35}, {x: 0.45, y: 0.1}, {x: 0.75, y: 0.15}, 
+                {x: 0.65, y: 0.45}, {x: 0.9, y: 0.55}, {x: 0.8, y: 0.85}, 
+                {x: 0.5, y: 0.7}, {x: 0.2, y: 0.8}
             ],
             oval: [
-                {x: 0.2, y: 0.8}, {x: 0.2, y: 0.2}, {x: 0.8, y: 0.2}, {x: 0.8, y: 0.8}, {x: 0.2, y: 0.8}
+                {x: 0.2, y: 0.75}, {x: 0.2, y: 0.25}, {x: 0.3, y: 0.15},
+                {x: 0.7, y: 0.15}, {x: 0.8, y: 0.25}, {x: 0.8, y: 0.75}, 
+                {x: 0.7, y: 0.85}, {x: 0.3, y: 0.85}, {x: 0.2, y: 0.75}
             ],
             drag: [
-                {x: 0.1, y: 0.5}, {x: 0.9, y: 0.5} // Straight line
+                {x: 0.1, y: 0.5}, {x: 0.9, y: 0.5} 
             ]
         };
 
@@ -83,30 +88,32 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             
-            const res = await fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "getHeat", heat: 1 }) // Currently hardcoded to Heat 1
-            });
-            const data = await res.json();
-            
-            racers = data.racers.map((r, i) => {
-                let speed = 1.0;
-                let handling = 1.0;
-                if(r.motor === "V8 Engine") speed += 1.8;
-                if(r.tires === "Slicks") handling += 1.6;
+            try {
+                const res = await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "getHeat", heat: 1 })
+                });
+                const data = await res.json();
+                
+                racers = data.racers.map((r, i) => {
+                    let speed = 1.0;
+                    let handling = 1.0;
+                    if(r.motor === "V8 Engine") speed += 2.0;
+                    if(r.tires === "Slicks") handling += 1.8;
 
-                return {
-                    ...r,
-                    progress: 0,
-                    lap: 1,
-                    speedBase: speed,
-                    handlingBase: handling,
-                    laneOffset: (i - 1) * 10,
-                    finished: false,
-                    angle: 0
-                };
-            });
-            draw();
+                    return {
+                        ...r,
+                        progress: 0,
+                        lap: 1,
+                        speedBase: speed,
+                        handlingBase: handling,
+                        laneOffset: (i - 1) * 12,
+                        finished: false,
+                        color: r.color || "#3b82f6"
+                    };
+                });
+                draw();
+            } catch (e) { console.error("Data Load Error", e); }
         }
 
         function getPointOnPath(t, trackType) {
@@ -129,65 +136,92 @@
             };
         }
 
-        function drawCar(x, y, angle, color, name, lap) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle);
+        function drawWorld() {
+            // Background Noise/Dirt Texture (No image needed)
+            ctx.fillStyle = "#1a2421"; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw faint ground speckles
+            ctx.fillStyle = "rgba(255,255,255,0.03)";
+            for(let i=0; i<400; i++) {
+                ctx.fillRect((i*137)%canvas.width, (i*243)%canvas.height, 2, 2);
+            }
+        }
 
-            // Car Body
-            ctx.fillStyle = color || "#3b82f6";
+        function drawTrack() {
+            const type = document.getElementById('trackSelect').value;
+            const path = tracks[type];
+
+            // 1. Outer Kerb (Red/White)
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 92;
+            ctx.lineJoin = "round";
+            ctx.setLineDash([20, 20]);
             ctx.beginPath();
-            ctx.moveTo(0, -18);
-            ctx.lineTo(10, 12);
-            ctx.lineTo(-10, 12);
+            path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*canvas.width, p.y*canvas.height) : ctx.lineTo(p.x*canvas.width, p.y*canvas.height));
+            ctx.stroke();
+
+            ctx.strokeStyle = "#e11d48"; // Red
+            ctx.lineDashOffset = 20;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 2. Main Asphalt
+            ctx.strokeStyle = "#2d3748";
+            ctx.lineWidth = 80;
+            ctx.stroke();
+
+            // 3. Center Line
+            ctx.strokeStyle = "rgba(255,255,255,0.1)";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([30, 30]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawCar(r) {
+            const pos = getPointOnPath(r.progress, document.getElementById('trackSelect').value);
+            ctx.save();
+            ctx.translate(pos.x + r.laneOffset, pos.y + r.laneOffset);
+            ctx.rotate(pos.angle);
+
+            // Shadow
+            ctx.fillStyle = "rgba(0,0,0,0.4)";
+            ctx.fillRect(-10, -10, 20, 35);
+
+            // Car Body (F1 Style)
+            ctx.fillStyle = r.color;
+            ctx.beginPath();
+            ctx.moveTo(0, -20); // Nose
+            ctx.lineTo(12, 15); // Rear R
+            ctx.lineTo(-12, 15); // Rear L
             ctx.closePath();
             ctx.fill();
 
-            // Spoiler & Details
+            // Wings & Wheels
             ctx.fillStyle = "#000";
-            ctx.fillRect(-12, 8, 24, 5); 
-            
-            // UI Overlay for Car
-            ctx.rotate(-angle);
+            ctx.fillRect(-14, 10, 28, 6); // Rear Wing
+            ctx.fillRect(-15, -8, 6, 10); // Front L Wheel
+            ctx.fillRect(9, -8, 6, 10);  // Front R Wheel
+
+            // UI
+            ctx.rotate(-pos.angle);
             ctx.fillStyle = "white";
-            ctx.font = "bold 12px Inter";
+            ctx.font = "bold 13px Inter";
             ctx.textAlign = "center";
-            ctx.fillText(name, 0, -35);
+            ctx.shadowColor = "black";
+            ctx.shadowBlur = 4;
+            ctx.fillText(r.name, 0, -40);
             ctx.fillStyle = "#94a3b8";
-            ctx.font = "bold 10px Inter";
-            ctx.fillText("LAP " + lap, 0, -25);
+            ctx.font = "9px Inter";
+            ctx.fillText("LAP " + r.lap, 0, -28);
             ctx.restore();
         }
 
         function draw() {
-            ctx.fillStyle = "#020617";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            const trackType = document.getElementById('trackSelect').value;
-
-            // Draw Asphalt
-            ctx.strokeStyle = "#1e293b";
-            ctx.lineWidth = 80;
-            ctx.lineJoin = "round";
-            ctx.lineCap = trackType === 'drag' ? "butt" : "round";
-            ctx.beginPath();
-            tracks[trackType].forEach((p, i) => {
-                if(i === 0) ctx.moveTo(p.x * canvas.width, p.y * canvas.height);
-                else ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
-            });
-            ctx.stroke();
-
-            // Finish Line
-            const start = tracks[trackType][0];
-            ctx.strokeStyle = "white";
-            ctx.lineWidth = 5;
-            ctx.setLineDash([5, 5]);
-            // Logic to draw a finish line across the track start point... (simplified)
-
-            racers.forEach(r => {
-                const pos = getPointOnPath(r.progress, trackType);
-                drawCar(pos.x + r.laneOffset, pos.y + r.laneOffset, pos.angle, r.color, r.name, r.lap);
-            });
+            drawWorld();
+            drawTrack();
+            racers.forEach(r => drawCar(r));
         }
 
         function startRace() {
@@ -195,69 +229,48 @@
             raceActive = true;
             raceFinished = false;
             document.getElementById('startBtn').classList.add('hidden');
-            document.getElementById('raceStats').classList.remove('hidden');
             gameLoop();
         }
 
         function gameLoop() {
             if(!raceActive) return;
-            const trackType = document.getElementById('trackSelect').value;
+            const type = document.getElementById('trackSelect').value;
             const maxLaps = parseInt(document.getElementById('totalLaps').value);
 
             racers.forEach(r => {
                 if(r.finished) return;
-
-                const pos = getPointOnPath(r.progress, trackType);
-                let step = 0.0015; // Speed base
+                const pos = getPointOnPath(r.progress, type);
                 
-                // Adjust for track type
-                if (pos.isCorner) {
-                    step *= (r.handlingBase * 0.7 + (Math.random() * 0.2));
-                } else {
-                    step *= (r.speedBase * 0.9 + (Math.random() * 0.3));
-                }
+                let step = 0.0016;
+                if(pos.isCorner) step *= (r.handlingBase * 0.75 + Math.random()*0.2);
+                else step *= (r.speedBase * 0.95 + Math.random()*0.3);
 
                 r.progress += step;
 
-                // Loop logic for Laps
                 if(r.progress >= 0.99) {
-                    if(trackType === 'drag') {
-                        r.finished = true;
-                    } else {
-                        if(r.lap < maxLaps) {
-                            r.lap++;
-                            r.progress = 0; // Restart loop
-                        } else {
-                            r.finished = true;
-                            if(!raceFinished) finalizeWinner(r);
-                        }
+                    if(type === 'drag') r.finished = true;
+                    else {
+                        if(r.lap < maxLaps) { r.lap++; r.progress = 0; }
+                        else { r.finished = true; if(!raceFinished) announceWinner(r); }
                     }
                 }
             });
 
-            // Update Leader UI
             const leader = [...racers].sort((a,b) => (b.lap * 100 + b.progress) - (a.lap * 100 + a.progress))[0];
             document.getElementById('leaderName').innerText = leader.name;
 
             draw();
-            if(racers.some(r => !r.finished)) {
-                requestAnimationFrame(gameLoop);
-            }
+            if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
 
-        async function finalizeWinner(winner) {
+        async function announceWinner(w) {
             raceFinished = true;
             const prize = document.getElementById('prizeAmt').value;
-            alert("🏁 CHECKERED FLAG! " + winner.name + " WINS $" + prize + "!");
+            alert("🏁 CHECKERED FLAG: " + w.name + " WINS $" + prize + "!");
             
-            // Optional: Automatically send payout back to Google Sheet
             await fetch(WEB_APP_URL, {
                 method: "POST",
-                body: JSON.stringify({ 
-                    action: "payoutRace", 
-                    winnerID: winner.id, 
-                    amount: parseInt(prize) 
-                })
+                body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) })
             });
         }
 
