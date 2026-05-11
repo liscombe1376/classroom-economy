@@ -70,12 +70,15 @@
     <div id="bankSection" class="w-full max-w-2xl space-y-6 mx-auto">
         <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <h1 id="displayName" class="text-3xl font-bold text-white tracking-tight"></h1>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
                 <button onclick="location.href='store.html'" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-4 py-3 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2">
-                    The Shop
+                    🛒 Shop
                 </button>
                 <button onclick="location.href='market.html'" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-4 py-3 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2">
-                    📈 The Exchange
+                    📈 Exchange
+                </button>
+                <button onclick="location.href='garage.html'" class="bg-gradient-to-r from-slate-700 to-blue-900 hover:from-slate-600 hover:to-blue-800 text-white font-bold px-4 py-3 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-2 border border-blue-500/30">
+                    🏎️ Garage
                 </button>
             </div>
         </header>
@@ -163,7 +166,6 @@
                 document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
                 document.getElementById('savingsDisplay').innerText = "$" + parseFloat(data.student.savings).toFixed(2);
 
-                // UPDATED: Fetch interest rate from market status to update badge
                 fetchInterestRate();
                 
                 const portBody = document.getElementById('portfolioBody');
@@ -198,7 +200,6 @@
             }
         }
 
-        // NEW FUNCTION: Updates the % APY badge on student dashboard
         async function fetchInterestRate() {
             try {
                 const res = await fetch(WEB_APP_URL, {
