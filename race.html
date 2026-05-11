@@ -16,13 +16,13 @@
 
     <div id="ui" class="absolute top-10 left-10 z-50">
         <h1 class="text-4xl font-black text-white italic tracking-tighter uppercase">
-            BCE Grand Prix: <span id="trackName">Circuit</span>
+            BCE Grand Prix: <span id="trackName" class="text-blue-400">Circuit</span>
         </h1>
         <div class="flex gap-2 mt-2">
-            <button onclick="setTrack('drag')" class="bg-slate-700 text-white px-4 py-1 rounded text-xs font-bold hover:bg-slate-600">DRAG STRIP</button>
-            <button onclick="setTrack('circuit')" class="bg-slate-700 text-white px-4 py-1 rounded text-xs font-bold hover:bg-slate-600">CIRCUIT</button>
+            <button onclick="setTrack('drag')" class="bg-slate-800 border border-slate-600 text-white px-4 py-1 rounded text-xs font-bold hover:bg-slate-600">DRAG STRIP</button>
+            <button onclick="setTrack('circuit')" class="bg-slate-800 border border-slate-600 text-white px-4 py-1 rounded text-xs font-bold hover:bg-slate-600">CIRCUIT</button>
         </div>
-        <button onclick="startRace()" id="startBtn" class="mt-4 bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-500 shadow-xl">START ENGINES</button>
+        <button onclick="startRace()" id="startBtn" class="mt-4 bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-500 shadow-2xl transition-all active:scale-95">START ENGINES</button>
     </div>
 
     <canvas id="raceCanvas"></canvas>
@@ -36,18 +36,18 @@
         let raceActive = false;
         let currentTrack = 'circuit';
 
-        // Track Definitions (Points car follows)
+        // Track Waypoints (X and Y are 0.0 to 1.0 of screen size)
         const tracks = {
             drag: [
-                {x: 0.5, y: 0.9}, // Start bottom middle
-                {x: 0.5, y: 0.1}  // End top middle
+                {x: 0.5, y: 0.9}, // Start
+                {x: 0.5, y: 0.1}  // Finish
             ],
             circuit: [
-                {x: 0.2, y: 0.8}, // Start
-                {x: 0.2, y: 0.2}, // Turn 1
-                {x: 0.8, y: 0.2}, // Turn 2
-                {x: 0.8, y: 0.8}, // Turn 3
-                {x: 0.2, y: 0.82} // Finish (just past start)
+                {x: 0.15, y: 0.8}, // Start
+                {x: 0.15, y: 0.2}, // Turn 1 (Corner)
+                {x: 0.85, y: 0.2}, // Straight to Turn 2
+                {x: 0.85, y: 0.8}, // Turn 3
+                {x: 0.15, y: 0.82} // Finish line
             ]
         };
 
@@ -67,30 +67,29 @@
             });
             const data = await res.json();
             
-            racers = data.racers.map((r) => {
-                // Determine Stats
-                let speed = 1.5;
+            racers = data.racers.map((r, i) => {
+                // Stat Calculation
+                let speed = 1.0;
                 let handling = 1.0;
 
-                if(r.motor === "V8 Engine") speed += 1.2;
-                if(r.motor === "Electric") speed += 0.5;
-                if(r.tires === "Slicks") handling += 1.5;
+                if(r.motor === "V8 Engine") speed += 1.5; // High straight speed
+                if(r.motor === "Electric") speed += 0.6;
+                if(r.tires === "Slicks") handling += 1.2; // High corner speed
 
                 return {
                     ...r,
                     progress: 0,
-                    x: 0,
-                    y: 0,
                     speedBase: speed,
                     handlingBase: handling,
+                    laneOffset: (i - 1) * 15, // Keep cars from overlapping perfectly
                     finished: false
                 };
             });
             draw();
         }
 
-        function getPointOnPath(trackType, t) {
-            const path = tracks[trackType];
+        function getPointOnPath(t) {
+            const path = tracks[currentTrack];
             const sections = path.length - 1;
             const section = Math.min(Math.floor(t * sections), sections - 1);
             const sectionT = (t * sections) - section;
@@ -98,10 +97,13 @@
             const p1 = path[section];
             const p2 = path[section + 1];
             
+            // Check if we are currently in a "Corner" (near waypoints)
+            const isCorner = (sectionT < 0.15 || sectionT > 0.85) && currentTrack !== 'drag';
+
             return {
                 x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width,
                 y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height,
-                isCorner: (sectionT < 0.2 || sectionT > 0.8) && trackType !== 'drag'
+                isCorner: isCorner
             };
         }
 
@@ -109,10 +111,11 @@
             ctx.fillStyle = "#020617";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Track Lines
-            ctx.strokeStyle = "#334155";
-            ctx.lineWidth = 60;
+            // Draw Track Surface
+            ctx.strokeStyle = "#1e293b";
+            ctx.lineWidth = 80;
             ctx.lineJoin = "round";
+            ctx.lineCap = "round";
             ctx.beginPath();
             tracks[currentTrack].forEach((p, i) => {
                 if(i === 0) ctx.moveTo(p.x * canvas.width, p.y * canvas.height);
@@ -122,17 +125,20 @@
 
             // Draw Racers
             racers.forEach(r => {
-                const pos = getPointOnPath(currentTrack, r.progress);
+                const pos = getPointOnPath(r.progress);
                 
-                // Draw Car
+                // Car Body
                 ctx.fillStyle = r.color || "#3b82f6";
-                ctx.fillRect(pos.x - 10, pos.y - 15, 20, 30);
+                ctx.save();
+                ctx.translate(pos.x + r.laneOffset, pos.y + r.laneOffset);
+                ctx.fillRect(-10, -15, 20, 30);
                 
-                // Draw Name
+                // Name Tag
                 ctx.fillStyle = "white";
-                ctx.font = "bold 12px Inter";
+                ctx.font = "bold 12px sans-serif";
                 ctx.textAlign = "center";
-                ctx.fillText(r.name, pos.x, pos.y - 25);
+                ctx.fillText(r.name, 0, -25);
+                ctx.restore();
             });
         }
 
@@ -146,38 +152,34 @@
         function gameLoop() {
             if(!raceActive) return;
 
+            let allFinished = true;
             racers.forEach(r => {
-                if(r.progress >= 1) {
-                    if(!r.finished) {
-                        r.finished = true;
-                        checkWinner(r);
-                    }
+                if(r.progress >= 0.99) {
+                    r.finished = true;
                     return;
                 }
+                allFinished = false;
 
-                const pos = getPointOnPath(currentTrack, r.progress);
+                const pos = getPointOnPath(r.progress);
                 
-                // MATH: Speed vs Handling
-                let currentStep = 0.001; 
+                // PERFORMANCE MATH
+                let step = 0.0015;
                 if (pos.isCorner) {
-                    currentStep *= (r.handlingBase + (Math.random() * 0.5));
+                    step *= (r.handlingBase + (Math.random() * 0.3));
                 } else {
-                    currentStep *= (r.speedBase + (Math.random() * 0.8));
+                    step *= (r.speedBase + (Math.random() * 0.3));
                 }
 
-                r.progress += currentStep;
+                r.progress += step;
             });
 
             draw();
-            if(racers.some(r => !r.finished)) {
+            if(!allFinished) {
                 requestAnimationFrame(gameLoop);
+            } else {
+                const winner = racers.sort((a,b) => b.progress - a.progress)[0];
+                alert("🏆 RACE FINISHED! WINNER: " + winner.name);
             }
-        }
-
-        function checkWinner(winner) {
-            raceActive = false;
-            alert("🥇 WINNER: " + winner.name);
-            // Optional: Send payout to Google Script here
         }
 
         window.onload = () => loadHeat(1);
