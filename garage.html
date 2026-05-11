@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="config.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCE | The Garage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #0f172a; 
+            color: #f8fafc;
+            background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+        }
+
+        .racing-font { font-family: 'Orbitron', sans-serif; }
+        
+        .garage-card { 
+            background: rgba(30, 41, 59, 0.7); 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #carCanvas {
+            filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));
+        }
+
+        .part-btn {
+            background: rgba(15, 23, 42, 0.6);
+            transition: all 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .part-btn:hover:not(:disabled) {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .owned {
+            border-color: #10b981 !important;
+            background: rgba(16, 185, 129, 0.1) !important;
+            color: #10b981;
+            cursor: default;
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div id="garageUI" class="max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <a href="index.html" class="text-blue-400 hover:text-blue-300 text-xs font-bold uppercase tracking-widest transition flex items-center gap-2 mb-2">
+                    ← Return to Bank
+                </a>
+                <h1 class="racing-font text-3xl italic text-white uppercase tracking-tighter">
+                    BCE Grand Prix <span class="text-blue-500">Garage</span>
+                </h1>
+                <p id="driverName" class="text-slate-400 font-bold uppercase text-xs tracking-widest mt-1">Authenticating Driver...</p>
+            </div>
+            <div class="garage-card px-6 py-3 rounded-2xl border-l-4 border-emerald-500">
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Available Credits</p>
+                <p id="balanceDisplay" class="text-2xl font-bold text-emerald-400 font-mono tracking-tighter">$0.00</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <div class="garage-card rounded-3xl p-8 flex flex-col items-center justify-center relative min-h-[500px]">
+                <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');"></div>
+                
+                <canvas id="carCanvas" width="300" height="450" class="relative z-10"></canvas>
+                
+                <div class="mt-8 grid grid-cols-2 gap-4 w-full relative z-10">
+                    <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-700">
+                        <span class="text-[10px] text-slate-500 uppercase block font-black">Current Engine</span>
+                        <span id="stat-motor" class="font-bold text-blue-400">Standard</span>
+                    </div>
+                    <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-700">
+                        <span class="text-[10px] text-slate-500 uppercase block font-black">Current Tires</span>
+                        <span id="stat-tires" class="font-bold text-purple-400">All-Weather</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                
+                <div class="garage-card rounded-2xl p-6">
+                    <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
+                        <span class="w-2 h-4 bg-blue-500 block"></span> ENGINES
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button onclick="buy('Motor', 'Electric', 250)" id="btn-Electric" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold">Electric Motor</span>
+                            <span class="text-xs text-slate-400">+$5 Speed • $250</span>
+                        </button>
+                        <button onclick="buy('Motor', 'V8 Engine', 1200)" id="btn-V8Engine" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold text-orange-400">V8 Performance</span>
+                            <span class="text-xs text-slate-400">+$15 Speed • $1200</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="garage-card rounded-2xl p-6">
+                    <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
+                        <span class="w-2 h-4 bg-purple-500 block"></span> TIRES
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button onclick="buy('Tires', 'Slicks', 400)" id="btn-Slicks" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold text-blue-300">Street Slicks</span>
+                            <span class="text-xs text-slate-400">+10 Grip (Asphalt) • $400</span>
+                        </button>
+                        <button onclick="buy('Tires', 'Off-Road', 400)" id="btn-OffRoad" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold text-amber-600">Mud Crawlers</span>
+                            <span class="text-xs text-slate-400">+10 Grip (Dirt) • $400</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="garage-card rounded-2xl p-6">
+                    <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
+                        <span class="w-2 h-4 bg-emerald-500 block"></span> PAINT SHOP
+                    </h2>
+                    <div class="flex gap-4 items-center">
+                        <input type="color" id="colorPicker" value="#3b82f6" oninput="drawCar(this.value)" class="h-14 w-20 bg-slate-800 border-none rounded-xl cursor-pointer">
+                        <div class="flex-grow">
+                            <p class="text-[10px] text-slate-500 uppercase font-black">Custom Livery</p>
+                            <button onclick="saveColor()" class="mt-1 w-full bg-slate-700 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm transition">Update Paint (Free)</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
+        let studentID = localStorage.getItem('studentID');
+        let currentCar = {};
+
+        async function initGarage() {
+            if (!studentID) {
+                alert("Please log in via the Student Portal first.");
+                window.location.href = "index.html";
+                return;
+            }
+
+            document.getElementById('driverName').innerText = "Driver: " + (localStorage.getItem('studentName') || "Unknown");
+            
+            try {
+                // Fetch car and balance simultaneously
+                const response = await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "getGarage", id: studentID })
+                });
+                const data = await response.json();
+                
+                currentCar = data;
+                updateUI();
+                drawCar(data.color || "#3b82f6");
+                document.getElementById('colorPicker').value = data.color || "#3b82f6";
+                
+                // Fetch student balance
+                fetchBalance();
+            } catch (e) {
+                console.error("Garage Load Error:", e);
+            }
+        }
+
+        async function fetchBalance() {
+            // Re-using the loginStudent action is often the easiest way to get the latest balance
+            const res = await fetch(WEB_APP_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ 
+                    action: "loginStudent", 
+                    name: localStorage.getItem('studentName'), 
+                    password: localStorage.getItem('studentPass') 
+                }) 
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('stat-motor').innerText = currentCar.motor || "Standard";
+            document.getElementById('stat-tires').innerText = currentCar.tires || "All-Weather";
+            
+            // Highlight owned items
+            const ownedItems = [currentCar.motor, currentCar.tires];
+            ownedItems.forEach(item => {
+                if(!item) return;
+                const safeId = "btn-" + item.replace(/\s+/g, '');
+                const btn = document.getElementById(safeId);
+                if(btn) {
+                    btn.classList.add('owned');
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="block font-bold">${item}</span><span class="text-[10px] uppercase font-black">Equipped</span>`;
+                }
+            });
+        }
+
+        async function buy(type, name, cost) {
+            if(!confirm(`Install ${name} for $${cost}?`)) return;
+
+            const btn = document.getElementById(`btn-${name.replace(/\s+/g, '')}`);
+            btn.innerHTML = "Installing...";
+            btn.disabled = true;
+
+            const res = await fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "buyPart",
+                    studentID: studentID,
+                    partType: type,
+                    partName: name,
+                    cost: cost
+                })
+            });
+            const result = await res.json();
+
+            if(result.success) {
+                location.reload(); 
+            } else {
+                alert(result.message);
+                updateUI(); // Reset buttons
+            }
+        }
+
+        async function saveColor() {
+            const color = document.getElementById('colorPicker').value;
+            await fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "buyPart",
+                    studentID: studentID,
+                    partType: "Color",
+                    partName: color,
+                    cost: 0
+                })
+            });
+            alert("Livery Updated!");
+        }
+
+        function drawCar(color) {
+            const canvas = document.getElementById('carCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 300, 450);
+
+            // Tires
+            ctx.fillStyle = "#020617";
+            ctx.roundRect(45, 60, 45, 80, 10); ctx.fill(); // Front L
+            ctx.roundRect(210, 60, 45, 80, 10); ctx.fill(); // Front R
+            ctx.roundRect(45, 310, 50, 90, 10); ctx.fill(); // Back L
+            ctx.roundRect(205, 310, 50, 90, 10); ctx.fill(); // Back R
+
+            // Body Chassis
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = color;
+            ctx.beginPath();
+            ctx.moveTo(150, 30); // Nose
+            ctx.bezierCurveTo(240, 40, 240, 400, 220, 420); // Right side
+            ctx.lineTo(80, 420); // Back
+            ctx.bezierCurveTo(60, 400, 60, 40, 150, 30); // Left side
+            ctx.fill();
+            
+            // Cockpit
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+            ctx.roundRect(100, 170, 100, 130, [40, 40, 10, 10]);
+            ctx.fill();
+            
+            // Interior/Seat Detail
+            ctx.strokeStyle = "rgba(255,255,255,0.1)";
+            ctx.strokeRect(120, 200, 60, 60);
+
+            // Wing
+            ctx.fillStyle = "#020617";
+            ctx.fillRect(60, 390, 180, 25);
+        }
+
+        window.onload = initGarage;
+    </script>
+</body>
+</html>
