@@ -183,50 +183,35 @@
             }
         }
 
-       // --- LOGIN & AUTH LOGIC ---
+        // --- LOGIN & AUTH LOGIC ---
 
-// 1. Function to actually show the content and fetch data
-function showAdminPanel() {
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'block';
-    
-    // Trigger data loads now that we are authorized
-    loadStudents();
-    loadMarketAdmin();
-    loadLedger();
-}
-
-// 2. The login attempt function (triggered by button)
-async function attemptLogin() {
-    const pass = document.getElementById('adminPass').value;
-    const errorEl = document.getElementById('loginError');
-    
-    try {
-        const response = await callServer({ action: "loginTeacher", password: pass });
-        if (response.success) {
-            // SAVE authorization to browser memory
-            localStorage.setItem("adminAuthorized", "true");
-            showAdminPanel();
-        } else {
-            errorEl.classList.remove('hidden');
-            document.getElementById('adminPass').value = "";
+        function showAdminPanel() {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            
+            // Trigger data loads
+            loadStudents();
+            loadMarketAdmin();
+            loadLedger();
         }
-    } catch (e) {
-        alert("Connection Error. Check your Script URL.");
-    }
-}
 
-// 3. Initialization: Check for memory on page load
-window.onload = () => {
-    const isAuthorized = localStorage.getItem("adminAuthorized");
-
-    if (isAuthorized === "true") {
-        // If we remember them, skip the login screen
-        showAdminPanel();
-    } else {
-        console.log("Waiting for admin login...");
-    }
-};
+        async function attemptLogin() {
+            const pass = document.getElementById('adminPass').value;
+            const errorEl = document.getElementById('loginError');
+            
+            try {
+                const response = await callServer({ action: "loginTeacher", password: pass });
+                if (response.success) {
+                    localStorage.setItem("adminAuthorized", "true");
+                    showAdminPanel();
+                } else {
+                    errorEl.classList.remove('hidden');
+                    document.getElementById('adminPass').value = "";
+                }
+            } catch (e) {
+                alert("Connection Error. Check your Script URL.");
+            }
+        }
 
         async function loadMarketAdmin() {
             try {
@@ -386,9 +371,14 @@ window.onload = () => {
             } catch(e) { console.error(e); }
         }
 
-        // Initialization - No longer auto-loads data, waits for login
+        // Initialization: Check for memory on page load
         window.onload = () => {
-             // We wait for attemptLogin() to be called via button
+            const isAuthorized = localStorage.getItem("adminAuthorized");
+            if (isAuthorized === "true") {
+                showAdminPanel();
+            } else {
+                console.log("Waiting for admin login...");
+            }
         };
     </script>
 </body>
