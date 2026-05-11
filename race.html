@@ -3,7 +3,7 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
-    <title>BCE GRAND PRIX | DIRECTOR'S CUT</title>
+    <title>BCE GRAND PRIX | COMPLETE EDITION</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #064e3b; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
@@ -33,14 +33,14 @@
                 <div class="flex flex-col border-l border-slate-700 pl-3">
                     <label class="text-[8px] uppercase font-bold text-slate-400">Hazards (Cone / Spike / Oil)</label>
                     <div class="flex gap-1">
-                        <input type="number" id="hCone" value="8" class="w-10 border-orange-900" title="Cones">
-                        <input type="number" id="hSpike" value="3" class="w-10 border-slate-600" title="Spikes">
-                        <input type="number" id="hOil" value="2" class="w-10 border-yellow-900" title="Oil Slicks">
+                        <input type="number" id="hCone" value="8" class="w-10" title="Cones">
+                        <input type="number" id="hSpike" value="3" class="w-10" title="Spikes">
+                        <input type="number" id="hOil" value="2" class="w-10" title="Oil Slicks">
                     </div>
                 </div>
 
                 <div class="flex flex-col border-l border-slate-700 pl-3">
-                    <label class="text-[8px] uppercase font-bold text-slate-400">Prizes (1/2/3)</label>
+                    <label class="text-[8px] uppercase font-bold text-slate-400">Prizes (1st / 2nd / 3rd)</label>
                     <div class="flex gap-1">
                         <input type="number" id="p1" value="100" class="w-12">
                         <input type="number" id="p2" value="50" class="w-12">
@@ -59,7 +59,7 @@
 
     <div class="announcer-panel fixed bottom-0 left-0 w-full h-16 z-50 flex items-center px-10 shadow-2xl">
         <div class="bg-yellow-400 text-black px-3 py-1 font-black italic uppercase text-xs mr-4">Broadcasting</div>
-        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate transition-all duration-300">Ready for the engines!</div>
+        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate transition-all duration-300">Ready to pull colors from the Garage...</div>
     </div>
 
     <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
@@ -81,26 +81,20 @@
 
         function announce(msg) {
             const el = document.getElementById('announcement');
-            el.style.transform = "translateY(10px)"; el.style.opacity = 0;
-            setTimeout(() => {
-                el.innerText = msg;
-                el.style.transform = "translateY(0)"; el.style.opacity = 1;
-            }, 150);
+            el.style.opacity = 0;
+            setTimeout(() => { el.innerText = msg; el.style.opacity = 1; }, 150);
         }
 
         function createEnvironment() {
             textures = []; scenery = []; hazards = [];
             const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
-            // Background Patches
             for(let i=0; i<45; i++) textures.push({
                 x: Math.random()*canvas.width, y: Math.random()*canvas.height,
                 w: 150+Math.random()*300, h: 100+Math.random()*200,
                 c: colors[Math.floor(Math.random()*colors.length)] + "55"
             });
-            // Forest detail
             for(let i=0; i<30; i++) scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
             
-            // Build Hazards
             const counts = { cones: parseInt(document.getElementById('hCone').value), spikes: parseInt(document.getElementById('hSpike').value), oil: parseInt(document.getElementById('hOil').value) };
             Object.entries(counts).forEach(([type, count]) => {
                 for(let i=0; i<count; i++) hazards.push({ progress: 0.12 + Math.random()*0.85, lane: Math.floor(Math.random()*6), type: type, active: true });
@@ -110,15 +104,20 @@
         async function initRaceData() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             createEnvironment();
-            const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
-            const data = await res.json();
-            racers = (data.racers || []).map((r, i) => ({
-                ...r, progress: 0 - (i*0.012), lap: 1, 
-                speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0005 : 0),
-                currentSpeed: 0, penalty: 0, spin: 0, flats: 0,
-                x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false
-            }));
-            draw();
+            try {
+                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
+                const data = await res.json();
+                racers = (data.racers || []).map((r, i) => ({
+                    ...r, 
+                    progress: 0 - (i*0.012), 
+                    lap: 1, 
+                    speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0004 : 0),
+                    currentSpeed: 0, penalty: 0, spinLeft: 0, flats: 0,
+                    x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
+                    color: r.color || "#3b82f6" // Pulled from Garage Column E
+                }));
+                draw();
+            } catch(e) { console.error("Data Fetch Error:", e); }
         }
 
         function gameLoop() {
@@ -126,26 +125,37 @@
             racers.forEach(r => {
                 if(r.finished) return;
                 let speedMod = Math.max(0.4, 1 - (r.flats * 0.25));
-                if(r.spin > 0) { r.currentSpeed = 0; r.spin -= 0.1; }
-                else if(r.penalty > 0) { r.currentSpeed = r.speedBase * 0.3 * speedMod; r.penalty--; }
-                else { r.currentSpeed = r.speedBase * speedMod; }
 
-                r.progress += r.currentSpeed * (0.9 + Math.random()*0.2);
-                const pos = getPointOnPath(Math.max(0, r.progress));
-                r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
-                r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
-                r.angle = r.spin > 0 ? r.angle + 0.5 : pos.a;
+                if(r.spinLeft > 0) {
+                    r.currentSpeed = 0;
+                    r.angle += 0.35; // Spinning speed
+                    r.spinLeft -= 0.35;
+                } else if(r.penalty > 0) {
+                    r.currentSpeed = r.speedBase * 0.3 * speedMod;
+                    r.penalty--;
+                } else {
+                    r.currentSpeed = r.speedBase * speedMod;
+                    const pos = getPointOnPath(Math.max(0, r.progress));
+                    r.angle = pos.a; 
+                }
+
+                if(r.spinLeft <= 0) {
+                    r.progress += r.currentSpeed * (0.9 + Math.random()*0.2);
+                    const pos = getPointOnPath(Math.max(0, r.progress));
+                    r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
+                    r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
+                }
 
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
-                        if(h.type === 'cones') { r.penalty = 80; h.active = false; announce(`${r.name} clipped a cone! Delay!`); }
-                        if(h.type === 'spikes') { r.flats++; h.active = false; announce(`CRUNCH! ${r.name} has a flat tire!`); }
-                        if(h.type === 'oil') { r.spin = 6.28; announce(`${r.name} is out of control on oil!`); }
+                        if(h.type === 'cones') { r.penalty = 80; h.active = false; announce(`${r.name} clipped a cone!`); }
+                        if(h.type === 'spikes') { r.flats++; h.active = false; announce(`${r.name} has a flat tire!`); }
+                        if(h.type === 'oil') { r.spinLeft = Math.PI * 6; announce(`${r.name} is spinning on an oil slick!`); }
                     }
                 });
 
                 if(r.progress >= 0.999) {
-                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { r.lap++; r.progress = 0; announce(`${r.name} starts Lap ${r.lap}!`); }
+                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { r.lap++; r.progress = 0; }
                     else { r.finished = true; checkWinner(); }
                 }
             });
@@ -153,8 +163,9 @@
             const leader = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress))[0];
             if(leader && leader.name !== currentLeader && leader.progress > 0) {
                 currentLeader = leader.name;
-                announce(`${currentLeader.toUpperCase()} IS NOW IN THE LEAD!`);
+                announce(`${currentLeader.toUpperCase()} HAS THE LEAD!`);
             }
+
             updateUI(); draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
@@ -169,41 +180,36 @@
         }
 
         function draw() {
-            // 1. Texture Base
             ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
             textures.forEach(t => { ctx.fillStyle = t.c; ctx.beginPath(); ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); });
             scenery.forEach(s => { ctx.fillStyle = "#022c2288"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
             
-            // 2. Track
             const tw = canvas.width - 224;
             ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
             ctx.beginPath(); trackPath.forEach((p,i) => i===0 ? ctx.moveTo(p.x*tw, p.y*canvas.height) : ctx.lineTo(p.x*tw, p.y*canvas.height)); ctx.stroke();
             ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
-            ctx.strokeStyle = "#ef4444"; ctx.lineDashOffset = 15; ctx.stroke(); ctx.setLineDash([]);
-            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.stroke();
+            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
 
-            // 3. Finish Line
+            // Finish Line on bottom straightaway
             const start = trackPath[0];
             ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
             ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80); ctx.fillStyle = "black";
-            for(let i=0;i<8;i++) { if(i%2==0) { ctx.fillRect(-4,i*10-40,4,10); ctx.fillRect(0,i*10-30,4,10); } }
+            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
             ctx.restore();
 
-            // 4. Hazards
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
                 const lo = (h.lane - (racers.length/2))*14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
                 if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); ctx.fillStyle="white"; ctx.fillRect(px-3,py+1,6,2); }
-                else if(h.type === 'spikes') { ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py-2, 16, 4); ctx.fillStyle="black"; for(let i=0;i<4;i++) ctx.fillRect(px-6+(i*4),py-4,2,4); }
-                else if(h.type === 'oil') { ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.beginPath(); ctx.ellipse(px, py, 12, 8, pos.a, 0, Math.PI*2); ctx.fill(); }
+                else if(h.type === 'spikes') { ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py-2, 16, 4); }
+                else if(h.type === 'oil') { ctx.fillStyle = "rgba(10,10,15,0.9)"; ctx.beginPath(); ctx.arc(px, py, 13, 0, Math.PI*2); ctx.fill(); }
             });
 
-            // 5. Cars
             racers.forEach(r => {
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                ctx.fillStyle = r.penalty > 0 || r.spin > 0 ? "#ef4444" : r.color; ctx.shadowBlur = 8; ctx.shadowColor = "black";
+                ctx.fillStyle = r.penalty > 0 || r.spinLeft > 0 ? "#ef4444" : r.color; ctx.shadowBlur = 8; ctx.shadowColor = "black";
                 ctx.roundRect(-12,-7,24,14,3); ctx.fill();
                 if(r.flats > 0) { ctx.fillStyle = "black"; ctx.fillRect(-10, 6, 6, 2); if(r.flats > 1) ctx.fillRect(4, 6, 6, 2); }
                 ctx.restore(); ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
@@ -215,7 +221,7 @@
             document.getElementById('leaderList').innerHTML = sorted.slice(0, 8).map((r, i) => `
                 <div class="flex items-center gap-2 bg-slate-800/90 p-2 rounded text-[11px] border-l-4" style="border-color: ${r.color}">
                     <span class="font-black text-slate-500">${i+1}</span>
-                    <div class="flex-1 truncate font-bold text-white">${r.name} ${r.flats > 0 ? '❌' : ''} ${r.spin > 0 ? '🌀' : ''}</div>
+                    <div class="flex-1 truncate font-bold text-white">${r.name} ${r.flats > 0 ? '❌' : ''}</div>
                     <div class="text-blue-400">L${r.lap}</div>
                 </div>
             `).join('');
@@ -226,7 +232,8 @@
                 raceFinished = true;
                 const s = [...racers].sort((a,b) => b.progress - a.progress);
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
-                announce(`FINISH! ${s[0].name.toUpperCase()} TAKES THE GOLD!`);
+                announce(`FINISH! ${s[0].name.toUpperCase()} TAKES THE WIN!`);
+                alert(`PODIUM:\n1st: ${s[0].name} ($${p[0]})\n2nd: ${s[1].name} ($${p[1]})\n3rd: ${s[2].name} ($${p[2]})`);
                 for(let i=0; i<3; i++) { if(s[i]) await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: s[i].id, amount: parseInt(p[i]) }) }); }
             }
         }
@@ -236,8 +243,7 @@
             let count = 3; document.getElementById('startBtn').classList.add('hidden');
             const timer = setInterval(() => {
                 if(count > 0) { div.innerText = count; count--; }
-                else if(count === 0) { div.innerText = "START!"; count--; announce("GREEN FLAG! ENGINES ROARING!"); raceActive = true; gameLoop(); }
-                else { div.classList.add('hidden'); clearInterval(timer); }
+                else { div.innerText = "GO!"; clearInterval(timer); setTimeout(() => div.classList.add('hidden'), 1000); raceActive = true; raceFinished = false; gameLoop(); }
             }, 1000);
         }
 
