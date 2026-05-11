@@ -3,49 +3,55 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
-    <title>BCE DRONE GP | CYBER CITY</title>
+    <title>BCE GRAND PRIX | ULTIMATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #010409; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
+        body { background: #0f172a; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
         canvas { display: block; }
-        .admin-panel { background: rgba(1, 4, 9, 0.9); border-bottom: 2px solid #06b6d4; backdrop-filter: blur(10px); }
-        select, input { background: #020617; border: 1px solid #0891b2; padding: 6px 12px; border-radius: 6px; color: white; outline: none; }
-        #countdown { font-size: 140px; font-weight: 900; text-shadow: 0 0 40px #06b6d4; pointer-events: none; }
+        .ui-overlay { pointer-events: none; }
+        .admin-panel { background: rgba(15, 23, 42, 0.9); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); pointer-events: auto; }
+        .leaderboard { background: rgba(15, 23, 42, 0.8); border-left: 2px solid #3b82f6; backdrop-filter: blur(5px); pointer-events: auto; }
+        select, input { background: #1e293b; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; color: white; outline: none; pointer-events: auto; }
+        #countdown { font-size: 140px; font-weight: 900; text-shadow: 0 0 30px #3b82f6; }
     </style>
 </head>
 <body>
 
-    <div class="admin-panel fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center px-8">
+    <div class="admin-panel fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center px-8 shadow-2xl">
         <div class="flex items-center gap-6">
-            <h1 class="text-3xl font-black italic uppercase tracking-tighter text-white">BCE <span class="text-cyan-400">SKY-RACE</span></h1>
-            
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter">BCE <span class="text-blue-500">GP</span></h1>
             <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-cyan-700">Heat</label>
-                <input type="number" id="heatSelect" value="1" min="1" class="w-16" onchange="initRaceData()">
+                <label class="text-[10px] uppercase font-bold text-slate-400">Track Selection</label>
+                <select id="trackSelect" onchange="initRaceData()">
+                    <option value="pro">Pro Circuit (City)</option>
+                    <option value="desert">Dust Bowl (Sand)</option>
+                    <option value="forest">Alpine Run (Grass)</option>
+                    <option value="oval">Speedway (Oval)</option>
+                </select>
             </div>
-
             <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-cyan-700">Laps</label>
-                <input type="number" id="totalLaps" value="3" min="1" class="w-16">
+                <label class="text-[10px] uppercase font-bold text-slate-400">Heat</label>
+                <input type="number" id="heatSelect" value="1" class="w-16" onchange="initRaceData()">
             </div>
-            
             <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-cyan-700">Prize ($)</label>
-                <input type="number" id="prizeAmt" value="100" class="w-20">
+                <label class="text-[10px] uppercase font-bold text-slate-400">Laps</label>
+                <input type="number" id="totalLaps" value="3" class="w-16">
+            </div>
+            <div class="flex flex-col">
+                <label class="text-[10px] uppercase font-bold text-slate-400">1st Place Prize</label>
+                <input type="number" id="prizeAmt" value="100" class="w-24">
             </div>
         </div>
-
-        <div id="raceStats" class="flex gap-8 items-center">
-            <div class="text-right">
-                <div class="text-[10px] font-bold text-slate-500 uppercase">First Place</div>
-                <div id="leaderName" class="text-xl font-black text-cyan-400">---</div>
-            </div>
-            <button onclick="startCountdown()" id="startBtn" class="bg-cyan-600 px-8 py-3 rounded-md font-bold hover:bg-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all active:scale-95 uppercase tracking-widest text-sm">Launch Drones</button>
-        </div>
+        <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-10 py-3 rounded font-black hover:bg-blue-500 transition-all uppercase tracking-widest text-sm shadow-lg active:scale-95">Start Race</button>
     </div>
 
-    <div id="countdown" class="fixed inset-0 flex items-center justify-center z-40 hidden italic uppercase"></div>
+    <div class="leaderboard fixed top-[88px] right-0 bottom-0 w-64 z-40 p-6 shadow-2xl">
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2">Live Standings</h2>
+        <div id="leaderList" class="flex flex-col gap-4">
+            </div>
+    </div>
 
+    <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
     <canvas id="raceCanvas"></canvas>
 
     <script>
@@ -54,58 +60,44 @@
         const ctx = canvas.getContext('2d');
         
         let racers = [];
-        let buildings = [];
+        let particles = [];
+        let scenery = [];
         let raceActive = false;
         let raceFinished = false;
 
-        const trackGates = [
-            {x: 0.1, y: 0.75}, {x: 0.1, y: 0.3}, {x: 0.3, y: 0.15}, 
-            {x: 0.5, y: 0.4}, {x: 0.7, y: 0.15}, {x: 0.9, y: 0.3}, 
-            {x: 0.9, y: 0.75}, {x: 0.5, y: 0.85}, {x: 0.1, y: 0.75}
-        ];
+        const tracks = {
+            pro: { color: "#334155", bg: "#0f172a", deco: "barrier", points: [{x:0.5,y:0.85},{x:0.2,y:0.85},{x:0.1,y:0.7},{x:0.1,y:0.3},{x:0.3,y:0.15},{x:0.6,y:0.15},{x:0.9,y:0.3},{x:0.9,y:0.7},{x:0.7,y:0.85},{x:0.5,y:0.85}] },
+            desert: { color: "#78350f", bg: "#451a03", deco: "rock", points: [{x:0.5,y:0.8},{x:0.2,y:0.8},{x:0.1,y:0.5},{x:0.3,y:0.2},{x:0.7,y:0.2},{x:0.9,y:0.5},{x:0.8,y:0.8},{x:0.5,y:0.8}] },
+            forest: { color: "#064e3b", bg: "#022c22", deco: "tree", points: [{x:0.5,y:0.9},{x:0.1,y:0.7},{x:0.1,y:0.2},{x:0.5,y:0.1},{x:0.9,y:0.2},{x:0.9,y:0.7},{x:0.5,y:0.9}] },
+            oval: { color: "#1e293b", bg: "#0f172a", deco: "barrier", points: [{x:0.5,y:0.85},{x:0.15,y:0.85},{x:0.1,y:0.5},{x:0.15,y:0.15},{x:0.85,y:0.15},{x:0.9,y:0.5},{x:0.85,y:0.85},{x:0.5,y:0.85}] }
+        };
 
-        function generateCity() {
-            buildings = [];
-            for(let i=0; i<50; i++) {
-                buildings.push({ 
-                    x: Math.random() * canvas.width, 
-                    y: (0.5 + Math.random() * 0.5) * canvas.height, 
-                    w: 40 + Math.random() * 80, 
-                    h: 150 + Math.random() * 400,
-                    parallax: 0.2 + Math.random() * 0.5,
-                    color: `rgba(15, 23, 42, ${0.4 + Math.random() * 0.4})`
-                });
+        function generateScenery(type) {
+            scenery = [];
+            for(let i=0; i<40; i++) {
+                scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: 10+Math.random()*20, rot: Math.random()*Math.PI*2 });
             }
         }
 
         async function initRaceData() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            generateCity();
+            const t = tracks[document.getElementById('trackSelect').value];
+            generateScenery(t.deco);
             
-            const selectedHeat = document.getElementById('heatSelect').value;
+            const heat = document.getElementById('heatSelect').value;
             try {
-                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: selectedHeat }) });
+                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat }) });
                 const data = await res.json();
                 
-                if (!data.racers || data.racers.length === 0) {
-                    racers = []; draw(); return;
-                }
-
-                racers = data.racers.map((r, i) => {
-                    let speed = 0.0011; 
-                    if(r.motor === "V8 Engine") speed += 0.0005; 
-
+                racers = (data.racers || []).map((r, i) => {
+                    let speed = 0.0009; 
+                    if(r.motor === "V8 Engine") speed += 0.0005;
                     return { 
-                        ...r, 
-                        progress: 0 - (i * 0.015),
-                        lap: 1, 
-                        speed, 
-                        x: 0, y: 0, angle: 0,
-                        laneOffset: (i - (data.racers.length/2)) * 22, 
-                        history: [], 
-                        finished: false, 
-                        color: r.color || "#06b6d4"
+                        ...r, progress: 0 - (i * 0.015), lap: 1, speed, 
+                        angle: 0, currentAngle: 0, x:0, y:0,
+                        lane: (i - (data.racers.length/2)) * 16, 
+                        finished: false, color: r.color || "#3b82f6" 
                     };
                 });
                 draw();
@@ -113,145 +105,149 @@
         }
 
         function getPointOnPath(t) {
-            const sections = trackGates.length - 1;
+            const path = tracks[document.getElementById('trackSelect').value].points;
+            const sections = path.length - 1;
             const progress = Math.max(0, Math.min(0.999, t));
-            const section = Math.min(Math.floor(progress * sections), sections - 1);
+            const section = Math.floor(progress * sections);
             const sectionT = (progress * sections) - section;
-            const p1 = trackGates[section]; const p2 = trackGates[section + 1];
-            
+            const p1 = path[section], p2 = path[section + 1];
             return { 
-                x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width, 
+                x: (p1.x + (p2.x - p1.x) * sectionT) * (canvas.width - 260), 
                 y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height,
-                angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x))
+                angle: Math.atan2(p2.y - p1.y, p2.x - p1.x)
             };
-        }
-
-        function drawBackground() {
-            const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            grd.addColorStop(0, "#010409");
-            grd.addColorStop(1, "#041d44");
-            ctx.fillStyle = grd;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Stars
-            ctx.fillStyle = "white";
-            for(let i=0; i<80; i++) { if(i%10===0) ctx.fillRect((i*157)%canvas.width, (i*211)%canvas.height, 1, 1); }
-
-            // Buildings with parallax
-            buildings.forEach(b => {
-                const shift = (racers.length > 0 ? racers[0].progress : 0) * b.parallax * 200;
-                ctx.fillStyle = b.color;
-                ctx.strokeStyle = "rgba(6, 182, 212, 0.1)";
-                ctx.beginPath();
-                ctx.roundRect((b.x + shift) % canvas.width, canvas.height - b.h, b.w, b.h, 5);
-                ctx.fill();
-                ctx.stroke();
-            });
-        }
-
-        function drawHoops() {
-            trackGates.forEach((g, i) => {
-                const gx = g.x * canvas.width;
-                const gy = g.y * canvas.height;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = i === 0 ? "#ef4444" : "#06b6d4";
-                ctx.strokeStyle = i === 0 ? "#ef4444" : "rgba(6, 182, 212, 0.3)";
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(gx, gy, 45, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-            });
         }
 
         function gameLoop() {
             if(!raceActive) return;
             const maxLaps = parseInt(document.getElementById('totalLaps').value);
 
+            // Update Particles
+            particles.forEach((p, i) => {
+                p.x -= Math.cos(p.angle) * 2; p.y -= Math.sin(p.angle) * 2;
+                p.alpha -= 0.02; if(p.alpha <= 0) particles.splice(i, 1);
+            });
+
             racers.forEach(r => {
                 if(r.finished) return;
                 const pos = getPointOnPath(Math.max(0, r.progress));
-                r.x = pos.x + (Math.cos(pos.angle + Math.PI/2) * r.laneOffset);
-                r.y = pos.y + (Math.sin(pos.angle + Math.PI/2) * r.laneOffset);
-                r.angle = pos.angle;
+                
+                // Fluid Movement Logic
+                r.x = pos.x + Math.cos(pos.angle + Math.PI/2) * r.lane;
+                r.y = pos.y + Math.sin(pos.angle + Math.PI/2) * r.lane;
+                
+                // Smooth Rotation (LERP)
+                let diff = pos.angle - r.currentAngle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                r.currentAngle += diff * 0.1;
 
-                r.progress += r.speed * (0.85 + Math.random() * 0.3);
+                r.progress += r.speed * (0.8 + Math.random() * 0.4);
 
-                r.history.push({x: r.x, y: r.y});
-                if(r.history.length > 30) r.history.shift();
+                // Smoke Trails
+                if(Math.random() > 0.5 && r.progress > 0) {
+                    particles.push({ x: r.x, y: r.y, angle: r.currentAngle, alpha: 0.6, size: 4 + Math.random()*6 });
+                }
 
                 if(r.progress >= 0.999) {
                     if(r.lap < maxLaps) { r.lap++; r.progress = 0; } 
-                    else { r.finished = true; if(!raceFinished) announceWinner(r); } 
+                    else { r.finished = true; checkRaceFinish(); } 
                 }
             });
 
-            const leader = [...racers].sort((a,b) => (b.lap * 100 + b.progress) - (a.lap * 100 + a.progress))[0];
-            if(leader) document.getElementById('leaderName').innerText = leader.name + " (L" + leader.lap + ")";
-
+            updateLeaderboard();
             draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
 
-        function drawDrone(r) {
-            // Neon Trail
-            if(r.history.length > 2) {
-                ctx.beginPath();
-                ctx.strokeStyle = r.color;
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = 0.5;
-                r.history.forEach((h, i) => { if(i===0) ctx.moveTo(h.x, h.y); else ctx.lineTo(h.x, h.y); });
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-            }
-
-            ctx.save();
-            ctx.translate(r.x, r.y);
-            ctx.rotate(r.angle + Math.PI/2);
-            
-            // X-Frame
-            ctx.strokeStyle = "white"; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, 10); ctx.moveTo(10, -10); ctx.lineTo(-10, 10); ctx.stroke();
-            
-            // Glow Motors
-            ctx.shadowBlur = 10; ctx.shadowColor = r.color;
-            ctx.fillStyle = r.color;
-            [[-10,-10],[10,-10],[-10,10],[10,10]].forEach(p => {
-                ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI*2); ctx.fill();
-            });
-            
-            ctx.rotate(-(r.angle + Math.PI/2));
-            ctx.shadowBlur = 4; ctx.shadowColor = "black";
-            ctx.fillStyle = "white"; ctx.font = "bold 13px Inter"; ctx.textAlign = "center";
-            ctx.fillText(r.name, 0, -28);
-            ctx.restore();
+        function updateLeaderboard() {
+            const sorted = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress));
+            const list = document.getElementById('leaderList');
+            list.innerHTML = sorted.slice(0, 5).map((r, i) => `
+                <div class="flex items-center gap-3 bg-slate-800/50 p-2 rounded border-l-4" style="border-color: ${r.color}">
+                    <span class="font-black italic text-slate-500">${i+1}</span>
+                    <div class="flex-1">
+                        <div class="text-sm font-bold truncate">${r.name}</div>
+                        <div class="text-[10px] text-slate-400">Lap ${r.lap} • ${(r.progress*100).toFixed(0)}%</div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function draw() {
-            drawBackground();
-            drawHoops();
-            racers.forEach(r => drawDrone(r));
+            const t = tracks[document.getElementById('trackSelect').value];
+            ctx.fillStyle = t.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Scenery
+            scenery.forEach(s => {
+                ctx.fillStyle = t.deco === 'tree' ? '#065f46' : t.deco === 'rock' ? '#57534e' : '#334155';
+                ctx.beginPath(); 
+                if(t.deco === 'barrier') ctx.fillRect(s.x, s.y, 4, 20);
+                else ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+                ctx.fill();
+            });
+
+            // Track
+            ctx.strokeStyle = t.color; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
+            ctx.beginPath();
+            t.points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*(canvas.width-260), p.y*canvas.height) : ctx.lineTo(p.x*(canvas.width-260), p.y*canvas.height));
+            ctx.stroke();
+
+            // Finish Line
+            const start = t.points[0];
+            ctx.fillStyle = "white"; ctx.fillRect(start.x*(canvas.width-260)-2, start.y*canvas.height-50, 4, 100);
+
+            // Particles
+            particles.forEach(p => {
+                ctx.globalAlpha = p.alpha; ctx.fillStyle = "#cbd5e1";
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+
+            // Cars
+            racers.forEach(r => {
+                ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(r.currentAngle);
+                ctx.fillStyle = r.color; ctx.shadowBlur = 10; ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.roundRect(-12, -8, 24, 16, 4); ctx.fill(); // Body
+                ctx.fillStyle = "black"; ctx.fillRect(4, -6, 4, 12); // Windshield
+                ctx.restore();
+                ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center";
+                ctx.fillText(r.name, r.x, r.y - 18);
+            });
+        }
+
+        async function checkRaceFinish() {
+            const finished = racers.filter(r => r.finished).sort((a,b) => b.progress - a.progress);
+            if(finished.length === racers.length && !raceFinished) {
+                raceFinished = true;
+                const p1 = finished[0], p2 = finished[1], p3 = finished[2];
+                const base = parseInt(document.getElementById('prizeAmt').value);
+                
+                alert(`🏁 RACE OVER!\n1st: ${p1.name} ($${base})\n2nd: ${p2.name} ($${Math.floor(base/2)})\n3rd: ${p3.name} ($${Math.floor(base/4)})`);
+                
+                // Bulk Payout
+                const payouts = [
+                    {id: p1.id, amt: base},
+                    {id: p2.id, amt: Math.floor(base/2)},
+                    {id: p3.id, amt: Math.floor(base/4)}
+                ];
+                for(let p of payouts) {
+                    await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: p.id, amount: p.amt }) });
+                }
+            }
         }
 
         function startCountdown() {
             const div = document.getElementById('countdown'); div.classList.remove('hidden');
-            let count = 3;
+            let count = 3; document.getElementById('startBtn').classList.add('hidden');
             const timer = setInterval(() => {
                 if(count > 0) { div.innerText = count; count--; }
-                else if(count === 0) { div.innerText = "LAUNCH"; count--; startRace(); }
+                else if(count === 0) { div.innerText = "START!"; count--; startRace(); }
                 else { div.classList.add('hidden'); clearInterval(timer); }
             }, 1000);
-            document.getElementById('startBtn').classList.add('hidden');
         }
 
         function startRace() { raceActive = true; raceFinished = false; gameLoop(); }
-        async function announceWinner(w) {
-            raceFinished = true;
-            const prize = document.getElementById('prizeAmt').value;
-            alert("🏁 MISSION SUCCESS: " + w.name + " WINS $" + prize + "!");
-            await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) }) });
-        }
-
         window.onload = () => initRaceData();
         window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; draw(); };
     </script>
