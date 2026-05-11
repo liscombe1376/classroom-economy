@@ -3,49 +3,32 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
-    <title>BCE GRAND PRIX | LIVE</title>
+    <title>BCE GRAND PRIX | PRO SCROLL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #131a1c; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
+        body { background: #0f172a; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
         canvas { display: block; }
-        .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; pointer-events: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        select, input { background: #1e293b; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; color: white; font-size: 0.85rem; outline: none; }
-        #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 20px rgba(59, 130, 246, 0.8); pointer-events: none; transition: all 0.2s ease; }
+        .admin-panel { background: rgba(15, 23, 42, 0.9); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); }
+        select, input { background: #1e293b; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; color: white; }
+        #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 30px rgba(59, 130, 246, 0.8); pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div class="admin-panel fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center px-8">
         <div class="flex items-center gap-6">
-            <h1 class="text-2xl font-black italic tracking-tighter uppercase text-white">BCE <span class="text-blue-500">GP</span></h1>
-            
-            <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-slate-400">Track</label>
-                <select id="trackSelect" onchange="initRaceData()">
-                    <option value="pro">Pro Circuit (Balanced)</option>
-                    <option value="mud">The Snake (Technical)</option>
-                    <option value="oval">The Oval (Speedway)</option>
-                    <option value="drag">Drag Strip (Sprint)</option>
-                </select>
-            </div>
-
+            <h1 class="text-2xl font-black italic uppercase text-white">BCE <span class="text-blue-500">GP</span></h1>
             <div class="flex flex-col">
                 <label class="text-[10px] uppercase font-bold text-slate-400">Heat</label>
                 <input type="number" id="heatSelect" value="1" min="1" class="w-16" onchange="initRaceData()">
             </div>
-
             <div class="flex flex-col">
                 <label class="text-[10px] uppercase font-bold text-slate-400">Laps</label>
-                <input type="number" id="totalLaps" value="3" min="1" class="w-16">
-            </div>
-
-            <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-slate-400">Prize ($)</label>
-                <input type="number" id="prizeAmt" value="100" class="w-20">
+                <input type="number" id="totalLaps" value="2" min="1" class="w-16">
             </div>
         </div>
 
-        <div id="raceStats" class="flex gap-8 items-center">
+        <div class="flex gap-8 items-center">
             <div class="text-right">
                 <div class="text-[10px] font-bold text-slate-400 uppercase">Leader</div>
                 <div id="leaderName" class="text-xl font-black text-blue-400">---</div>
@@ -55,7 +38,6 @@
     </div>
 
     <div id="countdown" class="fixed inset-0 flex items-center justify-center z-40 hidden italic uppercase"></div>
-
     <canvas id="raceCanvas"></canvas>
 
     <script>
@@ -64,127 +46,159 @@
         const ctx = canvas.getContext('2d');
         
         let racers = [];
-        let scenery = [];
         let raceActive = false;
         let raceFinished = false;
+        let camera = { x: 0, y: 0 };
+        
+        // Larger World Scale
+        const WORLD_WIDTH = 3000;
+        const WORLD_HEIGHT = 2000;
 
         const tracks = {
-            // FIXED: Start/Finish moved to straightaway, last point matches first point for a full circuit.
             pro: [ 
-                {x: 0.15, y: 0.7}, {x: 0.15, y: 0.25}, {x: 0.4, y: 0.2}, 
-                {x: 0.5, y: 0.45}, {x: 0.7, y: 0.2}, {x: 0.85, y: 0.3}, 
-                {x: 0.85, y: 0.7}, {x: 0.6, y: 0.85}, {x: 0.4, y: 0.8}, 
-                {x: 0.15, y: 0.7} 
-            ],
-            mud: [ {x: 0.5, y: 0.8}, {x: 0.2, y: 0.8}, {x: 0.1, y: 0.5}, {x: 0.25, y: 0.2}, {x: 0.5, y: 0.4}, {x: 0.45, y: 0.1}, {x: 0.75, y: 0.2}, {x: 0.65, y: 0.5}, {x: 0.9, y: 0.6}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.8} ],
-            oval: [ {x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.2, y: 0.15}, {x: 0.8, y: 0.15}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85} ],
-            drag: [ {x: 0.1, y: 0.5}, {x: 0.9, y: 0.5} ]
+                {x: 0.2, y: 0.8}, {x: 0.1, y: 0.8}, {x: 0.1, y: 0.2}, 
+                {x: 0.4, y: 0.1}, {x: 0.6, y: 0.3}, {x: 0.9, y: 0.2}, 
+                {x: 0.9, y: 0.8}, {x: 0.6, y: 0.9}, {x: 0.2, y: 0.8}
+            ]
         };
-
-        function generateScenery() {
-            scenery = [];
-            for(let i=0; i<45; i++) {
-                scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: 12+Math.random()*20, type: Math.random()>0.4?'tree':'rock', color: Math.random()>0.5?'#14532d':'#166534' });
-            }
-        }
 
         async function initRaceData() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            generateScenery();
             
             const selectedHeat = document.getElementById('heatSelect').value;
-            
             try {
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: selectedHeat }) });
                 const data = await res.json();
                 
                 if (!data.racers || data.racers.length === 0) {
-                    console.log("No racers in this heat.");
-                    racers = [];
-                    draw();
-                    return;
+                    racers = []; draw(); return;
                 }
 
                 racers = data.racers.map((r, i) => {
-                    let speed = 1.0; 
-                    let handling = 1.0;
-                    if(r.motor === "V8 Engine") speed += 1.8;
-                    if(r.tires === "Slicks") handling += 1.6;
-
-                    // Staggered start behind the line
-                    let startPosition = 0 - (i * 0.012);
+                    let speed = 0.0008; 
+                    if(r.motor === "V8 Engine") speed += 0.0004;
 
                     return { 
                         ...r, 
-                        progress: startPosition,
+                        progress: 0 - (i * 0.015),
                         lap: 1, 
                         speedBase: speed, 
-                        handlingBase: handling, 
-                        laneOffset: (i - (data.racers.length/2)) * 14, 
-                        finished: false, 
-                        color: r.color || "#3b82f6" 
+                        laneOffset: (i - (data.racers.length/2)) * 18, 
+                        finished: false,
+                        color: r.color || "#3b82f6",
+                        worldX: 0, worldY: 0
                     };
                 });
                 draw();
-            } catch (e) { console.error("Initialization error:", e); }
+            } catch (e) { console.error(e); }
         }
 
-        function getPointOnPath(t, trackType) {
-            const path = tracks[trackType];
+        function getPointOnPath(t) {
+            const path = tracks.pro;
             const sections = path.length - 1;
             const progress = Math.max(0, Math.min(0.999, t));
             const section = Math.min(Math.floor(progress * sections), sections - 1);
             const sectionT = (progress * sections) - section;
             const p1 = path[section]; const p2 = path[section + 1];
+            
             return { 
-                x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width, 
-                y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height, 
-                angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x)) + Math.PI/2, 
-                isCorner: (sectionT < 0.2 || sectionT > 0.8) && trackType !== 'drag' 
+                x: (p1.x + (p2.x - p1.x) * sectionT) * WORLD_WIDTH, 
+                y: (p1.y + (p2.y - p1.y) * sectionT) * WORLD_HEIGHT, 
+                angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x)) + Math.PI/2
             };
         }
 
-        function drawBackground() {
-            ctx.fillStyle = "#064e3b"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            scenery.forEach(s => {
-                ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.arc(s.x+4, s.y+4, s.size, 0, Math.PI*2); ctx.fill();
-                if(s.type === 'tree') { ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
-                } else { ctx.fillStyle = "#64748b"; ctx.beginPath(); ctx.roundRect(s.x, s.y, s.size, s.size*0.8, 8); ctx.fill(); }
-            });
-        }
-
-        function drawTrack() {
-            const type = document.getElementById('trackSelect').value; const path = tracks[type];
-            ctx.strokeStyle = "white"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.setLineDash([20, 20]); ctx.beginPath();
-            path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*canvas.width, p.y*canvas.height) : ctx.lineTo(p.x*canvas.width, p.y*canvas.height)); ctx.stroke();
-            ctx.strokeStyle = "#ef4444"; ctx.lineDashOffset = 20; ctx.stroke(); ctx.setLineDash([]);
-            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 88; ctx.stroke();
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const start = path[0]; const next = path[1]; const angle = Math.atan2((next.y - start.y), (next.x - start.x));
-            ctx.save(); ctx.translate(start.x * canvas.width, start.y * canvas.height); ctx.rotate(angle);
-            ctx.fillStyle = "white"; ctx.fillRect(-5, -46, 15, 92); ctx.fillStyle = "black";
-            for(let row=0; row<9; row++) { for(let col=0; col<2; col++) { if((row+col)%2==0) ctx.fillRect(col*7.5-5, row*10.2-46, 7.5, 10.2); } }
+            // 1. Calculate Camera (Follow Leader)
+            let leader = racers.length > 0 ? racers.reduce((prev, curr) => (curr.progress > prev.progress ? curr : prev)) : null;
+            if (leader && raceActive) {
+                camera.x = leader.worldX - canvas.width / 2;
+                camera.y = leader.worldY - canvas.height / 2;
+            }
+
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            // 2. Draw World Background
+            ctx.fillStyle = "#064e3b";
+            ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+            
+            // Subtle Grid
+            ctx.strokeStyle = "rgba(255,255,255,0.05)";
+            for(let x=0; x<WORLD_WIDTH; x+=100) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,WORLD_HEIGHT); ctx.stroke(); }
+            for(let y=0; y<WORLD_HEIGHT; y+=100) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(WORLD_WIDTH,y); ctx.stroke(); }
+
+            // 3. Draw Track
+            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 120; ctx.lineJoin = "round"; ctx.lineCap = "round";
+            ctx.beginPath();
+            tracks.pro.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*WORLD_WIDTH, p.y*WORLD_HEIGHT) : ctx.lineTo(p.x*WORLD_WIDTH, p.y*WORLD_HEIGHT));
+            ctx.stroke();
+
+            // Checkered Line
+            const start = tracks.pro[0];
+            ctx.fillStyle = "white";
+            ctx.fillRect(start.x*WORLD_WIDTH - 5, start.y*WORLD_HEIGHT - 60, 10, 120);
+
+            // 4. Draw Cars
+            racers.forEach(r => {
+                const pos = getPointOnPath(Math.max(0, r.progress));
+                r.worldX = pos.x; r.worldY = pos.y;
+                
+                ctx.save();
+                ctx.translate(pos.x, pos.y);
+                ctx.rotate(pos.angle);
+                
+                // Car Body
+                ctx.fillStyle = r.color;
+                ctx.fillRect(-10, -18, 20, 36);
+                ctx.fillStyle = "black"; // Windshield
+                ctx.fillRect(-8, -12, 16, 6);
+                
+                ctx.rotate(-pos.angle);
+                ctx.fillStyle = "white";
+                ctx.font = "bold 14px Inter";
+                ctx.textAlign = "center";
+                ctx.fillText(r.name, 0, -30);
+                ctx.restore();
+            });
+
             ctx.restore();
         }
 
-        function drawCar(r) {
-            const drawProgress = Math.max(0, r.progress);
-            const pos = getPointOnPath(drawProgress, document.getElementById('trackSelect').value);
-            ctx.save();
-            ctx.translate(pos.x + r.laneOffset, pos.y + r.laneOffset);
-            ctx.rotate(pos.angle);
-            ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-12, -8, 24, 38); 
-            ctx.fillStyle = r.color;
-            ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(8, -10); ctx.lineTo(10, 15); ctx.lineTo(-10, 15); ctx.lineTo(-8, -10); ctx.closePath(); ctx.fill(); 
-            ctx.fillStyle = "#111"; 
-            ctx.fillRect(-16, 12, 32, 6); ctx.fillRect(-17, 0, 7, 12); ctx.fillRect(10, 0, 7, 12); 
-            ctx.fillRect(-15, -16, 6, 10); ctx.fillRect(9, -16, 6, 10); ctx.fillRect(-16, -20, 32, 4); 
-            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -2, 4, 0, Math.PI*2); ctx.fill(); 
-            ctx.rotate(-pos.angle);
-            ctx.fillStyle = "white"; ctx.font = "bold 13px Inter"; ctx.textAlign = "center"; ctx.shadowBlur = 4; ctx.shadowColor = "black";
-            ctx.fillText(r.name, 0, -45);
-            ctx.restore();
+        function gameLoop() {
+            if(!raceActive) return;
+            const maxLaps = parseInt(document.getElementById('totalLaps').value);
+            let leader = racers.reduce((prev, curr) => (curr.progress > prev.progress ? curr : prev));
+
+            racers.forEach(r => {
+                if(r.finished) return;
+
+                // Rubber-banding: If car is very far behind leader, give tiny boost
+                let distToLeader = leader.progress - r.progress;
+                let boost = distToLeader > 0.1 ? 1.2 : 1.0;
+
+                r.progress += r.speedBase * (0.8 + Math.random() * 0.4) * boost;
+
+                if(r.progress >= 0.999) {
+                    if(r.lap < maxLaps) { r.lap++; r.progress = 0; } 
+                    else { r.finished = true; if(!raceFinished) announceWinner(r); } 
+                }
+            });
+
+            if(leader) document.getElementById('leaderName').innerText = `${leader.name} (L${leader.lap})`;
+
+            draw();
+            if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
+        }
+
+        async function announceWinner(w) {
+            raceFinished = true;
+            alert(`🏁 ${w.name} TAKES THE WIN!`);
+            const prize = document.getElementById('prizeAmt')?.value || 100;
+            await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) }) });
         }
 
         function startCountdown() {
@@ -192,69 +206,16 @@
             div.classList.remove('hidden');
             let count = 3;
             const timer = setInterval(() => {
-                if(count > 0) {
-                    div.innerText = count;
-                    count--;
-                } else if(count === 0) {
-                    div.innerText = "GO!";
-                    count--;
-                    startRace();
-                } else {
-                    div.classList.add('hidden');
-                    clearInterval(timer);
-                }
+                if(count > 0) { div.innerText = count; count--; }
+                else if(count === 0) { div.innerText = "GO!"; count--; startRace(); }
+                else { div.classList.add('hidden'); clearInterval(timer); }
             }, 1000);
             document.getElementById('startBtn').classList.add('hidden');
         }
 
         function startRace() { raceActive = true; raceFinished = false; gameLoop(); }
-
-        function gameLoop() {
-            if(!raceActive) return;
-            const type = document.getElementById('trackSelect').value;
-            const maxLaps = parseInt(document.getElementById('totalLaps').value);
-
-            racers.forEach(r => {
-                if(r.finished) return;
-                const pos = getPointOnPath(Math.max(0, r.progress), type);
-                
-                // SLOWED DOWN: step base reduced from 0.0016 to 0.0010
-                let step = 0.0010; 
-                if(pos.isCorner) step *= (r.handlingBase * 0.65 + Math.random()*0.2);
-                else step *= (r.speedBase * 0.95 + Math.random()*0.3);
-                
-                r.progress += step;
-                if(r.progress >= 0.999) {
-                    if(type === 'drag') { 
-                        r.finished = true; if(!raceFinished) announceWinner(r);
-                    } else { 
-                        if(r.lap < maxLaps) { r.lap++; r.progress = 0; } 
-                        else { r.finished = true; if(!raceFinished) announceWinner(r); } 
-                    }
-                }
-            });
-
-            const leader = [...racers].sort((a,b) => (b.lap * 100 + b.progress) - (a.lap * 100 + a.progress))[0];
-            if(leader) document.getElementById('leaderName').innerText = leader.name + " (Lap " + leader.lap + ")";
-
-            drawBackground(); drawTrack(); racers.forEach(r => drawCar(r));
-            if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
-        }
-
-        async function announceWinner(w) {
-            raceFinished = true;
-            const prize = document.getElementById('prizeAmt').value;
-            alert("🏁 CHECKERED FLAG: " + w.name + " WINS $" + prize + "!");
-            await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) }) });
-        }
-
-        function draw() {
-            drawBackground();
-            drawTrack();
-            racers.forEach(r => drawCar(r));
-        }
-
         window.onload = () => initRaceData();
+        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; draw(); };
     </script>
 </body>
 </html>
