@@ -46,6 +46,16 @@
             color: #10b981;
             cursor: default;
         }
+
+        /* Ensure the bars are visible and have height */
+        .stat-bar-container {
+            width: 100%;
+            background-color: #020617;
+            height: 8px;
+            border-radius: 9999px;
+            border: 1px solid #334155;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
@@ -53,8 +63,8 @@
     <div id="garageUI" class="max-w-6xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-                <a href="index.html" class="text-blue-400 hover:text-blue-300 text-xs font-bold uppercase tracking-widest transition flex items-center gap-2 mb-2">
-                    ← Return to Bank
+                <a href="student.html" class="text-blue-400 hover:text-blue-300 text-xs font-bold uppercase tracking-widest transition flex items-center gap-2 mb-2">
+                    ← Return to Bank Portal
                 </a>
                 <h1 class="racing-font text-3xl italic text-white uppercase tracking-tighter">
                     BCE Grand Prix <span class="text-blue-500">Garage</span>
@@ -72,7 +82,7 @@
             <div class="garage-card rounded-3xl p-8 flex flex-col items-center justify-center relative min-h-[500px] overflow-hidden">
                 <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');"></div>
                 
-                <canvas id="carCanvas" width="300" height="400" class="relative z-10 mb-6"></canvas>
+                <canvas id="carCanvas" width="300" height="380" class="relative z-10 mb-6"></canvas>
                 
                 <div class="w-full space-y-4 relative z-10 px-4">
                     <div>
@@ -80,7 +90,7 @@
                             <span>TOP SPEED</span>
                             <span id="val-speed">20/100</span>
                         </div>
-                        <div class="w-full bg-slate-900 h-2 rounded-full border border-slate-700 overflow-hidden">
+                        <div class="stat-bar-container">
                             <div id="bar-speed" class="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6] transition-all duration-1000" style="width: 20%"></div>
                         </div>
                     </div>
@@ -90,7 +100,7 @@
                             <span>HANDLING</span>
                             <span id="val-handling">20/100</span>
                         </div>
-                        <div class="w-full bg-slate-900 h-2 rounded-full border border-slate-700 overflow-hidden">
+                        <div class="stat-bar-container">
                             <div id="bar-handling" class="h-full bg-purple-500 shadow-[0_0_10px_#a855f7] transition-all duration-1000" style="width: 20%"></div>
                         </div>
                     </div>
@@ -100,7 +110,7 @@
                             <span>ACCELERATION</span>
                             <span id="val-control">20/100</span>
                         </div>
-                        <div class="w-full bg-slate-900 h-2 rounded-full border border-slate-700 overflow-hidden">
+                        <div class="stat-bar-container">
                             <div id="bar-control" class="h-full bg-emerald-500 shadow-[0_0_10px_#10b981] transition-all duration-1000" style="width: 20%"></div>
                         </div>
                     </div>
@@ -186,6 +196,8 @@
                     body: JSON.stringify({ action: "getGarage", id: studentID })
                 });
                 currentCar = await response.json();
+                
+                // CRITICAL: updateUI must be called after currentCar is populated
                 updateUI();
                 drawCar(currentCar.color || "#3b82f6");
                 document.getElementById('colorPicker').value = currentCar.color || "#3b82f6";
@@ -216,24 +228,29 @@
             
             let stats = { speed: 20, handling: 20, control: 20 };
 
-            // Apply Bonuses
+            // Apply Bonuses based on what is in currentCar
             if (currentCar.motor === "Electric") { stats.speed += 15; stats.control += 5; }
             if (currentCar.motor === "V8 Engine") { stats.speed += 40; stats.control += 10; }
             if (currentCar.tires === "Slicks") { stats.handling += 35; stats.speed += 5; }
             if (currentCar.tires === "Off-Road") { stats.handling += 20; stats.control += 20; }
 
-            // Update UI Bars
-            Object.keys(stats).forEach(key => {
-                let val = Math.min(stats[key], 100);
-                document.getElementById(`bar-${key}`).style.width = val + "%";
-                document.getElementById(`val-${key}`).innerText = val + "/100";
-            });
+            // Update UI Bars with a small delay for animation effect
+            setTimeout(() => {
+                Object.keys(stats).forEach(key => {
+                    let val = Math.min(stats[key], 100);
+                    const bar = document.getElementById(`bar-${key}`);
+                    const valText = document.getElementById(`val-${key}`);
+                    if(bar) bar.style.width = val + "%";
+                    if(valText) valText.innerText = val + "/100";
+                });
+            }, 100);
 
             // Ownership Buttons
             const ownedItems = [currentCar.motor, currentCar.tires];
             ownedItems.forEach(item => {
                 if(!item) return;
-                const btn = document.getElementById("btn-" + item.replace(/\s+/g, ''));
+                const safeId = "btn-" + item.replace(/\s+/g, '');
+                const btn = document.getElementById(safeId);
                 if(btn) {
                     btn.classList.add('owned');
                     btn.disabled = true;
@@ -274,11 +291,15 @@
             const canvas = document.getElementById('carCanvas');
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, 300, 400);
+            
+            // Tires
             ctx.fillStyle = "#020617";
             ctx.roundRect(45, 60, 45, 80, 10); ctx.fill(); 
             ctx.roundRect(210, 60, 45, 80, 10); ctx.fill();
             ctx.roundRect(45, 300, 50, 90, 10); ctx.fill();
             ctx.roundRect(205, 300, 50, 90, 10); ctx.fill();
+            
+            // Body
             ctx.fillStyle = color;
             ctx.shadowBlur = 15; ctx.shadowColor = color;
             ctx.beginPath();
@@ -287,9 +308,13 @@
             ctx.lineTo(80, 390);
             ctx.bezierCurveTo(60, 380, 60, 40, 150, 30);
             ctx.fill();
+            
+            // Cockpit
             ctx.shadowBlur = 0;
             ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
             ctx.roundRect(100, 160, 100, 120, [40, 40, 10, 10]); ctx.fill();
+            
+            // Wing
             ctx.fillStyle = "#020617";
             ctx.fillRect(60, 370, 180, 20);
         }
