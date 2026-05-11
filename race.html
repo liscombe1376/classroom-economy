@@ -3,13 +3,13 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
-    <title>BCE DRONE GP | NEON SKIES</title>
+    <title>BCE DRONE GP | CYBER CITY</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #020617; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
+        body { background: #010409; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
         canvas { display: block; }
-        .admin-panel { background: rgba(2, 6, 23, 0.9); border-bottom: 2px solid #06b6d4; backdrop-filter: blur(10px); }
-        select, input { background: #1e293b; border: 1px solid #0891b2; padding: 6px 12px; border-radius: 6px; color: white; outline: none; }
+        .admin-panel { background: rgba(1, 4, 9, 0.9); border-bottom: 2px solid #06b6d4; backdrop-filter: blur(10px); }
+        select, input { background: #020617; border: 1px solid #0891b2; padding: 6px 12px; border-radius: 6px; color: white; outline: none; }
         #countdown { font-size: 140px; font-weight: 900; text-shadow: 0 0 40px #06b6d4; pointer-events: none; }
     </style>
 </head>
@@ -17,14 +17,21 @@
 
     <div class="admin-panel fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center px-8">
         <div class="flex items-center gap-6">
-            <h1 class="text-3xl font-black italic uppercase text-cyan-400 tracking-tighter">BCE <span class="text-white">SKY-RACE</span></h1>
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter text-white">BCE <span class="text-cyan-400">SKY-RACE</span></h1>
+            
             <div class="flex flex-col">
                 <label class="text-[10px] uppercase font-bold text-cyan-700">Heat</label>
                 <input type="number" id="heatSelect" value="1" min="1" class="w-16" onchange="initRaceData()">
             </div>
+
             <div class="flex flex-col">
                 <label class="text-[10px] uppercase font-bold text-cyan-700">Laps</label>
                 <input type="number" id="totalLaps" value="3" min="1" class="w-16">
+            </div>
+            
+            <div class="flex flex-col">
+                <label class="text-[10px] uppercase font-bold text-cyan-700">Prize ($)</label>
+                <input type="number" id="prizeAmt" value="100" class="w-20">
             </div>
         </div>
 
@@ -38,6 +45,7 @@
     </div>
 
     <div id="countdown" class="fixed inset-0 flex items-center justify-center z-40 hidden italic uppercase"></div>
+
     <canvas id="raceCanvas"></canvas>
 
     <script>
@@ -46,19 +54,34 @@
         const ctx = canvas.getContext('2d');
         
         let racers = [];
+        let buildings = [];
         let raceActive = false;
         let raceFinished = false;
 
-        // Hoops/Gates Layout
         const trackGates = [
-            {x: 0.2, y: 0.8}, {x: 0.1, y: 0.5}, {x: 0.2, y: 0.2}, 
-            {x: 0.5, y: 0.15}, {x: 0.8, y: 0.2}, {x: 0.9, y: 0.5}, 
-            {x: 0.8, y: 0.8}, {x: 0.5, y: 0.85}, {x: 0.2, y: 0.8}
+            {x: 0.1, y: 0.75}, {x: 0.1, y: 0.3}, {x: 0.3, y: 0.15}, 
+            {x: 0.5, y: 0.4}, {x: 0.7, y: 0.15}, {x: 0.9, y: 0.3}, 
+            {x: 0.9, y: 0.75}, {x: 0.5, y: 0.85}, {x: 0.1, y: 0.75}
         ];
+
+        function generateCity() {
+            buildings = [];
+            for(let i=0; i<50; i++) {
+                buildings.push({ 
+                    x: Math.random() * canvas.width, 
+                    y: (0.5 + Math.random() * 0.5) * canvas.height, 
+                    w: 40 + Math.random() * 80, 
+                    h: 150 + Math.random() * 400,
+                    parallax: 0.2 + Math.random() * 0.5,
+                    color: `rgba(15, 23, 42, ${0.4 + Math.random() * 0.4})`
+                });
+            }
+        }
 
         async function initRaceData() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            generateCity();
             
             const selectedHeat = document.getElementById('heatSelect').value;
             try {
@@ -70,21 +93,17 @@
                 }
 
                 racers = data.racers.map((r, i) => {
-                    // THRUSTERS (Speed) and GYROS (Handling)
-                    let thrust = 0.0012; 
-                    let gyro = 0.08; 
-                    if(r.motor === "V8 Engine") thrust += 0.0006; // Translate car parts to drone logic
-                    if(r.tires === "Slicks") gyro += 0.05;
+                    let speed = 0.0011; 
+                    if(r.motor === "V8 Engine") speed += 0.0005; 
 
                     return { 
                         ...r, 
-                        progress: 0 - (i * 0.02),
+                        progress: 0 - (i * 0.015),
                         lap: 1, 
-                        thrust, 
-                        gyro,
-                        x: 0, y: 0, angle: 0, tilt: 0,
-                        laneOffset: (i - (data.racers.length/2)) * 25, 
-                        history: [], // For neon trail
+                        speed, 
+                        x: 0, y: 0, angle: 0,
+                        laneOffset: (i - (data.racers.length/2)) * 22, 
+                        history: [], 
                         finished: false, 
                         color: r.color || "#06b6d4"
                     };
@@ -99,6 +118,7 @@
             const section = Math.min(Math.floor(progress * sections), sections - 1);
             const sectionT = (progress * sections) - section;
             const p1 = trackGates[section]; const p2 = trackGates[section + 1];
+            
             return { 
                 x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width, 
                 y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height,
@@ -106,18 +126,39 @@
             };
         }
 
+        function drawBackground() {
+            const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grd.addColorStop(0, "#010409");
+            grd.addColorStop(1, "#041d44");
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Stars
+            ctx.fillStyle = "white";
+            for(let i=0; i<80; i++) { if(i%10===0) ctx.fillRect((i*157)%canvas.width, (i*211)%canvas.height, 1, 1); }
+
+            // Buildings with parallax
+            buildings.forEach(b => {
+                const shift = (racers.length > 0 ? racers[0].progress : 0) * b.parallax * 200;
+                ctx.fillStyle = b.color;
+                ctx.strokeStyle = "rgba(6, 182, 212, 0.1)";
+                ctx.beginPath();
+                ctx.roundRect((b.x + shift) % canvas.width, canvas.height - b.h, b.w, b.h, 5);
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+
         function drawHoops() {
             trackGates.forEach((g, i) => {
                 const gx = g.x * canvas.width;
                 const gy = g.y * canvas.height;
-                
-                // Glow effect
                 ctx.shadowBlur = 15;
-                ctx.shadowColor = i === 0 ? "#f87171" : "#06b6d4";
-                ctx.strokeStyle = i === 0 ? "#ef4444" : "rgba(6, 182, 212, 0.5)";
-                ctx.lineWidth = 4;
+                ctx.shadowColor = i === 0 ? "#ef4444" : "#06b6d4";
+                ctx.strokeStyle = i === 0 ? "#ef4444" : "rgba(6, 182, 212, 0.3)";
+                ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.arc(gx, gy, 40, 0, Math.PI * 2);
+                ctx.arc(gx, gy, 45, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.shadowBlur = 0;
             });
@@ -129,18 +170,15 @@
 
             racers.forEach(r => {
                 if(r.finished) return;
-                
-                const target = getPointOnPath(Math.max(0, r.progress));
-                r.x = target.x + (Math.cos(target.angle + Math.PI/2) * r.laneOffset);
-                r.y = target.y + (Math.sin(target.angle + Math.PI/2) * r.laneOffset);
-                
-                // Flight Physics
-                r.progress += r.thrust * (0.9 + Math.random() * 0.3);
-                r.angle = target.angle;
-                
-                // Record Trail
+                const pos = getPointOnPath(Math.max(0, r.progress));
+                r.x = pos.x + (Math.cos(pos.angle + Math.PI/2) * r.laneOffset);
+                r.y = pos.y + (Math.sin(pos.angle + Math.PI/2) * r.laneOffset);
+                r.angle = pos.angle;
+
+                r.progress += r.speed * (0.85 + Math.random() * 0.3);
+
                 r.history.push({x: r.x, y: r.y});
-                if(r.history.length > 20) r.history.shift();
+                if(r.history.length > 30) r.history.shift();
 
                 if(r.progress >= 0.999) {
                     if(r.lap < maxLaps) { r.lap++; r.progress = 0; } 
@@ -149,67 +187,48 @@
             });
 
             const leader = [...racers].sort((a,b) => (b.lap * 100 + b.progress) - (a.lap * 100 + a.progress))[0];
-            if(leader) document.getElementById('leaderName').innerText = leader.name;
+            if(leader) document.getElementById('leaderName').innerText = leader.name + " (L" + leader.lap + ")";
 
             draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
 
         function drawDrone(r) {
-            ctx.save();
-            ctx.translate(r.x, r.y);
-            ctx.rotate(r.angle);
-            
             // Neon Trail
-            ctx.restore();
             if(r.history.length > 2) {
                 ctx.beginPath();
                 ctx.strokeStyle = r.color;
-                ctx.globalAlpha = 0.4;
                 ctx.lineWidth = 2;
-                r.history.forEach((h, i) => {
-                    if(i===0) ctx.moveTo(h.x, h.y);
-                    else ctx.lineTo(h.x, h.y);
-                });
+                ctx.globalAlpha = 0.5;
+                r.history.forEach((h, i) => { if(i===0) ctx.moveTo(h.x, h.y); else ctx.lineTo(h.x, h.y); });
                 ctx.stroke();
                 ctx.globalAlpha = 1;
             }
 
-            // Drone Body (X-Frame)
             ctx.save();
             ctx.translate(r.x, r.y);
-            ctx.rotate(r.angle);
-            ctx.strokeStyle = "white";
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(-10, -10); ctx.lineTo(10, 10);
-            ctx.moveTo(10, -10); ctx.lineTo(-10, 10);
-            ctx.stroke();
+            ctx.rotate(r.angle + Math.PI/2);
             
-            // Motors
+            // X-Frame
+            ctx.strokeStyle = "white"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, 10); ctx.moveTo(10, -10); ctx.lineTo(-10, 10); ctx.stroke();
+            
+            // Glow Motors
+            ctx.shadowBlur = 10; ctx.shadowColor = r.color;
             ctx.fillStyle = r.color;
-            [-10, 10].forEach(x => [-10, 10].forEach(y => {
-                ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
-            }));
-
-            ctx.rotate(-r.angle);
-            ctx.fillStyle = "white";
-            ctx.font = "bold 12px Inter";
-            ctx.textAlign = "center";
-            ctx.fillText(r.name, 0, -25);
+            [[-10,-10],[10,-10],[-10,10],[10,10]].forEach(p => {
+                ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI*2); ctx.fill();
+            });
+            
+            ctx.rotate(-(r.angle + Math.PI/2));
+            ctx.shadowBlur = 4; ctx.shadowColor = "black";
+            ctx.fillStyle = "white"; ctx.font = "bold 13px Inter"; ctx.textAlign = "center";
+            ctx.fillText(r.name, 0, -28);
             ctx.restore();
         }
 
         function draw() {
-            ctx.fillStyle = "#020617";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Space/Stars background
-            ctx.fillStyle = "white";
-            for(let i=0; i<100; i++) {
-                if(i%10 === 0) ctx.fillRect((i*137)%canvas.width, (i*243)%canvas.height, 1, 1);
-            }
-
+            drawBackground();
             drawHoops();
             racers.forEach(r => drawDrone(r));
         }
@@ -219,7 +238,7 @@
             let count = 3;
             const timer = setInterval(() => {
                 if(count > 0) { div.innerText = count; count--; }
-                else if(count === 0) { div.innerText = "IGNITION"; count--; startRace(); }
+                else if(count === 0) { div.innerText = "LAUNCH"; count--; startRace(); }
                 else { div.classList.add('hidden'); clearInterval(timer); }
             }, 1000);
             document.getElementById('startBtn').classList.add('hidden');
@@ -228,8 +247,8 @@
         function startRace() { raceActive = true; raceFinished = false; gameLoop(); }
         async function announceWinner(w) {
             raceFinished = true;
-            alert(`🚀 MISSION COMPLETE: ${w.name} ARRIVED FIRST!`);
-            const prize = document.getElementById('prizeAmt')?.value || 100;
+            const prize = document.getElementById('prizeAmt').value;
+            alert("🏁 MISSION SUCCESS: " + w.name + " WINS $" + prize + "!");
             await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) }) });
         }
 
