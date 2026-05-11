@@ -69,7 +69,13 @@
         let raceFinished = false;
 
         const tracks = {
-            pro: [ {x: 0.15, y: 0.5}, {x: 0.15, y: 0.25}, {x: 0.4, y: 0.2}, {x: 0.5, y: 0.45}, {x: 0.7, y: 0.2}, {x: 0.85, y: 0.3}, {x: 0.85, y: 0.7}, {x: 0.6, y: 0.85}, {x: 0.4, y: 0.8}, {x: 0.15, y: 0.5} ],
+            // FIXED: Start/Finish moved to straightaway, last point matches first point for a full circuit.
+            pro: [ 
+                {x: 0.15, y: 0.7}, {x: 0.15, y: 0.25}, {x: 0.4, y: 0.2}, 
+                {x: 0.5, y: 0.45}, {x: 0.7, y: 0.2}, {x: 0.85, y: 0.3}, 
+                {x: 0.85, y: 0.7}, {x: 0.6, y: 0.85}, {x: 0.4, y: 0.8}, 
+                {x: 0.15, y: 0.7} 
+            ],
             mud: [ {x: 0.5, y: 0.8}, {x: 0.2, y: 0.8}, {x: 0.1, y: 0.5}, {x: 0.25, y: 0.2}, {x: 0.5, y: 0.4}, {x: 0.45, y: 0.1}, {x: 0.75, y: 0.2}, {x: 0.65, y: 0.5}, {x: 0.9, y: 0.6}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.8} ],
             oval: [ {x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.2, y: 0.15}, {x: 0.8, y: 0.15}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85} ],
             drag: [ {x: 0.1, y: 0.5}, {x: 0.9, y: 0.5} ]
@@ -90,7 +96,6 @@
             const selectedHeat = document.getElementById('heatSelect').value;
             
             try {
-                // FETCH ONLY HEAT DATA - Removed Leaderboard Dependency
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: selectedHeat }) });
                 const data = await res.json();
                 
@@ -107,7 +112,7 @@
                     if(r.motor === "V8 Engine") speed += 1.8;
                     if(r.tires === "Slicks") handling += 1.6;
 
-                    // Simple staggered start (no leaderboard check)
+                    // Staggered start behind the line
                     let startPosition = 0 - (i * 0.012);
 
                     return { 
@@ -128,7 +133,6 @@
         function getPointOnPath(t, trackType) {
             const path = tracks[trackType];
             const sections = path.length - 1;
-            // Clamp t between 0 and 1
             const progress = Math.max(0, Math.min(0.999, t));
             const section = Math.min(Math.floor(progress * sections), sections - 1);
             const sectionT = (progress * sections) - section;
@@ -152,7 +156,7 @@
 
         function drawTrack() {
             const type = document.getElementById('trackSelect').value; const path = tracks[type];
-            ctx.strokeStyle = "white"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.setLineDash([20, 20]); ctx.beginPath();
+            ctx.strokeStyle = "white"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.setLineDash([20, 20]); ctx.beginPath();
             path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*canvas.width, p.y*canvas.height) : ctx.lineTo(p.x*canvas.width, p.y*canvas.height)); ctx.stroke();
             ctx.strokeStyle = "#ef4444"; ctx.lineDashOffset = 20; ctx.stroke(); ctx.setLineDash([]);
             ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 88; ctx.stroke();
@@ -165,7 +169,6 @@
         }
 
         function drawCar(r) {
-            // If car is behind the starting line (progress < 0), draw it at the start line
             const drawProgress = Math.max(0, r.progress);
             const pos = getPointOnPath(drawProgress, document.getElementById('trackSelect').value);
             ctx.save();
@@ -214,7 +217,9 @@
             racers.forEach(r => {
                 if(r.finished) return;
                 const pos = getPointOnPath(Math.max(0, r.progress), type);
-                let step = 0.0016;
+                
+                // SLOWED DOWN: step base reduced from 0.0016 to 0.0010
+                let step = 0.0010; 
                 if(pos.isCorner) step *= (r.handlingBase * 0.65 + Math.random()*0.2);
                 else step *= (r.speedBase * 0.95 + Math.random()*0.3);
                 
