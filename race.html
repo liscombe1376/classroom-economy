@@ -30,6 +30,11 @@
             </div>
 
             <div class="flex flex-col">
+                <label class="text-[10px] uppercase font-bold text-slate-400">Heat</label>
+                <input type="number" id="heatSelect" value="1" min="1" class="w-16" onchange="initRaceData()">
+            </div>
+
+            <div class="flex flex-col">
                 <label class="text-[10px] uppercase font-bold text-slate-400">Laps</label>
                 <input type="number" id="totalLaps" value="3" min="1" class="w-16">
             </div>
@@ -82,18 +87,24 @@
             canvas.height = window.innerHeight;
             generateScenery();
             
+            const selectedHeat = document.getElementById('heatSelect').value;
+            
             try {
                 // 1. Fetch Heat Data
-                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: 1 }) });
+                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: selectedHeat }) });
                 const data = await res.json();
                 
-                // 2. Fetch Goal Crusher Leaderboard
+                if (!data.racers || data.racers.length === 0) {
+                    console.log("No racers in this heat.");
+                    racers = [];
+                    draw();
+                    return;
+                }
+
+                // 2. Fetch Leaderboard for Grid Positioning
                 const lbRes = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getLeaderboard" }) });
                 const lbData = await lbRes.json();
-                
-                // Extract and rank the Achievers (Goal Crushers)
-                // We'll create a simple array of names in order of their rank
-                const rankedAchievers = lbData.achievers.map(student => student.name);
+                const rankedAchievers = (lbData && lbData.achievers) ? lbData.achievers.map(s => s.name) : [];
 
                 racers = data.racers.map((r, i) => {
                     let speed = 1.0; 
@@ -101,33 +112,23 @@
                     if(r.motor === "V8 Engine") speed += 1.8;
                     if(r.tires === "Slicks") handling += 1.6;
 
-                    // 3. Staggered Grid Placement
-                    // Find student's rank. If not on leaderboard, they are ranked 'last'
+                    // Grid Placement (Pole position for top achievers)
                     const rank = rankedAchievers.indexOf(r.name);
-                    
-                    // Pole position starts at 0.08 progress. 
-                    // Every rank back subtracts 0.008 (approx 1 car length)
-                    let startPosition = 0;
-                    if(rank !== -1) {
-                        startPosition = 0.08 - (rank * 0.008);
-                    } else {
-                        // Everyone else starts at the line (progress 0) or slightly behind based on their index
-                        startPosition = 0 - (i * 0.002); 
-                    }
+                    let startPosition = (rank !== -1) ? (0.08 - (rank * 0.012)) : (0 - (i * 0.005));
 
                     return { 
                         ...r, 
-                        progress: Math.max(-0.02, startPosition), // Don't let them start TOO far back off screen
+                        progress: Math.max(-0.04, startPosition),
                         lap: 1, 
                         speedBase: speed, 
                         handlingBase: handling, 
-                        laneOffset: (i - 1) * 14, 
+                        laneOffset: (i - (data.racers.length/2)) * 14, 
                         finished: false, 
                         color: r.color || "#3b82f6" 
                     };
                 });
                 draw();
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Initialization error:", e); }
         }
 
         function getPointOnPath(t, trackType) {
@@ -136,7 +137,12 @@
             const section = Math.min(Math.floor(t * sections), sections - 1);
             const sectionT = (t * sections) - section;
             const p1 = path[section]; const p2 = path[section + 1];
-            return { x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width, y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height, angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x)) + Math.PI/2, isCorner: (sectionT < 0.2 || sectionT > 0.8) && trackType !== 'drag' };
+            return { 
+                x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width, 
+                y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height, 
+                angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x)) + Math.PI/2, 
+                isCorner: (sectionT < 0.2 || sectionT > 0.8) && trackType !== 'drag' 
+            };
         }
 
         function drawBackground() {
@@ -154,6 +160,7 @@
             path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*canvas.width, p.y*canvas.height) : ctx.lineTo(p.x*canvas.width, p.y*canvas.height)); ctx.stroke();
             ctx.strokeStyle = "#ef4444"; ctx.lineDashOffset = 20; ctx.stroke(); ctx.setLineDash([]);
             ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 88; ctx.stroke();
+            
             const start = path[0]; const next = path[1]; const angle = Math.atan2((next.y - start.y), (next.x - start.x));
             ctx.save(); ctx.translate(start.x * canvas.width, start.y * canvas.height); ctx.rotate(angle);
             ctx.fillStyle = "white"; ctx.fillRect(-5, -46, 15, 92); ctx.fillStyle = "black";
@@ -212,10 +219,15 @@
                 let step = 0.0016;
                 if(pos.isCorner) step *= (r.handlingBase * 0.65 + Math.random()*0.2);
                 else step *= (r.speedBase * 0.95 + Math.random()*0.3);
+                
                 r.progress += step;
                 if(r.progress >= 0.999) {
-                    if(type === 'drag') { r.finished = true; if(!raceFinished) announceWinner(r);
-                    } else { if(r.lap < maxLaps) { r.lap++; r.progress = 0; } else { r.finished = true; if(!raceFinished) announceWinner(r); } }
+                    if(type === 'drag') { 
+                        r.finished = true; if(!raceFinished) announceWinner(r);
+                    } else { 
+                        if(r.lap < maxLaps) { r.lap++; r.progress = 0; } 
+                        else { r.finished = true; if(!raceFinished) announceWinner(r); } 
+                    }
                 }
             });
 
