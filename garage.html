@@ -47,7 +47,6 @@
             cursor: default;
         }
 
-        /* Ensure the bars are visible and have height */
         .stat-bar-container {
             width: 100%;
             background-color: #020617;
@@ -78,10 +77,8 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
             <div class="garage-card rounded-3xl p-8 flex flex-col items-center justify-center relative min-h-[500px] overflow-hidden">
                 <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');"></div>
-                
                 <canvas id="carCanvas" width="300" height="380" class="relative z-10 mb-6"></canvas>
                 
                 <div class="w-full space-y-4 relative z-10 px-4">
@@ -94,7 +91,6 @@
                             <div id="bar-speed" class="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6] transition-all duration-1000" style="width: 20%"></div>
                         </div>
                     </div>
-
                     <div>
                         <div class="flex justify-between text-[10px] racing-font mb-1 text-slate-400">
                             <span>HANDLING</span>
@@ -104,7 +100,6 @@
                             <div id="bar-handling" class="h-full bg-purple-500 shadow-[0_0_10px_#a855f7] transition-all duration-1000" style="width: 20%"></div>
                         </div>
                     </div>
-
                     <div>
                         <div class="flex justify-between text-[10px] racing-font mb-1 text-slate-400">
                             <span>ACCELERATION</span>
@@ -129,7 +124,6 @@
             </div>
 
             <div class="space-y-6">
-                
                 <div class="garage-card rounded-2xl p-6">
                     <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
                         <span class="w-2 h-4 bg-blue-500 block"></span> ENGINES
@@ -179,7 +173,8 @@
 
     <script>
         const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
-        let studentID = localStorage.getItem('studentID');
+        // Ensure studentID is trimmed of any accidental whitespace
+        let studentID = localStorage.getItem('studentID') ? localStorage.getItem('studentID').trim() : null;
         let currentCar = {};
 
         async function initGarage() {
@@ -188,7 +183,10 @@
                 window.location.href = "index.html";
                 return;
             }
-            document.getElementById('driverName').innerText = "Driver: " + (localStorage.getItem('studentName') || "Unknown");
+            
+            // Set Driver Display Name
+            const displayName = localStorage.getItem('studentName') || "Unknown";
+            document.getElementById('driverName').innerText = "Driver: " + displayName;
             
             try {
                 const response = await fetch(WEB_APP_URL, {
@@ -197,7 +195,6 @@
                 });
                 currentCar = await response.json();
                 
-                // CRITICAL: updateUI must be called after currentCar is populated
                 updateUI();
                 drawCar(currentCar.color || "#3b82f6");
                 document.getElementById('colorPicker').value = currentCar.color || "#3b82f6";
@@ -208,18 +205,20 @@
         }
 
         async function fetchBalance() {
-            const res = await fetch(WEB_APP_URL, { 
-                method: "POST", 
-                body: JSON.stringify({ 
-                    action: "loginStudent", 
-                    name: localStorage.getItem('studentName'), 
-                    password: localStorage.getItem('studentPass') 
-                }) 
-            });
-            const data = await res.json();
-            if(data.success) {
-                document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
-            }
+            try {
+                const res = await fetch(WEB_APP_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ 
+                        action: "loginStudent", 
+                        name: localStorage.getItem('studentName'), 
+                        password: localStorage.getItem('studentPass') 
+                    }) 
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('balanceDisplay').innerText = "$" + parseFloat(data.student.balance).toFixed(2);
+                }
+            } catch (err) { console.log("Balance fetch failed"); }
         }
 
         function updateUI() {
@@ -228,13 +227,11 @@
             
             let stats = { speed: 20, handling: 20, control: 20 };
 
-            // Apply Bonuses based on what is in currentCar
             if (currentCar.motor === "Electric") { stats.speed += 15; stats.control += 5; }
             if (currentCar.motor === "V8 Engine") { stats.speed += 40; stats.control += 10; }
             if (currentCar.tires === "Slicks") { stats.handling += 35; stats.speed += 5; }
             if (currentCar.tires === "Off-Road") { stats.handling += 20; stats.control += 20; }
 
-            // Update UI Bars with a small delay for animation effect
             setTimeout(() => {
                 Object.keys(stats).forEach(key => {
                     let val = Math.min(stats[key], 100);
@@ -245,7 +242,7 @@
                 });
             }, 100);
 
-            // Ownership Buttons
+            // Equipping logic
             const ownedItems = [currentCar.motor, currentCar.tires];
             ownedItems.forEach(item => {
                 if(!item) return;
@@ -272,23 +269,34 @@
                 })
             });
             const result = await res.json();
-            if(result.success) location.reload();
-            else alert(result.message);
+            if(result.success) {
+                alert("Upgrade Complete!");
+                location.reload();
+            } else {
+                alert("Error: " + result.message);
+            }
         }
 
         async function saveColor() {
             const color = document.getElementById('colorPicker').value;
-            await fetch(WEB_APP_URL, {
+            const res = await fetch(WEB_APP_URL, {
                 method: "POST",
                 body: JSON.stringify({
-                    action: "buyPart", studentID: studentID, partType: "Color", partName: color, cost: 0
+                    action: "buyPart", 
+                    studentID: studentID, 
+                    partType: "Color", 
+                    partName: color, 
+                    cost: 0
                 })
             });
-            alert("Livery Updated!");
+            const result = await res.json();
+            if(result.success) alert("Paint Job Complete!");
+            else alert("Error: " + result.message);
         }
 
         function drawCar(color) {
             const canvas = document.getElementById('carCanvas');
+            if(!canvas) return;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, 300, 400);
             
