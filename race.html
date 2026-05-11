@@ -90,7 +90,7 @@
             const selectedHeat = document.getElementById('heatSelect').value;
             
             try {
-                // 1. Fetch Heat Data
+                // FETCH ONLY HEAT DATA - Removed Leaderboard Dependency
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: selectedHeat }) });
                 const data = await res.json();
                 
@@ -101,24 +101,18 @@
                     return;
                 }
 
-                // 2. Fetch Leaderboard for Grid Positioning
-                const lbRes = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getLeaderboard" }) });
-                const lbData = await lbRes.json();
-                const rankedAchievers = (lbData && lbData.achievers) ? lbData.achievers.map(s => s.name) : [];
-
                 racers = data.racers.map((r, i) => {
                     let speed = 1.0; 
                     let handling = 1.0;
                     if(r.motor === "V8 Engine") speed += 1.8;
                     if(r.tires === "Slicks") handling += 1.6;
 
-                    // Grid Placement (Pole position for top achievers)
-                    const rank = rankedAchievers.indexOf(r.name);
-                    let startPosition = (rank !== -1) ? (0.08 - (rank * 0.012)) : (0 - (i * 0.005));
+                    // Simple staggered start (no leaderboard check)
+                    let startPosition = 0 - (i * 0.012);
 
                     return { 
                         ...r, 
-                        progress: Math.max(-0.04, startPosition),
+                        progress: startPosition,
                         lap: 1, 
                         speedBase: speed, 
                         handlingBase: handling, 
@@ -134,8 +128,10 @@
         function getPointOnPath(t, trackType) {
             const path = tracks[trackType];
             const sections = path.length - 1;
-            const section = Math.min(Math.floor(t * sections), sections - 1);
-            const sectionT = (t * sections) - section;
+            // Clamp t between 0 and 1
+            const progress = Math.max(0, Math.min(0.999, t));
+            const section = Math.min(Math.floor(progress * sections), sections - 1);
+            const sectionT = (progress * sections) - section;
             const p1 = path[section]; const p2 = path[section + 1];
             return { 
                 x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width, 
@@ -169,7 +165,9 @@
         }
 
         function drawCar(r) {
-            const pos = getPointOnPath(r.progress, document.getElementById('trackSelect').value);
+            // If car is behind the starting line (progress < 0), draw it at the start line
+            const drawProgress = Math.max(0, r.progress);
+            const pos = getPointOnPath(drawProgress, document.getElementById('trackSelect').value);
             ctx.save();
             ctx.translate(pos.x + r.laneOffset, pos.y + r.laneOffset);
             ctx.rotate(pos.angle);
@@ -215,7 +213,7 @@
 
             racers.forEach(r => {
                 if(r.finished) return;
-                const pos = getPointOnPath(r.progress, type);
+                const pos = getPointOnPath(Math.max(0, r.progress), type);
                 let step = 0.0016;
                 if(pos.isCorner) step *= (r.handlingBase * 0.65 + Math.random()*0.2);
                 else step *= (r.speedBase * 0.95 + Math.random()*0.3);
