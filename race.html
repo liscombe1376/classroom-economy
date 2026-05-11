@@ -3,14 +3,15 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
-    <title>BCE GRAND PRIX | TEXTURED PRO</title>
+    <title>BCE GRAND PRIX | BROADCAST EDITION</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #064e3b; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
         canvas { display: block; }
         .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); pointer-events: auto; }
         .leaderboard { background: rgba(15, 23, 42, 0.85); border-left: 2px solid #3b82f6; backdrop-filter: blur(5px); }
-        input { background: #1e293b; border: 1px solid #475569; padding: 4px 8px; border-radius: 4px; color: white; outline: none; font-size: 0.8rem; }
+        .announcer-panel { background: rgba(0, 0, 0, 0.8); border-top: 4px solid #facc15; backdrop-filter: blur(10px); }
+        input, select { background: #1e293b; border: 1px solid #475569; padding: 4px 8px; border-radius: 4px; color: white; outline: none; font-size: 0.8rem; }
         #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 30px #3b82f6; pointer-events: none; }
     </style>
 </head>
@@ -18,33 +19,40 @@
 
     <div class="admin-panel fixed top-0 left-0 w-full z-50 p-3 flex justify-between items-center px-8 shadow-2xl">
         <div class="flex items-center gap-6">
-            <h1 class="text-2xl font-black italic uppercase tracking-tighter">BCE <span class="text-blue-500">GP</span></h1>
-            
+            <h1 class="text-2xl font-black italic uppercase tracking-tighter text-white">BCE <span class="text-blue-500">GP</span></h1>
             <div class="flex gap-4">
                 <div class="flex flex-col">
-                    <label class="text-[9px] uppercase font-bold text-slate-400">Race Config</label>
+                    <label class="text-[9px] uppercase font-bold text-slate-400">Obstacles</label>
                     <div class="flex gap-1">
-                        <input type="number" id="heatSelect" value="1" class="w-12" title="Heat #" onchange="initRaceData()">
-                        <input type="number" id="totalLaps" value="3" class="w-12" title="Laps">
+                        <select id="hazardType" onchange="initRaceData()">
+                            <option value="cones">Traffic Cones (Delay)</option>
+                            <option value="spikes">Spike Strips (-25% Speed)</option>
+                            <option value="oil">Oil Slicks (Spin Out)</option>
+                        </select>
+                        <input type="number" id="hazardCount" value="12" class="w-12" onchange="initRaceData()">
                     </div>
                 </div>
-
                 <div class="flex flex-col border-l border-slate-700 pl-4">
-                    <label class="text-[9px] uppercase font-bold text-slate-400">Prizes (1st / 2nd / 3rd)</label>
+                    <label class="text-[9px] uppercase font-bold text-slate-400">Prizes (1/2/3)</label>
                     <div class="flex gap-1">
-                        <input type="number" id="p1" value="100" class="w-14 border-blue-900" title="1st Place">
-                        <input type="number" id="p2" value="50" class="w-14" title="2nd Place">
-                        <input type="number" id="p3" value="25" class="w-14" title="3rd Place">
+                        <input type="number" id="p1" value="100" class="w-14">
+                        <input type="number" id="p2" value="50" class="w-14">
+                        <input type="number" id="p3" value="25" class="w-14">
                     </div>
                 </div>
             </div>
         </div>
-        <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-8 py-2 rounded font-black hover:bg-blue-500 transition-all uppercase tracking-widest text-xs">Start Heat</button>
+        <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-6 py-2 rounded font-black hover:bg-blue-500 transition-all uppercase tracking-widest text-xs">Launch Race</button>
     </div>
 
     <div class="leaderboard fixed top-[72px] right-0 bottom-0 w-56 z-40 p-4 shadow-2xl">
         <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-1">Live Standings</h2>
         <div id="leaderList" class="flex flex-col gap-2"></div>
+    </div>
+
+    <div class="announcer-panel fixed bottom-0 left-0 w-[calc(100%-224px)] h-16 z-50 flex items-center px-10 shadow-2xl">
+        <div class="bg-yellow-400 text-black px-3 py-1 font-black italic uppercase text-xs mr-4">Live</div>
+        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate">Waiting for engines to start...</div>
     </div>
 
     <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
@@ -55,76 +63,73 @@
         const canvas = document.getElementById('raceCanvas');
         const ctx = canvas.getContext('2d');
         
-        let racers = [], pylons = [], scenery = [], textures = [], particles = [];
+        let racers = [], hazards = [], textures = [], currentLeader = null;
         let raceActive = false, raceFinished = false;
 
         const trackPath = [
-            {x: 0.15, y: 0.8}, {x: 0.1, y: 0.3}, {x: 0.3, y: 0.15}, 
+            {x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.1, y: 0.3}, {x: 0.3, y: 0.15}, 
             {x: 0.6, y: 0.4}, {x: 0.8, y: 0.15}, {x: 0.9, y: 0.5}, 
-            {x: 0.8, y: 0.85}, {x: 0.4, y: 0.85}, {x: 0.15, y: 0.8}
+            {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85}
         ];
 
-        function createBiomes() {
-            textures = []; scenery = []; pylons = [];
-            const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"]; // Forest, Grass, Light, Mud
-            for(let i=0; i<40; i++) {
-                textures.push({
-                    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-                    w: 150+Math.random()*300, h: 100+Math.random()*200,
-                    c: colors[Math.floor(Math.random()*colors.length)] + "66"
-                });
-            }
-            for(let i=0; i<30; i++) {
-                scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 5+Math.random()*15 });
-            }
-            for(let i=0; i<15; i++) {
-                pylons.push({ progress: 0.1 + Math.random()*0.85, lane: Math.floor(Math.random()*6) });
+        function announce(msg) {
+            const el = document.getElementById('announcement');
+            el.style.opacity = 0;
+            setTimeout(() => {
+                el.innerText = msg;
+                el.style.opacity = 1;
+            }, 100);
+        }
+
+        function setupWorld() {
+            textures = []; hazards = [];
+            const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
+            for(let i=0; i<40; i++) textures.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, w: 200, h: 150, c: colors[Math.floor(Math.random()*4)]+"44" });
+            
+            const hType = document.getElementById('hazardType').value;
+            const hCount = document.getElementById('hazardCount').value;
+            for(let i=0; i<hCount; i++) {
+                hazards.push({ progress: 0.15 + Math.random()*0.8, lane: Math.floor(Math.random()*6), type: hType, active: true });
             }
         }
 
         async function initRaceData() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            createBiomes();
-            const heat = document.getElementById('heatSelect').value;
-            try {
-                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat }) });
-                const data = await res.json();
-                racers = (data.racers || []).map((r, i) => {
-                    let speed = 0.0010 + (Math.random()*0.0002);
-                    if(r.motor === "V8 Engine") speed += 0.0004;
-                    return { ...r, progress: 0 - (i*0.012), lap: 1, speedBase: speed, currentSpeed: speed, penalty: 0, x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false };
-                });
-                draw();
-            } catch (e) { console.error(e); }
-        }
-
-        function getPointOnPath(t) {
-            const sections = trackPath.length - 1;
-            const p = Math.max(0, Math.min(0.999, t));
-            const sec = Math.floor(p * sections);
-            const secT = (p * sections) - sec;
-            const p1 = trackPath[sec], p2 = trackPath[sec+1];
-            return { 
-                x: (p1.x + (p2.x - p1.x)*secT)*(canvas.width-224), 
-                y: (p1.y + (p2.y - p1.y)*secT)*canvas.height,
-                a: Math.atan2(p2.y-p1.y, p2.x-p1.x)
-            };
+            setupWorld();
+            const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: 1 }) });
+            const data = await res.json();
+            racers = (data.racers || []).map((r, i) => ({
+                ...r, progress: 0 - (i*0.012), lap: 1, 
+                speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0004 : 0),
+                currentSpeed: 0, penalty: 0, spin: 0, flats: 0,
+                x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false
+            }));
+            draw();
         }
 
         function gameLoop() {
             if(!raceActive) return;
             racers.forEach(r => {
                 if(r.finished) return;
-                r.penalty > 0 ? (r.currentSpeed = r.speedBase*0.4, r.penalty--) : (r.currentSpeed = r.speedBase);
+
+                let speedMod = 1 - (r.flats * 0.25);
+                if(speedMod < 0.5) speedMod = 0.5;
+
+                if(r.spin > 0) { r.currentSpeed = 0; r.spin -= 0.1; }
+                else if(r.penalty > 0) { r.currentSpeed = r.speedBase * 0.3 * speedMod; r.penalty--; }
+                else { r.currentSpeed = r.speedBase * speedMod; }
+
                 r.progress += r.currentSpeed * (0.9 + Math.random()*0.2);
                 const pos = getPointOnPath(Math.max(0, r.progress));
                 r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                 r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
-                r.angle = pos.a;
+                r.angle = r.spin > 0 ? r.angle + 0.4 : pos.a;
 
-                pylons.forEach((p, idx) => {
-                    if(p.lane === r.lane && Math.abs(r.progress - p.progress) < 0.006) {
-                        r.penalty = 80; pylons.splice(idx, 1);
+                hazards.forEach(h => {
+                    if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
+                        if(h.type === 'cones') { r.penalty = 80; h.active = false; announce(`${r.name} just hit a cone!`); }
+                        if(h.type === 'spikes') { r.flats++; h.active = false; announce(`OH NO! ${r.name} blew a tire!`); }
+                        if(h.type === 'oil') { r.spin = 6.28; announce(`${r.name} is spinning out on oil!`); }
                     }
                 });
 
@@ -133,39 +138,57 @@
                     else { r.finished = true; checkWinner(); }
                 }
             });
+
+            // Lead Change Announcement
+            const leader = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress))[0];
+            if(leader && leader.name !== currentLeader && leader.progress > 0) {
+                currentLeader = leader.name;
+                announce(`${currentLeader} has taken the lead!`);
+            }
+
             updateUI(); draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
+        }
+
+        function getPointOnPath(t) {
+            const sections = trackPath.length - 1;
+            const p = Math.max(0, Math.min(0.999, t));
+            const sec = Math.floor(p * sections);
+            const secT = (p * sections) - sec;
+            const p1 = trackPath[sec], p2 = trackPath[sec+1];
+            return { x: (p1.x + (p2.x - p1.x)*secT)*(canvas.width-224), y: (p1.y + (p2.y - p1.y)*secT)*canvas.height, a: Math.atan2(p2.y-p1.y, p2.x-p1.x) };
         }
 
         function draw() {
             ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
             textures.forEach(t => { ctx.fillStyle = t.c; ctx.beginPath(); ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); });
-            scenery.forEach(s => { ctx.fillStyle = "#022c22"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
-            
             const tw = canvas.width - 224;
             ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
             ctx.beginPath(); trackPath.forEach((p,i) => i===0 ? ctx.moveTo(p.x*tw, p.y*canvas.height) : ctx.lineTo(p.x*tw, p.y*canvas.height)); ctx.stroke();
-            ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
-            ctx.strokeStyle = "#ef4444"; ctx.lineDashOffset = 15; ctx.stroke(); ctx.setLineDash([]);
-            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.stroke();
-
+            
             const start = trackPath[0];
             ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
             ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80); ctx.fillStyle = "black";
             for(let i=0;i<8;i++) { if(i%2==0) { ctx.fillRect(-4,i*10-40,4,10); ctx.fillRect(0,i*10-30,4,10); } }
             ctx.restore();
 
-            pylons.forEach(p => {
-                const pos = getPointOnPath(p.progress); const lo = (p.lane - (racers.length/2))*14;
-                ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.arc(pos.x + Math.cos(pos.a+Math.PI/2)*lo, pos.y + Math.sin(pos.a+Math.PI/2)*lo, 5, 0, Math.PI*2); ctx.fill();
+            hazards.forEach(h => {
+                if(!h.active && h.type !== 'oil') return;
+                const pos = getPointOnPath(h.progress);
+                const lo = (h.lane - (racers.length/2))*14;
+                const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
+                if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px, py-6); ctx.lineTo(px+5, py+6); ctx.lineTo(px-5, py+6); ctx.fill(); ctx.fillStyle="white"; ctx.fillRect(px-3,py+1,6,2); }
+                else if(h.type === 'spikes') { ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py-2, 16, 4); }
+                else if(h.type === 'oil') { ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.beginPath(); ctx.ellipse(px, py, 12, 8, pos.a, 0, Math.PI*2); ctx.fill(); }
             });
 
             racers.forEach(r => {
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                ctx.fillStyle = r.penalty > 0 ? "#ef4444" : r.color; ctx.shadowBlur = 8; ctx.shadowColor = "black";
-                ctx.roundRect(-12,-7,24,14,3); ctx.fill(); ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(4,-5,3,10);
-                ctx.restore(); ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center";
-                ctx.fillText(r.name, r.x, r.y-20);
+                ctx.fillStyle = r.penalty > 0 || r.spin > 0 ? "#ef4444" : r.color;
+                ctx.roundRect(-12,-7,24,14,3); ctx.fill();
+                if(r.flats > 0) { ctx.fillStyle = "black"; ctx.fillRect(-10, 6, 6, 2); if(r.flats > 1) ctx.fillRect(4, 6, 6, 2); }
+                ctx.restore();
+                ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
             });
         }
 
@@ -174,8 +197,8 @@
             document.getElementById('leaderList').innerHTML = sorted.slice(0, 8).map((r, i) => `
                 <div class="flex items-center gap-2 bg-slate-800/90 p-2 rounded text-[11px] border-l-4" style="border-color: ${r.color}">
                     <span class="font-black text-slate-500">${i+1}</span>
-                    <div class="flex-1 truncate font-bold">${r.name} ${r.penalty > 0 ? '⚠️' : ''}</div>
-                    <div class="text-blue-400 font-mono">L${r.lap}</div>
+                    <div class="flex-1 truncate font-bold text-white">${r.name} ${r.flats > 0 ? '❌' : ''}</div>
+                    <div class="text-blue-400">L${r.lap}</div>
                 </div>
             `).join('');
         }
@@ -184,9 +207,9 @@
             if(racers.every(r => r.finished) && !raceFinished) {
                 raceFinished = true;
                 const s = [...racers].sort((a,b) => b.progress - a.progress);
+                announce(`WE HAVE A WINNER! CONGRATULATIONS ${s[0].name.toUpperCase()}!`);
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
                 alert(`PODIUM:\n1st: ${s[0].name} ($${p[0]})\n2nd: ${s[1].name} ($${p[1]})\n3rd: ${s[2].name} ($${p[2]})`);
-                for(let i=0; i<3; i++) { if(s[i]) await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: s[i].id, amount: parseInt(p[i]) }) }); }
             }
         }
 
@@ -195,12 +218,11 @@
             let count = 3; document.getElementById('startBtn').classList.add('hidden');
             const timer = setInterval(() => {
                 if(count > 0) { div.innerText = count; count--; }
-                else if(count === 0) { div.innerText = "START!"; count--; startRace(); }
+                else if(count === 0) { div.innerText = "START!"; count--; announce("THE GREEN FLAG IS OUT!"); raceActive = true; gameLoop(); }
                 else { div.classList.add('hidden'); clearInterval(timer); }
             }, 1000);
         }
 
-        function startRace() { raceActive = true; raceFinished = false; gameLoop(); }
         window.onload = () => initRaceData();
     </script>
 </body>
