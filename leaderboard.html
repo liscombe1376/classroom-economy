@@ -1,245 +1,377 @@
 <!DOCTYPE html>
-<html lang="en">
+
+<html>
+
 <head>
-    <script src="config.js"></script>
-    <meta charset="UTF-8">
-    <title>BCE GRAND PRIX | LIVE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: #131a1c; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
-        canvas { display: block; }
-        .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; pointer-events: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        select, input { background: #1e293b; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; color: white; font-size: 0.85rem; outline: none; }
-        #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 20px rgba(59, 130, 246, 0.8); pointer-events: none; transition: all 0.2s ease; }
-    </style>
+
+  <script src="config.js"></script>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Leaderboard | ClassBank</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    
+
+    body { 
+
+      font-family: 'Inter', sans-serif; 
+
+      background-color: #0b0f1a; 
+
+      color: #f8fafc; 
+
+      margin: 0;
+
+      padding: 20px;
+
+    }
+
+
+
+    .glass-card { 
+
+      background: #161d2f; 
+
+      border: 1px solid #2d3748; 
+
+      border-radius: 1.5rem;
+
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+
+    }
+
+
+
+    /* Column Hover Effects */
+
+    .column-card {
+
+      transition: transform 0.3s ease, border-color 0.3s ease;
+
+    }
+
+    .column-card:hover {
+
+      transform: translateY(-8px);
+
+      border-color: #3b82f6;
+
+    }
+
+
+
+    /* Badge Styles */
+
+    .badge-base {
+
+      width: 80px;
+
+      height: 80px;
+
+      margin: 0 auto 1.5rem;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      font-size: 2.5rem;
+
+    }
+
+    
+
+    .gold-badge { 
+
+      background: radial-gradient(circle, #f1c40f, #d4af37); 
+
+      border-radius: 50%; 
+
+      box-shadow: 0 0 30px rgba(241, 196, 15, 0.3); 
+
+    }
+
+    
+
+    .emerald-badge { 
+
+      background: linear-gradient(135deg, #2ecc71, #27ae60); 
+
+      border-radius: 20%; 
+
+      box-shadow: 0 0 30px rgba(46, 204, 113, 0.4); 
+
+    }
+
+    
+
+    .crystal-badge { 
+
+      background: rgba(255, 255, 255, 0.05); 
+
+      backdrop-filter: blur(10px); 
+
+      border: 2px solid #3b82f6; 
+
+      transform: rotate(45deg); 
+
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+
+    }
+
+    .crystal-badge span { transform: rotate(-45deg); }
+
+
+
+    /* Rank Text Colors */
+
+    .gold-text { color: #f1c40f; } 
+
+    .silver-text { color: #bdc3c7; } 
+
+    .bronze-text { color: #cd7f32; }
+
+  </style>
+
 </head>
+
 <body>
 
-    <div class="admin-panel fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center px-8">
-        <div class="flex items-center gap-6">
-            <h1 class="text-2xl font-black italic tracking-tighter uppercase text-white">BCE <span class="text-blue-500">GP</span></h1>
-            
-            <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-slate-400">Track</label>
-                <select id="trackSelect" onchange="initRaceData()">
-                    <option value="pro">Pro Circuit (Balanced)</option>
-                    <option value="mud">The Snake (Technical)</option>
-                    <option value="oval">The Oval (Speedway)</option>
-                    <option value="drag">Drag Strip (Sprint)</option>
-                </select>
-            </div>
 
-            <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-slate-400">Laps</label>
-                <input type="number" id="totalLaps" value="3" min="1" class="w-16">
-            </div>
 
-            <div class="flex flex-col">
-                <label class="text-[10px] uppercase font-bold text-slate-400">Prize ($)</label>
-                <input type="number" id="prizeAmt" value="100" class="w-20">
-            </div>
-        </div>
+  <div class="max-w-6xl mx-auto">
 
-        <div id="raceStats" class="flex gap-8 items-center">
-            <div class="text-right">
-                <div class="text-[10px] font-bold text-slate-400 uppercase">Leader</div>
-                <div id="leaderName" class="text-xl font-black text-blue-400">---</div>
-            </div>
-            <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-8 py-3 rounded-md font-bold hover:bg-blue-500 shadow-lg transition-all active:scale-95 uppercase tracking-widest text-sm">Start Race</button>
-        </div>
+    <div class="mb-8">
+
+      <a href="admin.html" class="inline-flex items-center text-sm font-semibold text-blue-400 hover:text-blue-300 transition">
+
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+
+        </svg>
+
+        Back to Admin Panel
+
+      </a>
+
     </div>
 
-    <div id="countdown" class="fixed inset-0 flex items-center justify-center z-40 hidden italic uppercase"></div>
 
-    <canvas id="raceCanvas"></canvas>
 
-    <script>
-        const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
-        const canvas = document.getElementById('raceCanvas');
-        const ctx = canvas.getContext('2d');
+    <div class="text-center mb-10">
+
+      <h1 class="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+
+        🏆 Classroom <span class="text-amber-400">Hall of Fame</span>
+
+      </h1>
+
+      <p class="text-slate-500 font-medium italic" id="period">Calculating weekly window...</p>
+
+    </div>
+
+    
+
+    <div class="glass-card p-6 mb-12 max-w-3xl mx-auto border-amber-500/30">
+
+      <div class="text-center">
+
+        <div class="text-amber-500 text-xs font-bold uppercase tracking-widest mb-2">🎖️ Last Week's Champions</div>
+
+        <div id="winners-display" class="text-lg md:text-xl font-semibold text-slate-200">Loading history...</div>
+
+      </div>
+
+    </div>
+
+
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12" id="board">
+
+      <div class="text-center text-slate-500 py-20 col-span-3">
+
+        <div class="inline-block animate-pulse text-xl">Gathering the data...</div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <script>
+
+    const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
+
+
+
+    async function loadLeaderboard() {
+
+      try {
+
+        const response = await fetch(WEB_APP_URL, { 
+
+          method: "POST", 
+
+          body: JSON.stringify({ action: "getLeaderboard" }) 
+
+        });
+
+        const data = await response.json();
+
+
+
+        const winResponse = await fetch(WEB_APP_URL, { 
+
+          method: "POST", 
+
+          body: JSON.stringify({ action: "getLastWinners" }) 
+
+        });
+
+        const lastWinners = await winResponse.json();
+
         
-        let racers = [];
-        let scenery = [];
-        let raceActive = false;
-        let raceFinished = false;
 
-        const tracks = {
-            pro: [ {x: 0.15, y: 0.5}, {x: 0.15, y: 0.25}, {x: 0.4, y: 0.2}, {x: 0.5, y: 0.45}, {x: 0.7, y: 0.2}, {x: 0.85, y: 0.3}, {x: 0.85, y: 0.7}, {x: 0.6, y: 0.85}, {x: 0.4, y: 0.8}, {x: 0.15, y: 0.5} ],
-            mud: [ {x: 0.5, y: 0.8}, {x: 0.2, y: 0.8}, {x: 0.1, y: 0.5}, {x: 0.25, y: 0.2}, {x: 0.5, y: 0.4}, {x: 0.45, y: 0.1}, {x: 0.75, y: 0.2}, {x: 0.65, y: 0.5}, {x: 0.9, y: 0.6}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.8} ],
-            oval: [ {x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.2, y: 0.15}, {x: 0.8, y: 0.15}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85} ],
-            drag: [ {x: 0.1, y: 0.5}, {x: 0.9, y: 0.5} ]
-        };
+        const hofDisplay = document.getElementById('winners-display');
 
-        function generateScenery() {
-            scenery = [];
-            for(let i=0; i<45; i++) {
-                scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: 12+Math.random()*20, type: Math.random()>0.4?'tree':'rock', color: Math.random()>0.5?'#14532d':'#166534' });
-            }
+        if (lastWinners.wealth && lastWinners.wealth !== "None") {
+
+          hofDisplay.innerHTML = `
+
+            <span class="inline-block mx-2">💰 ${lastWinners.wealth}</span>
+
+            <span class="text-slate-700 mx-2">|</span>
+
+            <span class="inline-block mx-2">🌟 ${lastWinners.achievers}</span>
+
+            <span class="text-slate-700 mx-2">|</span>
+
+            <span class="inline-block mx-2">📈 ${lastWinners.savers}</span>
+
+          `;
+
+        } else {
+
+          hofDisplay.innerText = "No winners recorded yet for the season!";
+
         }
 
-        async function initRaceData() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            generateScenery();
-            
-            try {
-                // 1. Fetch Heat Data
-                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: 1 }) });
-                const data = await res.json();
-                
-                // 2. Fetch Goal Crusher Leaderboard
-                const lbRes = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getLeaderboard" }) });
-                const lbData = await lbRes.json();
-                
-                // Extract and rank the Achievers (Goal Crushers)
-                // We'll create a simple array of names in order of their rank
-                const rankedAchievers = lbData.achievers.map(student => student.name);
 
-                racers = data.racers.map((r, i) => {
-                    let speed = 1.0; 
-                    let handling = 1.0;
-                    if(r.motor === "V8 Engine") speed += 1.8;
-                    if(r.tires === "Slicks") handling += 1.6;
 
-                    // 3. Staggered Grid Placement
-                    // Find student's rank. If not on leaderboard, they are ranked 'last'
-                    const rank = rankedAchievers.indexOf(r.name);
-                    
-                    // Pole position starts at 0.08 progress. 
-                    // Every rank back subtracts 0.008 (approx 1 car length)
-                    let startPosition = 0;
-                    if(rank !== -1) {
-                        startPosition = 0.08 - (rank * 0.008);
-                    } else {
-                        // Everyone else starts at the line (progress 0) or slightly behind based on their index
-                        startPosition = 0 - (i * 0.002); 
-                    }
+        document.getElementById('period').innerText = data.period;
 
-                    return { 
-                        ...r, 
-                        progress: Math.max(-0.02, startPosition), // Don't let them start TOO far back off screen
-                        lap: 1, 
-                        speedBase: speed, 
-                        handlingBase: handling, 
-                        laneOffset: (i - 1) * 14, 
-                        finished: false, 
-                        color: r.color || "#3b82f6" 
-                    };
-                });
-                draw();
-            } catch (e) { console.error(e); }
-        }
+        const board = document.getElementById('board');
 
-        function getPointOnPath(t, trackType) {
-            const path = tracks[trackType];
-            const sections = path.length - 1;
-            const section = Math.min(Math.floor(t * sections), sections - 1);
-            const sectionT = (t * sections) - section;
-            const p1 = path[section]; const p2 = path[section + 1];
-            return { x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width, y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height, angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x)) + Math.PI/2, isCorner: (sectionT < 0.2 || sectionT > 0.8) && trackType !== 'drag' };
-        }
+        board.innerHTML = '';
 
-        function drawBackground() {
-            ctx.fillStyle = "#064e3b"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            scenery.forEach(s => {
-                ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.arc(s.x+4, s.y+4, s.size, 0, Math.PI*2); ctx.fill();
-                if(s.type === 'tree') { ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
-                } else { ctx.fillStyle = "#64748b"; ctx.beginPath(); ctx.roundRect(s.x, s.y, s.size, s.size*0.8, 8); ctx.fill(); }
-            });
-        }
 
-        function drawTrack() {
-            const type = document.getElementById('trackSelect').value; const path = tracks[type];
-            ctx.strokeStyle = "white"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.setLineDash([20, 20]); ctx.beginPath();
-            path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*canvas.width, p.y*canvas.height) : ctx.lineTo(p.x*canvas.width, p.y*canvas.height)); ctx.stroke();
-            ctx.strokeStyle = "#ef4444"; ctx.lineDashOffset = 20; ctx.stroke(); ctx.setLineDash([]);
-            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 88; ctx.stroke();
-            const start = path[0]; const next = path[1]; const angle = Math.atan2((next.y - start.y), (next.x - start.x));
-            ctx.save(); ctx.translate(start.x * canvas.width, start.y * canvas.height); ctx.rotate(angle);
-            ctx.fillStyle = "white"; ctx.fillRect(-5, -46, 15, 92); ctx.fillStyle = "black";
-            for(let row=0; row<9; row++) { for(let col=0; col<2; col++) { if((row+col)%2==0) ctx.fillRect(col*7.5-5, row*10.2-46, 7.5, 10.2); } }
-            ctx.restore();
-        }
 
-        function drawCar(r) {
-            const pos = getPointOnPath(r.progress, document.getElementById('trackSelect').value);
-            ctx.save();
-            ctx.translate(pos.x + r.laneOffset, pos.y + r.laneOffset);
-            ctx.rotate(pos.angle);
-            ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-12, -8, 24, 38); 
-            ctx.fillStyle = r.color;
-            ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(8, -10); ctx.lineTo(10, 15); ctx.lineTo(-10, 15); ctx.lineTo(-8, -10); ctx.closePath(); ctx.fill(); 
-            ctx.fillStyle = "#111"; 
-            ctx.fillRect(-16, 12, 32, 6); ctx.fillRect(-17, 0, 7, 12); ctx.fillRect(10, 0, 7, 12); 
-            ctx.fillRect(-15, -16, 6, 10); ctx.fillRect(9, -16, 6, 10); ctx.fillRect(-16, -20, 32, 4); 
-            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -2, 4, 0, Math.PI*2); ctx.fill(); 
-            ctx.rotate(-pos.angle);
-            ctx.fillStyle = "white"; ctx.font = "bold 13px Inter"; ctx.textAlign = "center"; ctx.shadowBlur = 4; ctx.shadowColor = "black";
-            ctx.fillText(r.name, 0, -45);
-            ctx.restore();
-        }
+        board.innerHTML += renderCol("Wealth Master", "gold-badge", "💰", data.wealth, "Top Weekly Income");
 
-        function startCountdown() {
-            const div = document.getElementById('countdown');
-            div.classList.remove('hidden');
-            let count = 3;
-            const timer = setInterval(() => {
-                if(count > 0) {
-                    div.innerText = count;
-                    count--;
-                } else if(count === 0) {
-                    div.innerText = "GO!";
-                    count--;
-                    startRace();
-                } else {
-                    div.classList.add('hidden');
-                    clearInterval(timer);
-                }
-            }, 1000);
-            document.getElementById('startBtn').classList.add('hidden');
-        }
+        board.innerHTML += renderCol("Goal Crusher", "emerald-badge", "🌟", data.achievers, "Top Weekly Rewards");
 
-        function startRace() { raceActive = true; raceFinished = false; gameLoop(); }
+        board.innerHTML += renderCol("Super Saver", "crystal-badge", "<span>📈</span>", data.savers, "Top Interest Gained");
 
-        function gameLoop() {
-            if(!raceActive) return;
-            const type = document.getElementById('trackSelect').value;
-            const maxLaps = parseInt(document.getElementById('totalLaps').value);
 
-            racers.forEach(r => {
-                if(r.finished) return;
-                const pos = getPointOnPath(r.progress, type);
-                let step = 0.0016;
-                if(pos.isCorner) step *= (r.handlingBase * 0.65 + Math.random()*0.2);
-                else step *= (r.speedBase * 0.95 + Math.random()*0.3);
-                r.progress += step;
-                if(r.progress >= 0.999) {
-                    if(type === 'drag') { r.finished = true; if(!raceFinished) announceWinner(r);
-                    } else { if(r.lap < maxLaps) { r.lap++; r.progress = 0; } else { r.finished = true; if(!raceFinished) announceWinner(r); } }
-                }
-            });
 
-            const leader = [...racers].sort((a,b) => (b.lap * 100 + b.progress) - (a.lap * 100 + a.progress))[0];
-            if(leader) document.getElementById('leaderName').innerText = leader.name + " (Lap " + leader.lap + ")";
+      } catch (err) {
 
-            drawBackground(); drawTrack(); racers.forEach(r => drawCar(r));
-            if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
-        }
+        console.error(err);
 
-        async function announceWinner(w) {
-            raceFinished = true;
-            const prize = document.getElementById('prizeAmt').value;
-            alert("🏁 CHECKERED FLAG: " + w.name + " WINS $" + prize + "!");
-            await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) }) });
-        }
+        document.getElementById('board').innerHTML = "<div class='col-span-3 text-rose-500'>Error loading data. Make sure you deployed as a New Version.</div>";
 
-        function draw() {
-            drawBackground();
-            drawTrack();
-            racers.forEach(r => drawCar(r));
-        }
+      }
 
-        window.onload = () => initRaceData();
-    </script>
+    }
+
+
+
+    function renderCol(title, style, icon, winners, subtext) {
+
+      let html = `
+
+        <div class="glass-card p-8 text-center column-card flex flex-col h-full">
+
+          <div class="badge-base ${style}">${icon}</div>
+
+          <h2 class="text-2xl font-bold text-white mb-1">${title}</h2>
+
+          <p class="text-slate-500 text-sm mb-8">${subtext}</p>
+
+          <div class="space-y-4 flex-grow text-left">
+
+      `;
+
+
+
+      if (!winners || winners.length === 0) {
+
+        html += `
+
+          <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-center text-slate-500 italic">
+
+            No entries yet!
+
+          </div>`;
+
+      } else {
+
+        winners.forEach((w, i) => {
+
+          let rankColors = ["gold-text", "silver-text", "bronze-text"];
+
+          let medals = ["🥇", "🥈", "🥉"];
+
+          let winDisplay = (w.wins && w.wins > 0) ? `<span class="ml-2 text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">${w.wins}x 🏆</span>` : "";
+
+          
+
+          html += `
+
+            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center">
+
+              <div class="text-2xl mr-4 w-8 text-center ${rankColors[i]} font-bold">${medals[i]}</div>
+
+              <div class="flex-grow">
+
+                <div class="text-white font-bold text-sm leading-tight">${w.name}${winDisplay}</div>
+
+                <div class="text-emerald-400 font-mono text-sm mt-1">$${w.amount.toFixed(2)}</div>
+
+              </div>
+
+            </div>`;
+
+        });
+
+      }
+
+
+
+      html += `</div></div>`;
+
+      return html;
+
+    }
+
+
+
+    loadLeaderboard();
+
+  </script>
+
 </body>
+
 </html>
