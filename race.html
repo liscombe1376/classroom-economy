@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="config.js"></script>
+    <meta charset="UTF-8">
+    <title>BCE GRAND PRIX | LIVE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #020617; overflow: hidden; font-family: 'Inter', sans-serif; }
+        
+        #track {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #1e293b;
+            background-image: 
+                linear-gradient(90deg, transparent 50%, rgba(255,255,255,0.05) 50%),
+                repeating-linear-gradient(0deg, #334155, #334155 50px, #1e293b 50px, #1e293b 100px);
+            background-size: 4px 100%, 100% 100px;
+            animation: scrollTrack 2s linear infinite;
+            animation-play-state: paused;
+        }
+
+        @keyframes scrollTrack {
+            from { background-position: 0 0; }
+            to { background-position: 0 100px; }
+        }
+
+        .car-container {
+            position: absolute;
+            bottom: 50px;
+            transition: bottom 0.1s linear, left 0.5s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .racer-name {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui" class="absolute top-10 left-10 z-50">
+        <h1 class="text-4xl font-black text-white italic tracking-tighter uppercase">Heat <span id="heatDisplay">1</span></h1>
+        <button onclick="startRace()" id="startBtn" class="mt-4 bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-500">START ENGINES</button>
+    </div>
+
+    <div id="track">
+        </div>
+
+    <script>
+        const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
+        let racers = [];
+        let raceActive = false;
+
+        async function loadHeat(heatNum) {
+            const res = await fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "getHeat", heat: heatNum })
+            });
+            const data = await res.json();
+            racers = data.racers.map((r, index) => ({
+                ...r,
+                progress: 0,
+                lane: (100 / (data.racers.length + 1)) * (index + 1),
+                speedMultiplier: calculateSpeed(r)
+            }));
+            renderCars();
+        }
+
+        function calculateSpeed(r) {
+            let s = 1.0; // Base speed
+            if(r.motor === "Electric") s += 0.2;
+            if(r.motor === "V8 Engine") s += 0.5;
+            if(r.tires === "Slicks") s += 0.3;
+            return s;
+        }
+
+        function renderCars() {
+            const track = document.getElementById('track');
+            track.innerHTML = '';
+            racers.forEach(r => {
+                const div = document.createElement('div');
+                div.id = `car-${r.id}`;
+                div.className = 'car-container';
+                div.style.left = `${r.lane}%`;
+                div.innerHTML = `
+                    <div class="racer-name">${r.name}</div>
+                    <div style="width:30px; height:60px; background:${r.color || 'red'}; border-radius:5px; border:2px solid black;"></div>
+                `;
+                track.appendChild(div);
+            });
+        }
+
+        function startRace() {
+            raceActive = true;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('track').style.animationPlayState = 'running';
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if(!raceActive) return;
+
+            let finished = false;
+            racers.forEach(r => {
+                // The Math: Speed + Luck
+                const luck = Math.random() * 0.5;
+                r.progress += (r.speedMultiplier + luck);
+                
+                const carEl = document.getElementById(`car-${r.id}`);
+                carEl.style.bottom = `${r.progress}px`;
+
+                if(r.progress > window.innerHeight - 100) {
+                    raceActive = false;
+                    alert("WINNER: " + r.name);
+                }
+            });
+
+            if(raceActive) requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = () => loadHeat(1);
+    </script>
+</body>
+</html>
