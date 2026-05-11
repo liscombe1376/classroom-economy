@@ -10,6 +10,7 @@
         canvas { display: block; }
         .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; pointer-events: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         select, input { background: #1e293b; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; color: white; font-size: 0.85rem; outline: none; }
+        #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 20px rgba(59, 130, 246, 0.8); pointer-events: none; transition: all 0.2s ease; }
     </style>
 </head>
 <body>
@@ -44,9 +45,11 @@
                 <div class="text-[10px] font-bold text-slate-400 uppercase">Leader</div>
                 <div id="leaderName" class="text-xl font-black text-blue-400">---</div>
             </div>
-            <button onclick="startRace()" id="startBtn" class="bg-blue-600 px-8 py-3 rounded-md font-bold hover:bg-blue-500 shadow-lg transition-all active:scale-95 uppercase tracking-widest text-sm">Start Race</button>
+            <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-8 py-3 rounded-md font-bold hover:bg-blue-500 shadow-lg transition-all active:scale-95 uppercase tracking-widest text-sm">Start Race</button>
         </div>
     </div>
+
+    <div id="countdown" class="fixed inset-0 flex items-center justify-center z-40 hidden italic uppercase"></div>
 
     <canvas id="raceCanvas"></canvas>
 
@@ -60,38 +63,17 @@
         let raceActive = false;
         let raceFinished = false;
 
-        // Tracks designed with Start/Finish on straightaways
         const tracks = {
-            pro: [
-                {x: 0.15, y: 0.5}, {x: 0.15, y: 0.25}, {x: 0.4, y: 0.2}, 
-                {x: 0.5, y: 0.45}, {x: 0.7, y: 0.2}, {x: 0.85, y: 0.3}, 
-                {x: 0.85, y: 0.7}, {x: 0.6, y: 0.85}, {x: 0.4, y: 0.8}, {x: 0.15, y: 0.5}
-            ],
-            mud: [
-                {x: 0.5, y: 0.8}, {x: 0.2, y: 0.8}, {x: 0.1, y: 0.5}, 
-                {x: 0.25, y: 0.2}, {x: 0.5, y: 0.4}, {x: 0.45, y: 0.1}, 
-                {x: 0.75, y: 0.2}, {x: 0.65, y: 0.5}, {x: 0.9, y: 0.6}, 
-                {x: 0.8, y: 0.85}, {x: 0.5, y: 0.8}
-            ],
-            oval: [
-                {x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.2, y: 0.15},
-                {x: 0.8, y: 0.15}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85}
-            ],
-            drag: [
-                {x: 0.1, y: 0.5}, {x: 0.9, y: 0.5} 
-            ]
+            pro: [ {x: 0.15, y: 0.5}, {x: 0.15, y: 0.25}, {x: 0.4, y: 0.2}, {x: 0.5, y: 0.45}, {x: 0.7, y: 0.2}, {x: 0.85, y: 0.3}, {x: 0.85, y: 0.7}, {x: 0.6, y: 0.85}, {x: 0.4, y: 0.8}, {x: 0.15, y: 0.5} ],
+            mud: [ {x: 0.5, y: 0.8}, {x: 0.2, y: 0.8}, {x: 0.1, y: 0.5}, {x: 0.25, y: 0.2}, {x: 0.5, y: 0.4}, {x: 0.45, y: 0.1}, {x: 0.75, y: 0.2}, {x: 0.65, y: 0.5}, {x: 0.9, y: 0.6}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.8} ],
+            oval: [ {x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.2, y: 0.15}, {x: 0.8, y: 0.15}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85} ],
+            drag: [ {x: 0.1, y: 0.5}, {x: 0.9, y: 0.5} ]
         };
 
         function generateScenery() {
             scenery = [];
             for(let i=0; i<45; i++) {
-                scenery.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    size: 12 + Math.random() * 20,
-                    type: Math.random() > 0.4 ? 'tree' : 'rock',
-                    color: Math.random() > 0.5 ? '#14532d' : '#166534'
-                });
+                scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: 12+Math.random()*20, type: Math.random()>0.4?'tree':'rock', color: Math.random()>0.5?'#14532d':'#166534' });
             }
         }
 
@@ -101,27 +83,47 @@
             generateScenery();
             
             try {
-                const res = await fetch(WEB_APP_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "getHeat", heat: 1 })
-                });
+                // 1. Fetch Heat Data
+                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: 1 }) });
                 const data = await res.json();
                 
+                // 2. Fetch Goal Crusher Leaderboard
+                const lbRes = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getLeaderboard" }) });
+                const lbData = await lbRes.json();
+                
+                // Extract and rank the Achievers (Goal Crushers)
+                // We'll create a simple array of names in order of their rank
+                const rankedAchievers = lbData.achievers.map(student => student.name);
+
                 racers = data.racers.map((r, i) => {
-                    let speed = 1.0;
+                    let speed = 1.0; 
                     let handling = 1.0;
                     if(r.motor === "V8 Engine") speed += 1.8;
                     if(r.tires === "Slicks") handling += 1.6;
 
-                    return {
-                        ...r,
-                        progress: 0,
-                        lap: 1,
-                        speedBase: speed,
-                        handlingBase: handling,
-                        laneOffset: (i - 1) * 14,
-                        finished: false,
-                        color: r.color || "#3b82f6"
+                    // 3. Staggered Grid Placement
+                    // Find student's rank. If not on leaderboard, they are ranked 'last'
+                    const rank = rankedAchievers.indexOf(r.name);
+                    
+                    // Pole position starts at 0.08 progress. 
+                    // Every rank back subtracts 0.008 (approx 1 car length)
+                    let startPosition = 0;
+                    if(rank !== -1) {
+                        startPosition = 0.08 - (rank * 0.008);
+                    } else {
+                        // Everyone else starts at the line (progress 0) or slightly behind based on their index
+                        startPosition = 0 - (i * 0.002); 
+                    }
+
+                    return { 
+                        ...r, 
+                        progress: Math.max(-0.02, startPosition), // Don't let them start TOO far back off screen
+                        lap: 1, 
+                        speedBase: speed, 
+                        handlingBase: handling, 
+                        laneOffset: (i - 1) * 14, 
+                        finished: false, 
+                        color: r.color || "#3b82f6" 
                     };
                 });
                 draw();
@@ -133,85 +135,29 @@
             const sections = path.length - 1;
             const section = Math.min(Math.floor(t * sections), sections - 1);
             const sectionT = (t * sections) - section;
-            const p1 = path[section];
-            const p2 = path[section + 1];
-
-            return {
-                x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width,
-                y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height,
-                angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x)) + Math.PI/2,
-                isCorner: (sectionT < 0.2 || sectionT > 0.8) && trackType !== 'drag'
-            };
+            const p1 = path[section]; const p2 = path[section + 1];
+            return { x: (p1.x + (p2.x - p1.x) * sectionT) * canvas.width, y: (p1.y + (p2.y - p1.y) * sectionT) * canvas.height, angle: Math.atan2((p2.y - p1.y), (p2.x - p1.x)) + Math.PI/2, isCorner: (sectionT < 0.2 || sectionT > 0.8) && trackType !== 'drag' };
         }
 
         function drawBackground() {
-            // Grass base
-            ctx.fillStyle = "#064e3b";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Subtle Ground Texture
-            ctx.fillStyle = "rgba(0,0,0,0.1)";
-            for(let i=0; i<300; i++) {
-                ctx.fillRect((i*193)%canvas.width, (i*211)%canvas.height, 3, 3);
-            }
-
+            ctx.fillStyle = "#064e3b"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             scenery.forEach(s => {
-                ctx.fillStyle = "rgba(0,0,0,0.2)"; // Shadow
-                ctx.beginPath(); ctx.arc(s.x+4, s.y+4, s.size, 0, Math.PI*2); ctx.fill();
-                
-                if(s.type === 'tree') {
-                    ctx.fillStyle = s.color;
-                    ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = "rgba(255,255,255,0.1)"; // Highlight
-                    ctx.beginPath(); ctx.arc(s.x-s.size*0.3, s.y-s.size*0.3, s.size*0.4, 0, Math.PI*2); ctx.fill();
-                } else {
-                    ctx.fillStyle = "#64748b"; // Rock
-                    ctx.beginPath(); ctx.roundRect(s.x, s.y, s.size, s.size*0.8, 8); ctx.fill();
-                }
+                ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.arc(s.x+4, s.y+4, s.size, 0, Math.PI*2); ctx.fill();
+                if(s.type === 'tree') { ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+                } else { ctx.fillStyle = "#64748b"; ctx.beginPath(); ctx.roundRect(s.x, s.y, s.size, s.size*0.8, 8); ctx.fill(); }
             });
         }
 
         function drawTrack() {
-            const type = document.getElementById('trackSelect').value;
-            const path = tracks[type];
-
-            // 1. Outer Red/White Kerbs
-            ctx.strokeStyle = "white";
-            ctx.lineWidth = 100;
-            ctx.lineJoin = "round";
-            ctx.lineCap = type === 'drag' ? "butt" : "round";
-            ctx.setLineDash([20, 20]);
-            ctx.beginPath();
-            path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*canvas.width, p.y*canvas.height) : ctx.lineTo(p.x*canvas.width, p.y*canvas.height));
-            ctx.stroke();
-
-            ctx.strokeStyle = "#ef4444";
-            ctx.lineDashOffset = 20;
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // 2. Main Asphalt
-            ctx.strokeStyle = "#1e293b";
-            ctx.lineWidth = 88;
-            ctx.stroke();
-
-            // 3. Checkerboard Start/Finish Line
-            const start = path[0];
-            const next = path[1];
-            const angle = Math.atan2((next.y - start.y), (next.x - start.x));
-            
-            ctx.save();
-            ctx.translate(start.x * canvas.width, start.y * canvas.height);
-            ctx.rotate(angle);
-            
-            ctx.fillStyle = "white";
-            ctx.fillRect(-5, -46, 15, 92);
-            ctx.fillStyle = "black";
-            for(let row=0; row<9; row++) {
-                for(let col=0; col<2; col++) {
-                    if((row+col)%2==0) ctx.fillRect(col*7.5 - 5, row*10.2 - 46, 7.5, 10.2);
-                }
-            }
+            const type = document.getElementById('trackSelect').value; const path = tracks[type];
+            ctx.strokeStyle = "white"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.setLineDash([20, 20]); ctx.beginPath();
+            path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x*canvas.width, p.y*canvas.height) : ctx.lineTo(p.x*canvas.width, p.y*canvas.height)); ctx.stroke();
+            ctx.strokeStyle = "#ef4444"; ctx.lineDashOffset = 20; ctx.stroke(); ctx.setLineDash([]);
+            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 88; ctx.stroke();
+            const start = path[0]; const next = path[1]; const angle = Math.atan2((next.y - start.y), (next.x - start.x));
+            ctx.save(); ctx.translate(start.x * canvas.width, start.y * canvas.height); ctx.rotate(angle);
+            ctx.fillStyle = "white"; ctx.fillRect(-5, -46, 15, 92); ctx.fillStyle = "black";
+            for(let row=0; row<9; row++) { for(let col=0; col<2; col++) { if((row+col)%2==0) ctx.fillRect(col*7.5-5, row*10.2-46, 7.5, 10.2); } }
             ctx.restore();
         }
 
@@ -220,78 +166,40 @@
             ctx.save();
             ctx.translate(pos.x + r.laneOffset, pos.y + r.laneOffset);
             ctx.rotate(pos.angle);
-
-            // Shadow
-            ctx.fillStyle = "rgba(0,0,0,0.3)";
-            ctx.fillRect(-12, -8, 24, 38);
-
-            const carColor = r.color;
-            const darkColor = "#111";
-
-            // 1. Rear Wing
-            ctx.fillStyle = darkColor;
-            ctx.fillRect(-16, 12, 32, 6); 
-            ctx.fillRect(-15, 8, 3, 10); 
-            ctx.fillRect(12, 8, 3, 10);
-
-            // 2. Rear Wheels
-            ctx.fillStyle = darkColor;
-            ctx.fillRect(-17, 0, 7, 12);
-            ctx.fillRect(10, 0, 7, 12);
-
-            // 3. Chassis
-            ctx.fillStyle = carColor;
-            ctx.beginPath();
-            ctx.moveTo(0, -22); 
-            ctx.lineTo(8, -10); 
-            ctx.lineTo(10, 15); 
-            ctx.lineTo(-10, 15);
-            ctx.lineTo(-8, -10);
-            ctx.closePath();
-            ctx.fill();
-
-            // 4. Cockpit & Helmet
-            ctx.fillStyle = "#222"; 
-            ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI, true); ctx.fill();
-            ctx.fillStyle = "#fff"; 
-            ctx.beginPath(); ctx.arc(0, -2, 4, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "#000"; // Visor
-            ctx.fillRect(-3, -3, 6, 2);
-
-            // 5. Front Wheels
-            ctx.fillStyle = darkColor;
-            ctx.fillRect(-15, -16, 6, 10);
-            ctx.fillRect(9, -16, 6, 10);
-
-            // 6. Front Wing
-            ctx.fillStyle = darkColor;
-            ctx.fillRect(-16, -20, 32, 4);
-            ctx.fillStyle = carColor;
-            ctx.fillRect(-17, -22, 3, 8); 
-            ctx.fillRect(14, -22, 3, 8);
-
-            // Label
+            ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-12, -8, 24, 38); 
+            ctx.fillStyle = r.color;
+            ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(8, -10); ctx.lineTo(10, 15); ctx.lineTo(-10, 15); ctx.lineTo(-8, -10); ctx.closePath(); ctx.fill(); 
+            ctx.fillStyle = "#111"; 
+            ctx.fillRect(-16, 12, 32, 6); ctx.fillRect(-17, 0, 7, 12); ctx.fillRect(10, 0, 7, 12); 
+            ctx.fillRect(-15, -16, 6, 10); ctx.fillRect(9, -16, 6, 10); ctx.fillRect(-16, -20, 32, 4); 
+            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -2, 4, 0, Math.PI*2); ctx.fill(); 
             ctx.rotate(-pos.angle);
-            ctx.fillStyle = "white";
-            ctx.font = "bold 13px Inter"; ctx.textAlign = "center";
-            ctx.shadowBlur = 4; ctx.shadowColor = "black";
+            ctx.fillStyle = "white"; ctx.font = "bold 13px Inter"; ctx.textAlign = "center"; ctx.shadowBlur = 4; ctx.shadowColor = "black";
             ctx.fillText(r.name, 0, -45);
             ctx.restore();
         }
 
-        function draw() {
-            drawBackground();
-            drawTrack();
-            racers.forEach(r => drawCar(r));
+        function startCountdown() {
+            const div = document.getElementById('countdown');
+            div.classList.remove('hidden');
+            let count = 3;
+            const timer = setInterval(() => {
+                if(count > 0) {
+                    div.innerText = count;
+                    count--;
+                } else if(count === 0) {
+                    div.innerText = "GO!";
+                    count--;
+                    startRace();
+                } else {
+                    div.classList.add('hidden');
+                    clearInterval(timer);
+                }
+            }, 1000);
+            document.getElementById('startBtn').classList.add('hidden');
         }
 
-        function startRace() {
-            if(raceActive) return;
-            raceActive = true;
-            raceFinished = false;
-            document.getElementById('startBtn').classList.add('hidden');
-            gameLoop();
-        }
+        function startRace() { raceActive = true; raceFinished = false; gameLoop(); }
 
         function gameLoop() {
             if(!raceActive) return;
@@ -301,33 +209,20 @@
             racers.forEach(r => {
                 if(r.finished) return;
                 const pos = getPointOnPath(r.progress, type);
-                
                 let step = 0.0016;
                 if(pos.isCorner) step *= (r.handlingBase * 0.65 + Math.random()*0.2);
                 else step *= (r.speedBase * 0.95 + Math.random()*0.3);
-
                 r.progress += step;
-
                 if(r.progress >= 0.999) {
-                    if(type === 'drag') {
-                        r.finished = true;
-                        if(!raceFinished) announceWinner(r);
-                    } else {
-                        if(r.lap < maxLaps) {
-                            r.lap++;
-                            r.progress = 0;
-                        } else {
-                            r.finished = true;
-                            if(!raceFinished) announceWinner(r);
-                        }
-                    }
+                    if(type === 'drag') { r.finished = true; if(!raceFinished) announceWinner(r);
+                    } else { if(r.lap < maxLaps) { r.lap++; r.progress = 0; } else { r.finished = true; if(!raceFinished) announceWinner(r); } }
                 }
             });
 
             const leader = [...racers].sort((a,b) => (b.lap * 100 + b.progress) - (a.lap * 100 + a.progress))[0];
             if(leader) document.getElementById('leaderName').innerText = leader.name + " (Lap " + leader.lap + ")";
 
-            draw();
+            drawBackground(); drawTrack(); racers.forEach(r => drawCar(r));
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
 
@@ -336,6 +231,12 @@
             const prize = document.getElementById('prizeAmt').value;
             alert("🏁 CHECKERED FLAG: " + w.name + " WINS $" + prize + "!");
             await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: w.id, amount: parseInt(prize) }) });
+        }
+
+        function draw() {
+            drawBackground();
+            drawTrack();
+            racers.forEach(r => drawCar(r));
         }
 
         window.onload = () => initRaceData();
