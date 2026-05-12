@@ -95,11 +95,18 @@
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
                 const data = await res.json();
                 racers = (data.racers || []).map((r, i) => {
-                    // COLOR FIX: Check all possible field names the sheet might send
-                    const finalColor = r.color || r.Color || r.colour || "#3b82f6";
+                    
+                    // AGGRESSIVE COLOR MAPPING: Checks properties OR Array Index 4 (Column E)
+                    let rawColor = r.Colour || r.colour || r.Color || r.color || (Array.isArray(r) ? r[4] : null);
+                    // Force a recognizable default RED if color is missing/broken
+                    let finalColor = (rawColor && rawColor.toString().startsWith('#')) ? rawColor : "#ef4444";
+
                     return {
-                        ...r, progress: 0 - (i*0.012), lap: 1, 
-                        speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0004 : 0),
+                        id: r.ID || r.id || (Array.isArray(r) ? r[0] : i),
+                        name: r.Name || r.name || (Array.isArray(r) ? r[1] : "Unknown"),
+                        progress: 0 - (i*0.012), 
+                        lap: 1, 
+                        speedBase: 0.0011 + (r.motor === "V8 Engine" || r.Motor === "V8 Engine" ? 0.0004 : 0),
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
                         color: finalColor
@@ -174,10 +181,10 @@
 
             // Finish Line
             const start = trackPath[0];
-            ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
-            ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
+            ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.PI/2);
+            ctx.fillStyle = "white"; ctx.fillRect(-5, -45, 10, 90);
             ctx.fillStyle = "black";
-            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
+            for(let i=0; i<9; i++) { if(i%2===0) ctx.fillRect(-5, -45+(i*10), 5, 10); else ctx.fillRect(0, -45+(i*10), 5, 10); }
             ctx.restore();
 
             hazards.forEach(h => {
@@ -187,13 +194,11 @@
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
                 
                 if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
-                // Visual Fix: Spikes with triangles
                 else if(h.type === 'spikes') { 
                     ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
                     ctx.fillStyle = "#475569";
                     for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
                 }
-                // Visual Fix: Black Oil
                 else if(h.type === 'oil') { ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
             });
 
@@ -221,7 +226,7 @@
         async function checkWinner() {
             if(racers.every(r => r.finished) && !raceFinished) {
                 raceFinished = true;
-                const s = [...racers].sort((a,b) => b.progress - a.progress);
+                const s = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress));
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
                 announce(`🏁 RACE OVER: ${s[0].name.toUpperCase()} WINS!`);
                 alert(`PODIUM:\n1st: ${s[0].name} ($${p[0]})\n2nd: ${s[1].name} ($${p[1]})\n3rd: ${s[2].name} ($${p[2]})`);
