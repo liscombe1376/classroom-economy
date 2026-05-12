@@ -85,85 +85,126 @@
                     <div>
                         <div class="flex justify-between text-[10px] racing-font mb-1 text-slate-400">
                             <span>TOP SPEED</span>
-                            <span id="val-speed">20/100</span>
+                            <span id="val-speed">0/100</span>
                         </div>
                         <div class="stat-bar-container">
-                            <div id="bar-speed" class="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6] transition-all duration-1000" style="width: 20%"></div>
+                            <div id="bar-speed" class="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6] transition-all duration-1000" style="width: 0%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex justify-between text-[10px] racing-font mb-1 text-slate-400">
                             <span>HANDLING</span>
-                            <span id="val-handling">20/100</span>
+                            <span id="val-handling">0/100</span>
                         </div>
                         <div class="stat-bar-container">
-                            <div id="bar-handling" class="h-full bg-purple-500 shadow-[0_0_10px_#a855f7] transition-all duration-1000" style="width: 20%"></div>
+                            <div id="bar-handling" class="h-full bg-purple-500 shadow-[0_0_10px_#a855f7] transition-all duration-1000" style="width: 0%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex justify-between text-[10px] racing-font mb-1 text-slate-400">
                             <span>ACCELERATION</span>
-                            <span id="val-control">20/100</span>
+                            <span id="val-control">0/100</span>
                         </div>
                         <div class="stat-bar-container">
-                            <div id="bar-control" class="h-full bg-emerald-500 shadow-[0_0_10px_#10b981] transition-all duration-1000" style="width: 20%"></div>
+                            <div id="bar-control" class="h-full bg-emerald-500 shadow-[0_0_10px_#10b981] transition-all duration-1000" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-8 grid grid-cols-2 gap-4 w-full relative z-10">
-                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
-                        <span class="text-[10px] text-slate-500 uppercase block font-black">Engine</span>
-                        <span id="stat-motor" class="font-bold text-blue-400 text-sm">Standard</span>
+                <div class="mt-8 grid grid-cols-3 gap-3 w-full relative z-10">
+                    <div class="p-2 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
+                        <span class="text-[8px] text-slate-500 uppercase block font-black">Engine</span>
+                        <span id="stat-motor" class="font-bold text-blue-400 text-[10px] truncate">Standard</span>
                     </div>
-                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
-                        <span class="text-[10px] text-slate-500 uppercase block font-black">Tires</span>
-                        <span id="stat-tires" class="font-bold text-purple-400 text-sm">All-Weather</span>
+                    <div class="p-2 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
+                        <span class="text-[8px] text-slate-500 uppercase block font-black">Tires</span>
+                        <span id="stat-tires" class="font-bold text-purple-400 text-[10px] truncate">Standard</span>
+                    </div>
+                    <div class="p-2 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
+                        <span class="text-[8px] text-slate-500 uppercase block font-black">Add-on</span>
+                        <span id="stat-addon" class="font-bold text-emerald-400 text-[10px] truncate">None</span>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-6">
+            <div class="space-y-6 overflow-y-auto max-h-[800px] pr-2">
+                
                 <div class="garage-card rounded-2xl p-6">
                     <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
-                        <span class="w-2 h-4 bg-blue-500 block"></span> ENGINES
+                        <span class="w-2 h-4 bg-blue-500 block"></span> MOTORS
                     </h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="buy('Motor', 'Electric', 250)" id="btn-Electric" class="part-btn p-4 rounded-xl text-left">
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="buy('Motor', 'Electric Motor', 300)" id="btn-ElectricMotor" class="part-btn p-3 rounded-xl text-left">
                             <span class="block font-bold">Electric Motor</span>
-                            <span class="text-xs text-slate-400">+$15 Speed • $250</span>
+                            <span class="text-[10px] text-slate-400">+10 Accel, +5 Speed, -3 Handling • $300</span>
                         </button>
-                        <button onclick="buy('Motor', 'V8 Engine', 1200)" id="btn-V8Engine" class="part-btn p-4 rounded-xl text-left">
-                            <span class="block font-bold text-orange-400">V8 Performance</span>
-                            <span class="text-xs text-slate-400">+$40 Speed • $1200</span>
+                        <button onclick="buy('Motor', 'V8 Motor', 600)" id="btn-V8Motor" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold">V8 Motor</span>
+                            <span class="text-[10px] text-slate-400">+5 Accel, +10 Speed, -2 Handling • $600</span>
+                        </button>
+                        <button onclick="buy('Motor', 'V12 Motor', 1000)" id="btn-V12Motor" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold text-orange-400">V12 Motor</span>
+                            <span class="text-[10px] text-slate-400">+10 Accel, +10 Speed, -10 Handling • $1000</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="garage-card rounded-2xl p-6">
                     <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
-                        <span class="w-2 h-4 bg-purple-500 block"></span> TIRES
+                        <span class="w-2 h-4 bg-purple-500 block"></span> TIRE SELECTION
                     </h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="buy('Tires', 'Slicks', 400)" id="btn-Slicks" class="part-btn p-4 rounded-xl text-left">
-                            <span class="block font-bold text-blue-300">Street Slicks</span>
-                            <span class="text-xs text-slate-400">+35 Handling • $400</span>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="buy('Tires', 'Soft Tires', 250)" id="btn-SoftTires" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold">Soft Tires</span>
+                            <span class="text-[10px] text-slate-400">+10 Handling, -3 Speed • $250</span>
                         </button>
-                        <button onclick="buy('Tires', 'Off-Road', 400)" id="btn-OffRoad" class="part-btn p-4 rounded-xl text-left">
-                            <span class="block font-bold text-amber-600">Mud Crawlers</span>
-                            <span class="text-xs text-slate-400">+20 Handling • $400</span>
+                        <button onclick="buy('Tires', 'Hard Tires', 250)" id="btn-HardTires" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold">Hard Tires</span>
+                            <span class="text-[10px] text-slate-400">+10 Speed, -3 Handling • $250</span>
+                        </button>
+                        <button onclick="buy('Tires', 'Self-Inflating', 500)" id="btn-Self-Inflating" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold text-blue-300">Self-Inflating</span>
+                            <span class="text-[10px] text-slate-400">Immune to Spikes • $500</span>
+                        </button>
+                        <button onclick="buy('Tires', 'Grip Tires', 500)" id="btn-GripTires" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold text-emerald-400">Grip Tires</span>
+                            <span class="text-[10px] text-slate-400">Immune to Oil Spills • $500</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="garage-card rounded-2xl p-6">
                     <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
-                        <span class="w-2 h-4 bg-emerald-500 block"></span> PAINT SHOP
+                        <span class="w-2 h-4 bg-emerald-500 block"></span> ADD-ONS
+                    </h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="buy('Addon', 'Nitro', 400)" id="btn-Nitro" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold">Nitro Boost</span>
+                            <span class="text-[10px] text-slate-400">+10 Speed, -4 Handling • $400</span>
+                        </button>
+                        <button onclick="buy('Addon', 'Bush Bar', 350)" id="btn-BushBar" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold">Bush Bar</span>
+                            <span class="text-[10px] text-slate-400">Immune to Cones • $350</span>
+                        </button>
+                        <button onclick="buy('Addon', 'Suspension', 300)" id="btn-Suspension" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold">Pro Suspension</span>
+                            <span class="text-[10px] text-slate-400">+10 Handling • $300</span>
+                        </button>
+                        <button onclick="buy('Addon', 'Spare Tire', 450)" id="btn-SpareTire" class="part-btn p-3 rounded-xl text-left">
+                            <span class="block font-bold text-amber-500">Spare Tire</span>
+                            <span class="text-[10px] text-slate-400">Absorbs 1st Spike hit • $450</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="garage-card rounded-2xl p-6">
+                    <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
+                        <span class="w-2 h-4 bg-white block"></span> PAINT SHOP
                     </h2>
                     <div class="flex gap-4 items-center">
                         <input type="color" id="colorPicker" value="#3b82f6" oninput="drawCar(this.value)" class="h-14 w-20 bg-slate-800 border-none rounded-xl cursor-pointer">
                         <div class="flex-grow">
-                            <button onclick="saveColor()" class="w-full bg-slate-700 hover:bg-blue-600 text-white py-3 rounded-lg font-bold text-sm transition">Update Paint (Free)</button>
+                            <button onclick="saveColor()" class="w-full bg-slate-700 hover:bg-blue-600 text-white py-3 rounded-lg font-bold text-sm transition uppercase">Update Paint</button>
                         </div>
                     </div>
                 </div>
@@ -173,7 +214,6 @@
 
     <script>
         const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
-        // Ensure studentID is trimmed of any accidental whitespace
         let studentID = localStorage.getItem('studentID') ? localStorage.getItem('studentID').trim() : null;
         let currentCar = {};
 
@@ -184,9 +224,7 @@
                 return;
             }
             
-            // Set Driver Display Name
-            const displayName = localStorage.getItem('studentName') || "Unknown";
-            document.getElementById('driverName').innerText = "Driver: " + displayName;
+            document.getElementById('driverName').innerText = "Driver: " + (localStorage.getItem('studentName') || "Unknown");
             
             try {
                 const response = await fetch(WEB_APP_URL, {
@@ -199,9 +237,7 @@
                 drawCar(currentCar.color || "#3b82f6");
                 document.getElementById('colorPicker').value = currentCar.color || "#3b82f6";
                 fetchBalance();
-            } catch (e) {
-                console.error("Garage Load Error:", e);
-            }
+            } catch (e) { console.error("Garage Load Error:", e); }
         }
 
         async function fetchBalance() {
@@ -223,18 +259,28 @@
 
         function updateUI() {
             document.getElementById('stat-motor').innerText = currentCar.motor || "Standard";
-            document.getElementById('stat-tires').innerText = currentCar.tires || "All-Weather";
+            document.getElementById('stat-tires').innerText = currentCar.tires || "Standard";
+            document.getElementById('stat-addon').innerText = currentCar.addon || "None";
             
-            let stats = { speed: 20, handling: 20, control: 20 };
+            // BASE STATS
+            let stats = { speed: 40, handling: 40, control: 40 };
 
-            if (currentCar.motor === "Electric") { stats.speed += 15; stats.control += 5; }
-            if (currentCar.motor === "V8 Engine") { stats.speed += 40; stats.control += 10; }
-            if (currentCar.tires === "Slicks") { stats.handling += 35; stats.speed += 5; }
-            if (currentCar.tires === "Off-Road") { stats.handling += 20; stats.control += 20; }
+            // MOTORS LOGIC
+            if (currentCar.motor === "Electric Motor") { stats.control += 10; stats.speed += 5; stats.handling -= 3; }
+            if (currentCar.motor === "V8 Motor") { stats.control += 5; stats.speed += 10; stats.handling -= 2; }
+            if (currentCar.motor === "V12 Motor") { stats.control += 10; stats.speed += 10; stats.handling -= 10; }
+
+            // TIRES LOGIC
+            if (currentCar.tires === "Soft Tires") { stats.handling += 10; stats.speed -= 3; }
+            if (currentCar.tires === "Hard Tires") { stats.speed += 10; stats.handling -= 3; }
+
+            // ADD-ONS LOGIC
+            if (currentCar.addon === "Nitro") { stats.speed += 10; stats.handling -= 4; }
+            if (currentCar.addon === "Suspension") { stats.handling += 10; }
 
             setTimeout(() => {
                 Object.keys(stats).forEach(key => {
-                    let val = Math.min(stats[key], 100);
+                    let val = Math.max(5, Math.min(stats[key], 100)); // Clamp between 5-100
                     const bar = document.getElementById(`bar-${key}`);
                     const valText = document.getElementById(`val-${key}`);
                     if(bar) bar.style.width = val + "%";
@@ -242,17 +288,13 @@
                 });
             }, 100);
 
-            // Equipping logic
-            const ownedItems = [currentCar.motor, currentCar.tires];
-            ownedItems.forEach(item => {
+            // Highlight Equipped Items
+            const items = [currentCar.motor, currentCar.tires, currentCar.addon];
+            items.forEach(item => {
                 if(!item) return;
                 const safeId = "btn-" + item.replace(/\s+/g, '');
                 const btn = document.getElementById(safeId);
-                if(btn) {
-                    btn.classList.add('owned');
-                    btn.disabled = true;
-                    btn.innerHTML = `<span class="block font-bold">${item}</span><span class="text-[10px] uppercase font-black">Equipped</span>`;
-                }
+                if(btn) btn.classList.add('owned');
             });
         }
 
@@ -263,14 +305,14 @@
                 body: JSON.stringify({
                     action: "buyPart",
                     studentID: studentID,
-                    partType: type,
+                    partType: type, // Motor, Tires, or Addon
                     partName: name,
                     cost: cost
                 })
             });
             const result = await res.json();
             if(result.success) {
-                alert("Upgrade Complete!");
+                alert("Installation Successful!");
                 location.reload();
             } else {
                 alert("Error: " + result.message);
@@ -291,12 +333,10 @@
             });
             const result = await res.json();
             if(result.success) alert("Paint Job Complete!");
-            else alert("Error: " + result.message);
         }
 
         function drawCar(color) {
             const canvas = document.getElementById('carCanvas');
-            if(!canvas) return;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, 300, 400);
             
