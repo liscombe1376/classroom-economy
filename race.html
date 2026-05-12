@@ -31,9 +31,9 @@
                 <div class="flex flex-col border-l border-slate-700 pl-3">
                     <label class="text-[8px] uppercase font-bold text-slate-400">Hazards (Cone / Spike / Oil)</label>
                     <div class="flex gap-1">
-                        <input type="number" id="hCone" value="8" class="w-10" title="Cones">
-                        <input type="number" id="hSpike" value="3" class="w-10" title="Spikes">
-                        <input type="number" id="hOil" value="2" class="w-10" title="Oil Slicks">
+                        <input type="number" id="hCone" value="8" class="w-10">
+                        <input type="number" id="hSpike" value="3" class="w-10">
+                        <input type="number" id="hOil" value="2" class="w-10">
                     </div>
                 </div>
                 <div class="flex flex-col border-l border-slate-700 pl-3">
@@ -95,14 +95,14 @@
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
                 const data = await res.json();
                 racers = (data.racers || []).map((r, i) => {
-                    // COLOR FIX: Check all possible field names the sheet might send
-                    const finalColor = r.color || r.Color || r.colour || "#3b82f6";
+                    // MAPPING TO "Colour" COLUMN AS PER SCREENSHOT
+                    const carColor = r.Colour || r.colour || r.Color || r.color || "#3b82f6";
                     return {
                         ...r, progress: 0 - (i*0.012), lap: 1, 
                         speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0004 : 0),
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
-                        color: finalColor
+                        color: carColor
                     }
                 });
                 announce("Drivers at the Starting Line...");
@@ -187,13 +187,11 @@
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
                 
                 if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
-                // Visual Fix: Spikes with triangles
                 else if(h.type === 'spikes') { 
                     ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
                     ctx.fillStyle = "#475569";
                     for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
                 }
-                // Visual Fix: Black Oil
                 else if(h.type === 'oil') { ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
             });
 
@@ -221,7 +219,7 @@
         async function checkWinner() {
             if(racers.every(r => r.finished) && !raceFinished) {
                 raceFinished = true;
-                const s = [...racers].sort((a,b) => b.progress - a.progress);
+                const s = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress));
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
                 announce(`🏁 RACE OVER: ${s[0].name.toUpperCase()} WINS!`);
                 alert(`PODIUM:\n1st: ${s[0].name} ($${p[0]})\n2nd: ${s[1].name} ($${p[1]})\n3rd: ${s[2].name} ($${p[2]})`);
