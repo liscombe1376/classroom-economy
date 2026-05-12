@@ -173,6 +173,7 @@
 
     <script>
         const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
+        // Check for studentID in localStorage
         let studentID = localStorage.getItem('studentID') ? localStorage.getItem('studentID').trim() : null;
         let currentCar = {};
 
@@ -187,9 +188,10 @@
             document.getElementById('driverName').innerText = "Driver: " + displayName;
             
             try {
+                // Fetching garage using the standardized "studentID" key
                 const response = await fetch(WEB_APP_URL, {
                     method: "POST",
-                    body: JSON.stringify({ action: "getGarage", id: studentID })
+                    body: JSON.stringify({ action: "getGarage", studentID: studentID })
                 });
                 currentCar = await response.json();
                 
@@ -241,7 +243,6 @@
                 });
             }, 100);
 
-            // Highlight Equipped Parts
             const parts = [currentCar.motor, currentCar.tires];
             parts.forEach(part => {
                 if(!part) return;
@@ -263,7 +264,7 @@
                     method: "POST",
                     body: JSON.stringify({
                         action: "buyPart",
-                        studentID: studentID,
+                        studentID: studentID, // Using standardized studentID
                         partType: type,
                         partName: name,
                         cost: cost
