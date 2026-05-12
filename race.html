@@ -11,7 +11,7 @@
         .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); pointer-events: auto; }
         .leaderboard { background: rgba(15, 23, 42, 0.85); border-left: 2px solid #3b82f6; backdrop-filter: blur(5px); }
         .announcer-panel { background: rgba(0, 0, 0, 0.85); border-top: 4px solid #facc15; }
-        input { background: #1e293b; border: 1px solid #475569; padding: 4px 6px; border-radius: 4px; color: white; outline: none; font-size: 0.75rem; }
+        input, select { background: #1e293b; border: 1px solid #475569; padding: 4px 6px; border-radius: 4px; color: white; outline: none; font-size: 0.75rem; }
         #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 30px #3b82f6; pointer-events: none; }
     </style>
 </head>
@@ -31,9 +31,9 @@
                 <div class="flex flex-col border-l border-slate-700 pl-3">
                     <label class="text-[8px] uppercase font-bold text-slate-400">Hazards (Cone / Spike / Oil)</label>
                     <div class="flex gap-1">
-                        <input type="number" id="hCone" value="8" class="w-10">
-                        <input type="number" id="hSpike" value="3" class="w-10">
-                        <input type="number" id="hOil" value="2" class="w-10">
+                        <input type="number" id="hCone" value="8" class="w-10" title="Cones">
+                        <input type="number" id="hSpike" value="3" class="w-10" title="Spikes">
+                        <input type="number" id="hOil" value="2" class="w-10" title="Oil Slicks">
                     </div>
                 </div>
                 <div class="flex flex-col border-l border-slate-700 pl-3">
@@ -95,19 +95,19 @@
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
                 const data = await res.json();
                 racers = (data.racers || []).map((r, i) => {
-                    // COLOR FIX: Checks all possible ways the sheet returns the color column
-                    const carColor = r.color || r.Color || r.colour || "#3b82f6";
+                    // COLOR FIX: Check all possible field names the sheet might send
+                    const finalColor = r.color || r.Color || r.colour || "#3b82f6";
                     return {
                         ...r, progress: 0 - (i*0.012), lap: 1, 
                         speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0004 : 0),
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
-                        color: carColor
+                        color: finalColor
                     }
                 });
                 announce("Drivers at the Starting Line...");
                 draw();
-            } catch(e) { console.error(e); announce("Connecting to Sheet..."); }
+            } catch(e) { console.error(e); }
         }
 
         function gameLoop() {
@@ -172,24 +172,33 @@
             ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
             ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
 
-            // Hazards
+            // Finish Line
+            const start = trackPath[0];
+            ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
+            ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
+            ctx.fillStyle = "black";
+            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
+            ctx.restore();
+
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
                 const lo = (h.lane - (racers.length/2))*14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
+                
                 if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
+                // Visual Fix: Spikes with triangles
                 else if(h.type === 'spikes') { 
                     ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
                     ctx.fillStyle = "#475569";
                     for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
                 }
+                // Visual Fix: Black Oil
                 else if(h.type === 'oil') { ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
             });
 
             racers.forEach(r => {
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                // DRAWING THE COLOR DIRECTLY FROM THE DATA
                 ctx.fillStyle = r.color; 
                 ctx.shadowBlur = 8; ctx.shadowColor = "black";
                 ctx.roundRect(-12,-7,24,14,3); ctx.fill();
@@ -204,6 +213,7 @@
                 <div class="flex items-center gap-2 bg-slate-800/90 p-2 rounded text-[11px] border-l-4" style="border-color: ${r.color}">
                     <span class="font-black text-slate-500">${i+1}</span>
                     <div class="flex-1 truncate font-bold text-white">${r.name}</div>
+                    <div class="text-blue-400">L${r.lap}</div>
                 </div>
             `).join('');
         }
