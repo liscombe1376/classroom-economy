@@ -59,7 +59,7 @@
 
     <div class="announcer-panel fixed bottom-0 left-0 w-full h-16 z-50 flex items-center px-10 shadow-2xl">
         <div class="bg-yellow-400 text-black px-3 py-1 font-black italic uppercase text-xs mr-4">Broadcasting</div>
-        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate transition-all duration-300">Ready for the Green Flag...</div>
+        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate transition-all duration-300">Ready to pull colors from the Garage...</div>
     </div>
 
     <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
@@ -101,7 +101,14 @@
                 oil: parseInt(document.getElementById('hOil').value) 
             };
             Object.entries(counts).forEach(([type, count]) => {
-                for(let i=0; i<count; i++) hazards.push({ progress: 0.12 + Math.random()*0.85, lane: Math.floor(Math.random()*6), type: type, active: true });
+                for(let i=0; i<count; i++) {
+                    hazards.push({ 
+                        progress: 0.12 + Math.random()*0.85, 
+                        lane: Math.floor(Math.random()*6), 
+                        type: type, 
+                        active: true 
+                    });
+                }
             });
         }
 
@@ -128,42 +135,44 @@
             if(!raceActive) return;
             racers.forEach(r => {
                 if(r.finished) return;
-                
-                // Speed calculation based on flat tires (25% penalty per flat)
                 let speedMod = Math.max(0.4, 1 - (r.flats * 0.25));
 
                 if(r.spinFrames > 0) {
                     r.currentSpeed = 0;
-                    r.angle += 0.4; // Visual rotation
+                    r.angle += 0.4;
                     r.spinFrames--;
-                } else {
-                    if(r.penalty > 0) {
-                        r.currentSpeed = r.speedBase * 0.3 * speedMod;
-                        r.penalty--;
-                    } else {
-                        r.currentSpeed = r.speedBase * speedMod;
-                    }
-                    
+                } else if(r.penalty > 0) {
+                    r.currentSpeed = r.speedBase * 0.3 * speedMod;
+                    r.penalty--;
                     const pos = getPointOnPath(Math.max(0, r.progress));
                     r.angle = pos.a;
+                } else {
+                    r.currentSpeed = r.speedBase * speedMod;
+                    const pos = getPointOnPath(Math.max(0, r.progress));
+                    r.angle = pos.a;
+                }
 
+                if(r.spinFrames <= 0) {
                     r.progress += r.currentSpeed * (0.9 + Math.random()*0.2);
+                    const pos = getPointOnPath(Math.max(0, r.progress));
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                 }
 
-                // Check Hazards
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
                         if(h.type === 'cones') { r.penalty = 80; h.active = false; announce(`${r.name} clipped a cone!`); }
-                        if(h.type === 'spikes') { r.flats++; h.active = false; announce(`${r.name} popped a tire!`); }
-                        if(h.type === 'oil') { r.spinFrames = 120; h.active = false; announce(`${r.name} is spinning out!`); }
+                        if(h.type === 'spikes') { r.flats++; h.active = false; announce(`${r.name} has a flat tire!`); }
+                        if(h.type === 'oil') { r.spinFrames = 120; h.active = false; announce(`${r.name} is spinning on oil!`); }
                     }
                 });
 
                 if(r.progress >= 0.999) {
-                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { r.lap++; r.progress = 0; }
-                    else { r.finished = true; checkWinner(); }
+                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { 
+                        r.lap++; r.progress = 0; 
+                    } else { 
+                        r.finished = true; checkWinner(); 
+                    }
                 }
             });
 
@@ -183,7 +192,11 @@
             const sec = Math.floor(p * sections);
             const secT = (p * sections) - sec;
             const p1 = trackPath[sec], p2 = trackPath[sec+1];
-            return { x: (p1.x + (p2.x - p1.x)*secT)*(canvas.width-224), y: (p1.y + (p2.y - p1.y)*secT)*canvas.height, a: Math.atan2(p2.y-p1.y, p2.x-p1.x) };
+            return { 
+                x: (p1.x + (p2.x - p1.x)*secT)*(canvas.width-224), 
+                y: (p1.y + (p2.y - p1.y)*secT)*canvas.height, 
+                a: Math.atan2(p2.y-p1.y, p2.x-p1.x) 
+            };
         }
 
         function draw() {
@@ -197,10 +210,12 @@
             ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
             ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
 
-            // Finish Line
+            // Restored Checkered Finish Line
             const start = trackPath[0];
             ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
-            ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
+            ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80); 
+            ctx.fillStyle = "black";
+            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
             ctx.restore();
 
             hazards.forEach(h => {
@@ -208,19 +223,25 @@
                 const pos = getPointOnPath(h.progress);
                 const lo = (h.lane - (racers.length/2))*14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
-                if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
+                if(h.type === 'cones') { 
+                    ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); 
+                    ctx.fillStyle="white"; ctx.fillRect(px-3,py+1,6,2); 
+                }
                 else if(h.type === 'spikes') { ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py-2, 16, 4); }
-                else if(h.type === 'oil') { ctx.fillStyle = "rgba(10,10,15,0.7)"; ctx.beginPath(); ctx.arc(px, py, 13, 0, Math.PI*2); ctx.fill(); }
+                else if(h.type === 'oil') { ctx.fillStyle = "rgba(20,20,30,0.8)"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
             });
 
             racers.forEach(r => {
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                // Core Color Sync Fix
+                // Color Logic: Stay original color unless spinning
                 ctx.fillStyle = r.spinFrames > 0 ? "#ef4444" : r.color; 
                 ctx.shadowBlur = 8; ctx.shadowColor = "black";
                 ctx.roundRect(-12,-7,24,14,3); ctx.fill();
-                // Flat tire indicators
-                if(r.flats > 0) { ctx.fillStyle = "black"; ctx.fillRect(-10, 6, 6, 2); if(r.flats > 1) ctx.fillRect(4, 6, 6, 2); }
+                // Draw Flat Tires
+                if(r.flats > 0) { 
+                    ctx.fillStyle = "black"; ctx.fillRect(-10, 6, 6, 2); 
+                    if(r.flats > 1) ctx.fillRect(4, 6, 6, 2); 
+                }
                 ctx.restore(); 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
             });
@@ -231,7 +252,7 @@
             document.getElementById('leaderList').innerHTML = sorted.slice(0, 8).map((r, i) => `
                 <div class="flex items-center gap-2 bg-slate-800/90 p-2 rounded text-[11px] border-l-4" style="border-color: ${r.color}">
                     <span class="font-black text-slate-500">${i+1}</span>
-                    <div class="flex-1 truncate font-bold text-white">${r.name} ${r.flats > 0 ? '⚠️' : ''}</div>
+                    <div class="flex-1 truncate font-bold text-white">${r.name} ${r.flats > 0 ? '❌' : ''}</div>
                     <div class="text-blue-400">L${r.lap}</div>
                 </div>
             `).join('');
@@ -242,9 +263,11 @@
                 raceFinished = true;
                 const s = [...racers].sort((a,b) => b.progress - a.progress);
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
-                announce(`FINISH! ${s[0].name.toUpperCase()} WINS!`);
+                announce(`FINISH! ${s[0].name.toUpperCase()} TAKES THE WIN!`);
                 alert(`PODIUM:\n1st: ${s[0].name} ($${p[0]})\n2nd: ${s[1].name} ($${p[1]})\n3rd: ${s[2].name} ($${p[2]})`);
-                for(let i=0; i<3; i++) { if(s[i]) await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: s[i].id, amount: parseInt(p[i]) }) }); }
+                for(let i=0; i<3; i++) { 
+                    if(s[i]) await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: s[i].id, amount: parseInt(p[i]) }) }); 
+                }
             }
         }
 
@@ -253,7 +276,11 @@
             let count = 3; document.getElementById('startBtn').classList.add('hidden');
             const timer = setInterval(() => {
                 if(count > 0) { div.innerText = count; count--; }
-                else { div.innerText = "GO!"; clearInterval(timer); setTimeout(() => div.classList.add('hidden'), 1000); raceActive = true; raceFinished = false; gameLoop(); }
+                else { 
+                    div.innerText = "GO!"; clearInterval(timer); 
+                    setTimeout(() => div.classList.add('hidden'), 1000); 
+                    raceActive = true; raceFinished = false; gameLoop(); 
+                }
             }, 1000);
         }
 
