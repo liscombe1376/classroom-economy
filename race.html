@@ -3,7 +3,7 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
-    <title>BCE GRAND PRIX | TOTAL FIX</title>
+    <title>BCE GRAND PRIX</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #064e3b; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
@@ -11,7 +11,7 @@
         .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); pointer-events: auto; }
         .leaderboard { background: rgba(15, 23, 42, 0.85); border-left: 2px solid #3b82f6; backdrop-filter: blur(5px); }
         .announcer-panel { background: rgba(0, 0, 0, 0.85); border-top: 4px solid #facc15; }
-        input { background: #1e293b; border: 1px solid #475569; padding: 4px; border-radius: 4px; color: white; width: 45px; font-size: 0.75rem; }
+        input { background: #1e293b; border: 1px solid #475569; padding: 4px 6px; border-radius: 4px; color: white; outline: none; font-size: 0.75rem; }
         #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 30px #3b82f6; pointer-events: none; }
     </style>
 </head>
@@ -21,29 +21,30 @@
         <div class="flex items-center gap-4">
             <h1 class="text-2xl font-black italic uppercase tracking-tighter text-white">BCE <span class="text-blue-500">GP</span></h1>
             <div class="flex gap-3">
-                <div class="flex flex-col"><label class="text-[8px] uppercase font-bold text-slate-400">Heat / Laps</label>
+                <div class="flex flex-col">
+                    <label class="text-[8px] uppercase font-bold text-slate-400">Heat / Laps</label>
                     <div class="flex gap-1">
-                        <input type="number" id="heatSelect" value="1" onchange="initRaceData()">
-                        <input type="number" id="totalLaps" value="3">
+                        <input type="number" id="heatSelect" value="1" class="w-10" onchange="initRaceData()">
+                        <input type="number" id="totalLaps" value="3" class="w-10">
                     </div>
                 </div>
-                <div class="flex flex-col border-l border-slate-700 pl-3"><label class="text-[8px] uppercase font-bold text-slate-400">Hazards (C/S/O)</label>
+                <div class="flex flex-col border-l border-slate-700 pl-3">
+                    <label class="text-[8px] uppercase font-bold text-slate-400">Hazards (Cone / Spike / Oil)</label>
                     <div class="flex gap-1">
-                        <input type="number" id="hCone" value="10">
-                        <input type="number" id="hSpike" value="4">
-                        <input type="number" id="hOil" value="3">
+                        <input type="number" id="hCone" value="8" class="w-10">
+                        <input type="number" id="hSpike" value="3" class="w-10">
+                        <input type="number" id="hOil" value="2" class="w-10">
                     </div>
                 </div>
-                <div class="flex flex-col border-l border-slate-700 pl-3"><label class="text-[8px] uppercase font-bold text-slate-400">Prizes (1/2/3)</label>
+                <div class="flex flex-col border-l border-slate-700 pl-3">
+                    <label class="text-[8px] uppercase font-bold text-slate-400">Prizes (1st / 2nd / 3rd)</label>
                     <div class="flex gap-1">
-                        <input type="number" id="p1" value="100">
-                        <input type="number" id="p2" value="50">
-                        <input type="number" id="p3" value="25">
+                        <input type="number" id="p1" value="100" class="w-12"><input type="number" id="p2" value="50" class="w-12"><input type="number" id="p3" value="25" class="w-12">
                     </div>
                 </div>
             </div>
         </div>
-        <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-6 py-2 rounded font-black hover:bg-blue-500 uppercase text-xs">Start Heat</button>
+        <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-6 py-2 rounded font-black hover:bg-blue-500 transition-all uppercase tracking-widest text-xs active:scale-95">Start Heat</button>
     </div>
 
     <div class="leaderboard fixed top-[72px] right-0 bottom-16 w-56 z-40 p-4 shadow-2xl">
@@ -52,8 +53,8 @@
     </div>
 
     <div class="announcer-panel fixed bottom-0 left-0 w-full h-16 z-50 flex items-center px-10 shadow-2xl">
-        <div class="bg-yellow-400 text-black px-3 py-1 font-black italic uppercase text-xs mr-4">Live</div>
-        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate">Engines warming up...</div>
+        <div class="bg-yellow-400 text-black px-3 py-1 font-black italic uppercase text-xs mr-4">Broadcasting</div>
+        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate transition-all duration-300">Awaiting Race Signal...</div>
     </div>
 
     <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
@@ -81,41 +82,32 @@
             for(let i=0; i<45; i++) textures.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, w: 150+Math.random()*300, h: 100+Math.random()*200, c: colors[Math.floor(Math.random()*colors.length)] + "55" });
             for(let i=0; i<30; i++) scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
             
-            const hCounts = { cones: document.getElementById('hCone').value, spikes: document.getElementById('hSpike').value, oil: document.getElementById('hOil').value };
-            Object.entries(hCounts).forEach(([type, count]) => {
-                for(let i=0; i<count; i++) hazards.push({ progress: 0.15 + Math.random()*0.8, lane: Math.floor(Math.random()*6), type, active: true });
+            const counts = { cones: parseInt(document.getElementById('hCone').value), spikes: parseInt(document.getElementById('hSpike').value), oil: parseInt(document.getElementById('hOil').value) };
+            Object.entries(counts).forEach(([type, count]) => {
+                for(let i=0; i<count; i++) hazards.push({ progress: 0.12 + Math.random()*0.85, lane: Math.floor(Math.random()*6), type: type, active: true });
             });
         }
 
         async function initRaceData() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             createEnvironment();
-            
-            // WE FETCH THE WHOLE GARAGE DATA TO ENSURE COLORS ARE FOUND
             try {
-                const [heatRes, garageRes] = await Promise.all([
-                    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) }),
-                    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getAllGarageData" }) }) 
-                ]);
-                
-                const heatData = await heatRes.json();
-                const garageData = await garageRes.json(); 
-
-                racers = (heatData.racers || []).map((r, i) => {
-                    // Match by ID to Column A, grab Color from Column E
-                    const studentData = garageData.find(row => row[0] == r.id);
-                    const finalColor = studentData ? studentData[4] : "#3b82f6";
-
+                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
+                const data = await res.json();
+                racers = (data.racers || []).map((r, i) => {
+                    // COLOR FIX: Checks all possible ways the sheet returns the color column
+                    const carColor = r.color || r.Color || r.colour || "#3b82f6";
                     return {
                         ...r, progress: 0 - (i*0.012), lap: 1, 
                         speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0004 : 0),
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
-                        x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (heatData.racers.length/2))*14, finished: false,
-                        color: finalColor
-                    };
+                        x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
+                        color: carColor
+                    }
                 });
+                announce("Drivers at the Starting Line...");
                 draw();
-            } catch(e) { announce("System Syncing..."); }
+            } catch(e) { console.error(e); announce("Connecting to Sheet..."); }
         }
 
         function gameLoop() {
@@ -138,9 +130,9 @@
 
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
-                        if(h.type === 'cones') { r.penalty = 80; h.active = false; announce(`${r.name} hit a cone!`); }
-                        if(h.type === 'spikes') { r.flats++; h.active = false; announce(`${r.name} blew a tire!`); }
-                        if(h.type === 'oil') { r.spinFrames = 120; h.active = false; announce(`${r.name} is spinning out!`); }
+                        if(h.type === 'cones') { r.penalty = 80; h.active = false; }
+                        if(h.type === 'spikes') { r.flats++; h.active = false; }
+                        if(h.type === 'oil') { r.spinFrames = 120; h.active = false; }
                     }
                 });
 
@@ -149,6 +141,13 @@
                     else { r.finished = true; checkWinner(); }
                 }
             });
+
+            const leader = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress))[0];
+            if(leader && leader.name !== currentLeader && leader.progress > 0) {
+                currentLeader = leader.name;
+                announce(`${currentLeader.toUpperCase()} IS IN THE LEAD!`);
+            }
+
             updateUI(); draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
@@ -173,36 +172,27 @@
             ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
             ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
 
-            // Checkered Finish Line
-            const start = trackPath[0];
-            ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
-            ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
-            ctx.fillStyle = "black";
-            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
-            ctx.restore();
-
+            // Hazards
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
                 const lo = (h.lane - (racers.length/2))*14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
-                
                 if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
                 else if(h.type === 'spikes') { 
-                    ctx.fillStyle = "#64748b"; ctx.fillRect(px-10, py-1, 20, 2); // Base
-                    ctx.fillStyle = "#cbd5e1"; // Sharp Spikes
-                    for(let i=0; i<4; i++) {
-                        ctx.beginPath(); ctx.moveTo(px-8+(i*5), py+1); ctx.lineTo(px-5.5+(i*5), py-6); ctx.lineTo(px-3+(i*5), py+1); ctx.fill();
-                    }
+                    ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
+                    ctx.fillStyle = "#475569";
+                    for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
                 }
-                else if(h.type === 'oil') { ctx.fillStyle = "#000000"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
+                else if(h.type === 'oil') { ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
             });
 
             racers.forEach(r => {
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                ctx.fillStyle = r.spinFrames > 0 ? "#ef4444" : r.color; 
+                // DRAWING THE COLOR DIRECTLY FROM THE DATA
+                ctx.fillStyle = r.color; 
+                ctx.shadowBlur = 8; ctx.shadowColor = "black";
                 ctx.roundRect(-12,-7,24,14,3); ctx.fill();
-                if(r.flats > 0) { ctx.fillStyle = "black"; ctx.fillRect(-10, 6, 6, 2); if(r.flats > 1) ctx.fillRect(4, 6, 6, 2); }
                 ctx.restore(); 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
             });
@@ -213,9 +203,9 @@
             document.getElementById('leaderList').innerHTML = sorted.slice(0, 8).map((r, i) => `
                 <div class="flex items-center gap-2 bg-slate-800/90 p-2 rounded text-[11px] border-l-4" style="border-color: ${r.color}">
                     <span class="font-black text-slate-500">${i+1}</span>
-                    <div class="flex-1 truncate font-bold text-white">${r.name} ${r.flats > 0 ? '❌' : ''}</div>
-                    <div class="text-blue-400">L${r.lap}</div>
-                </div>`).join('');
+                    <div class="flex-1 truncate font-bold text-white">${r.name}</div>
+                </div>
+            `).join('');
         }
 
         async function checkWinner() {
@@ -223,7 +213,7 @@
                 raceFinished = true;
                 const s = [...racers].sort((a,b) => b.progress - a.progress);
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
-                announce(`FINISH! ${s[0].name.toUpperCase()} WINS!`);
+                announce(`🏁 RACE OVER: ${s[0].name.toUpperCase()} WINS!`);
                 alert(`PODIUM:\n1st: ${s[0].name} ($${p[0]})\n2nd: ${s[1].name} ($${p[1]})\n3rd: ${s[2].name} ($${p[2]})`);
                 for(let i=0; i<3; i++) { if(s[i]) await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: s[i].id, amount: parseInt(p[i]) }) }); }
             }
@@ -234,7 +224,7 @@
             let count = 3; document.getElementById('startBtn').classList.add('hidden');
             const timer = setInterval(() => {
                 if(count > 0) { div.innerText = count; count--; }
-                else { div.innerText = "GO!"; clearInterval(timer); setTimeout(() => div.classList.add('hidden'), 1000); raceActive = true; gameLoop(); }
+                else { div.innerText = "GO!"; clearInterval(timer); setTimeout(() => div.classList.add('hidden'), 1000); raceActive = true; raceFinished = false; gameLoop(); }
             }, 1000);
         }
         window.onload = () => initRaceData();
