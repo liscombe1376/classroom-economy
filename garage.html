@@ -249,19 +249,18 @@
         }
 
         function updateUI() {
+            // Update labels in the info box
             document.getElementById('stat-motor').innerText = currentCar.motor || "Standard";
             document.getElementById('stat-tires').innerText = currentCar.tires || "Standard";
             document.getElementById('stat-addon').innerText = currentCar.addon || "None";
             
+            // Calculate Stats
             let stats = { speed: 20, handling: 20, control: 20 };
-
             if (currentCar.motor === "Electric") { stats.control += 10; stats.speed += 3; }
             if (currentCar.motor === "V8 Motor") { stats.control += 5; stats.speed += 5; }
             if (currentCar.motor === "V12 Motor") { stats.speed += 20; stats.control += 10; stats.handling -= 10; }
-
             if (currentCar.tires === "Soft Tire") { stats.handling += 10; stats.speed -= 3; }
             if (currentCar.tires === "Hard Tire") { stats.speed += 10; stats.handling -= 4; }
-
             if (currentCar.addon === "Nitro") { stats.speed += 10; }
             if (currentCar.addon === "Suspension") { stats.handling += 10; }
 
@@ -275,21 +274,42 @@
                 });
             }, 100);
 
-            const parts = [currentCar.motor, currentCar.tires, currentCar.addon];
-            parts.forEach(part => {
-                if(!part || part === "Standard" || part === "None") return;
-                const safeId = "btn-" + part.replace(/\s+/g, '');
-                const btn = document.getElementById(safeId);
-                if(btn) {
+            // Handle Button States: "Purchased", "Installed", or Price
+            const equippedParts = [currentCar.motor, currentCar.tires, currentCar.addon];
+            const allBtns = document.querySelectorAll('.part-btn');
+
+            allBtns.forEach(btn => {
+                // Get part name from the first span (original name)
+                const partName = btn.querySelector('span').innerText;
+                const safeId = "btn-" + partName.replace(/\s+/g, '');
+                
+                // Check if this part is currently ON the car
+                const isEquipped = equippedParts.includes(partName);
+                
+                // Check if student owns it (from the 'owned' array sent by server)
+                const isOwned = currentCar.owned && currentCar.owned.includes(partName);
+
+                btn.classList.remove('owned');
+                btn.disabled = false;
+
+                if (isEquipped) {
                     btn.classList.add('owned');
                     btn.disabled = true;
-                    btn.innerHTML = `<span class="block font-bold">${part}</span><span class="text-[10px] uppercase font-black">Installed</span>`;
+                    btn.querySelector('span:last-child').innerText = "Installed";
+                } 
+                else if (isOwned) {
+                    btn.querySelector('span:last-child').innerText = "Purchased (Switch)";
                 }
+                // If neither, the original price text remains as defined in HTML
             });
         }
 
         async function buy(type, name, cost) {
-            if(!confirm(`Install ${name} for $${cost}?`)) return;
+            // Check if student already owns it to change the prompt
+            const isOwned = currentCar.owned && currentCar.owned.includes(name);
+            const msg = isOwned ? `Switch to ${name}? (No charge)` : `Install ${name} for $${cost}?`;
+            
+            if(!confirm(msg)) return;
             
             try {
                 const res = await fetch(WEB_APP_URL, {
@@ -297,15 +317,15 @@
                     body: JSON.stringify({
                         action: "buyPart",
                         studentID: studentID,
-                        partType: type, // Explicitly passes "Addon"
+                        partType: type,
                         partName: name,
                         cost: cost
                     })
                 });
                 const result = await res.json();
                 if(result.success) {
-                    alert("Upgrade Complete!");
-                    initGarage(); // Smoothly update without full reload
+                    alert(result.message || "Garage Updated!");
+                    initGarage(); 
                 } else {
                     alert("Error: " + result.message);
                 }
