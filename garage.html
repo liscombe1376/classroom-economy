@@ -254,7 +254,49 @@
             document.getElementById('stat-tires').innerText = currentCar.tires || "Standard";
             document.getElementById('stat-addon').innerText = currentCar.addon || "None";
             
-            // Calculate Stats
+            // CLEANING HELPER: Removes spaces and dashes for safe comparison
+            const clean = (str) => str ? str.toString().replace(/[\s-]/g, '').toLowerCase() : "";
+
+            const equippedParts = [
+                clean(currentCar.motor), 
+                clean(currentCar.tires), 
+                clean(currentCar.addon)
+            ];
+
+            const ownedParts = currentCar.owned ? currentCar.owned.map(p => clean(p)) : [];
+
+            // Handle Button States
+            const allBtns = document.querySelectorAll('.part-btn');
+
+            allBtns.forEach(btn => {
+                // Get the displayed name from the first span in the button
+                const partNameLabel = btn.querySelector('span').innerText;
+                const partClean = clean(partNameLabel);
+                
+                const statusLabel = btn.querySelector('span:last-child');
+                
+                btn.classList.remove('owned');
+                btn.disabled = false;
+
+                if (equippedParts.includes(partClean)) {
+                    btn.classList.add('owned');
+                    btn.disabled = true;
+                    statusLabel.innerText = "Installed";
+                    statusLabel.className = "text-[10px] uppercase font-black opacity-80";
+                } 
+                else if (ownedParts.includes(partClean)) {
+                    btn.disabled = false;
+                    statusLabel.innerText = "Purchased (Switch)";
+                    statusLabel.className = "text-[10px] uppercase font-black text-blue-400";
+                }
+                // Price text (default) is managed by HTML structure if neither above matches
+            });
+
+            // Update Bars
+            calculateStats();
+        }
+
+        function calculateStats() {
             let stats = { speed: 20, handling: 20, control: 20 };
             if (currentCar.motor === "Electric") { stats.control += 10; stats.speed += 3; }
             if (currentCar.motor === "V8 Motor") { stats.control += 5; stats.speed += 5; }
@@ -264,49 +306,19 @@
             if (currentCar.addon === "Nitro") { stats.speed += 10; }
             if (currentCar.addon === "Suspension") { stats.handling += 10; }
 
-            setTimeout(() => {
-                Object.keys(stats).forEach(key => {
-                    let val = Math.max(0, Math.min(stats[key], 100));
-                    const bar = document.getElementById(`bar-${key}`);
-                    const valText = document.getElementById(`val-${key}`);
-                    if(bar) bar.style.width = val + "%";
-                    if(valText) valText.innerText = val + "/100";
-                });
-            }, 100);
-
-            // Handle Button States: "Purchased", "Installed", or Price
-            const equippedParts = [currentCar.motor, currentCar.tires, currentCar.addon];
-            const allBtns = document.querySelectorAll('.part-btn');
-
-            allBtns.forEach(btn => {
-                // Get part name from the first span (original name)
-                const partName = btn.querySelector('span').innerText;
-                const safeId = "btn-" + partName.replace(/\s+/g, '');
-                
-                // Check if this part is currently ON the car
-                const isEquipped = equippedParts.includes(partName);
-                
-                // Check if student owns it (from the 'owned' array sent by server)
-                const isOwned = currentCar.owned && currentCar.owned.includes(partName);
-
-                btn.classList.remove('owned');
-                btn.disabled = false;
-
-                if (isEquipped) {
-                    btn.classList.add('owned');
-                    btn.disabled = true;
-                    btn.querySelector('span:last-child').innerText = "Installed";
-                } 
-                else if (isOwned) {
-                    btn.querySelector('span:last-child').innerText = "Purchased (Switch)";
-                }
-                // If neither, the original price text remains as defined in HTML
+            Object.keys(stats).forEach(key => {
+                let val = Math.max(0, Math.min(stats[key], 100));
+                const bar = document.getElementById(`bar-${key}`);
+                const valText = document.getElementById(`val-${key}`);
+                if(bar) bar.style.width = val + "%";
+                if(valText) valText.innerText = val + "/100";
             });
         }
 
         async function buy(type, name, cost) {
-            // Check if student already owns it to change the prompt
-            const isOwned = currentCar.owned && currentCar.owned.includes(name);
+            const clean = (str) => str ? str.toString().replace(/[\s-]/g, '').toLowerCase() : "";
+            const isOwned = currentCar.owned && currentCar.owned.some(p => clean(p) === clean(name));
+            
             const msg = isOwned ? `Switch to ${name}? (No charge)` : `Install ${name} for $${cost}?`;
             
             if(!confirm(msg)) return;
