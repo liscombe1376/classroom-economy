@@ -231,33 +231,22 @@
                     method: "POST",
                     body: JSON.stringify({ action: "getGarage", studentID: studentID })
                 });
-                currentCar = await response.json();
                 
-                updateUI();
-                drawCar(currentCar.color || "#3b82f6");
-                document.getElementById('colorPicker').value = currentCar.color || "#3b82f6";
-                fetchBalance();
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentCar = data;
+                    // Update balance directly from garage data
+                    const bal = parseFloat(data.balance) || 0;
+                    document.getElementById('balanceDisplay').innerText = "$" + bal.toFixed(2);
+                    
+                    updateUI();
+                    drawCar(currentCar.color || "#3b82f6");
+                    document.getElementById('colorPicker').value = currentCar.color || "#3b82f6";
+                }
             } catch (e) {
                 console.error("Garage Load Error:", e);
             }
-        }
-
-        async function fetchBalance() {
-            try {
-                const res = await fetch(WEB_APP_URL, { 
-                    method: "POST", 
-                    body: JSON.stringify({ 
-                        action: "loginStudent", 
-                        name: localStorage.getItem('studentName'), 
-                        password: localStorage.getItem('studentPass') 
-                    }) 
-                });
-                const data = await res.json();
-                if(data.success) {
-                    const bal = parseFloat(data.balance) || 0;
-                    document.getElementById('balanceDisplay').innerText = "$" + bal.toFixed(2);
-                }
-            } catch (err) { console.log("Balance fetch failed"); }
         }
 
         function updateUI() {
