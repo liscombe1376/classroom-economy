@@ -111,19 +111,23 @@
                     </div>
                 </div>
 
-                <div class="mt-8 grid grid-cols-2 gap-4 w-full relative z-10">
-                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
-                        <span class="text-[10px] text-slate-500 uppercase block font-black">Engine</span>
-                        <span id="stat-motor" class="font-bold text-blue-400 text-sm">Standard</span>
+                <div class="mt-8 grid grid-cols-3 gap-2 w-full relative z-10">
+                    <div class="p-2 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
+                        <span class="text-[9px] text-slate-500 uppercase block font-black">Engine</span>
+                        <span id="stat-motor" class="font-bold text-blue-400 text-xs">Standard</span>
                     </div>
-                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
-                        <span class="text-[10px] text-slate-500 uppercase block font-black">Tires</span>
-                        <span id="stat-tires" class="font-bold text-purple-400 text-sm">Standard</span>
+                    <div class="p-2 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
+                        <span class="text-[9px] text-slate-500 uppercase block font-black">Tires</span>
+                        <span id="stat-tires" class="font-bold text-purple-400 text-xs">Standard</span>
+                    </div>
+                    <div class="p-2 bg-slate-900/80 rounded-xl border border-slate-700 text-center">
+                        <span class="text-[9px] text-slate-500 uppercase block font-black">Addon</span>
+                        <span id="stat-addon" class="font-bold text-yellow-400 text-xs">None</span>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-6">
+            <div class="space-y-6 max-h-[700px] overflow-y-auto pr-2">
                 <div class="garage-card rounded-2xl p-6">
                     <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
                         <span class="w-2 h-4 bg-blue-500 block"></span> ENGINES
@@ -131,11 +135,15 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <button onclick="buy('Motor', 'Electric', 250)" id="btn-Electric" class="part-btn p-4 rounded-xl text-left">
                             <span class="block font-bold">Electric Motor</span>
-                            <span class="text-xs text-slate-400">+$15 Speed • $250</span>
+                            <span class="text-xs text-slate-400">+10 Accel | +3 Speed • $250</span>
                         </button>
-                        <button onclick="buy('Motor', 'V8 Engine', 1200)" id="btn-V8Engine" class="part-btn p-4 rounded-xl text-left">
-                            <span class="block font-bold text-orange-400">V8 Performance</span>
-                            <span class="text-xs text-slate-400">+$40 Speed • $1200</span>
+                        <button onclick="buy('Motor', 'V8 Motor', 1200)" id="btn-V8Motor" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold text-orange-400">V8 Motor</span>
+                            <span class="text-xs text-slate-400">+5 Accel | +5 Speed • $1200</span>
+                        </button>
+                        <button onclick="buy('Motor', 'V12 Motor', 2500)" id="btn-V12Motor" class="part-btn p-4 rounded-xl text-left col-span-1 sm:col-span-2">
+                            <span class="block font-bold text-red-500">V12 Performance</span>
+                            <span class="text-xs text-slate-400">+20 Speed | +10 Accel | -10 Handling • $2500</span>
                         </button>
                     </div>
                 </div>
@@ -145,13 +153,45 @@
                         <span class="w-2 h-4 bg-purple-500 block"></span> TIRES
                     </h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="buy('Tires', 'Slicks', 400)" id="btn-Slicks" class="part-btn p-4 rounded-xl text-left">
-                            <span class="block font-bold text-blue-300">Street Slicks</span>
-                            <span class="text-xs text-slate-400">+35 Handling • $400</span>
+                        <button onclick="buy('Tires', 'Soft Tire', 400)" id="btn-SoftTire" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold">Soft Tire</span>
+                            <span class="text-xs text-slate-400">+10 Handling | -3 Speed • $400</span>
                         </button>
-                        <button onclick="buy('Tires', 'Off-Road', 400)" id="btn-OffRoad" class="part-btn p-4 rounded-xl text-left">
-                            <span class="block font-bold text-amber-600">Mud Crawlers</span>
-                            <span class="text-xs text-slate-400">+20 Handling • $400</span>
+                        <button onclick="buy('Tires', 'Hard Tire', 400)" id="btn-HardTire" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold">Hard Tire</span>
+                            <span class="text-xs text-slate-400">+10 Speed | -4 Handling • $400</span>
+                        </button>
+                        <button onclick="buy('Tires', 'Self Inflated', 600)" id="btn-SelfInflated" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold text-cyan-400">Self-Inflated</span>
+                            <span class="text-xs text-slate-400">Spike Resistance • $600</span>
+                        </button>
+                        <button onclick="buy('Tires', 'Grip Tires', 600)" id="btn-GripTires" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold text-emerald-400">Grip Tires</span>
+                            <span class="text-xs text-slate-400">Oil Resistance • $600</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="garage-card rounded-2xl p-6">
+                    <h2 class="racing-font text-sm mb-4 text-slate-400 flex items-center gap-2">
+                        <span class="w-2 h-4 bg-yellow-500 block"></span> ADDONS
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button onclick="buy('Addon', 'Bush Bar', 500)" id="btn-BushBar" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold">Bush Bar</span>
+                            <span class="text-xs text-slate-400">Cone Resistance • $500</span>
+                        </button>
+                        <button onclick="buy('Addon', 'Nitro', 1000)" id="btn-Nitro" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold text-blue-400">Nitro</span>
+                            <span class="text-xs text-slate-400">+10 Speed • $1000</span>
+                        </button>
+                        <button onclick="buy('Addon', 'Suspension', 500)" id="btn-Suspension" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold">Suspension</span>
+                            <span class="text-xs text-slate-400">+10 Handling • $500</span>
+                        </button>
+                        <button onclick="buy('Addon', 'Spare Tire', 300)" id="btn-SpareTire" class="part-btn p-4 rounded-xl text-left">
+                            <span class="block font-bold">Spare Tire</span>
+                            <span class="text-xs text-slate-400">Spike Shield • $300</span>
                         </button>
                     </div>
                 </div>
@@ -214,7 +254,6 @@
                 });
                 const data = await res.json();
                 if(data.success) {
-                    // Corrected to look for data.balance
                     const bal = parseFloat(data.balance) || 0;
                     document.getElementById('balanceDisplay').innerText = "$" + bal.toFixed(2);
                 }
@@ -224,17 +263,27 @@
         function updateUI() {
             document.getElementById('stat-motor').innerText = currentCar.motor || "Standard";
             document.getElementById('stat-tires').innerText = currentCar.tires || "Standard";
+            document.getElementById('stat-addon').innerText = currentCar.addon || "None";
             
+            // Base Stats
             let stats = { speed: 20, handling: 20, control: 20 };
 
-            if (currentCar.motor === "Electric") { stats.speed += 15; stats.control += 5; }
-            if (currentCar.motor === "V8 Engine") { stats.speed += 40; stats.control += 10; }
-            if (currentCar.tires === "Slicks") { stats.handling += 35; stats.speed += 5; }
-            if (currentCar.tires === "Off-Road") { stats.handling += 20; stats.control += 20; }
+            // Motor Logic
+            if (currentCar.motor === "Electric") { stats.control += 10; stats.speed += 3; }
+            if (currentCar.motor === "V8 Motor") { stats.control += 5; stats.speed += 5; }
+            if (currentCar.motor === "V12 Motor") { stats.speed += 20; stats.control += 10; stats.handling -= 10; }
+
+            // Tire Logic
+            if (currentCar.tires === "Soft Tire") { stats.handling += 10; stats.speed -= 3; }
+            if (currentCar.tires === "Hard Tire") { stats.speed += 10; stats.handling -= 4; }
+
+            // Addon Logic
+            if (currentCar.addon === "Nitro") { stats.speed += 10; }
+            if (currentCar.addon === "Suspension") { stats.handling += 10; }
 
             setTimeout(() => {
                 Object.keys(stats).forEach(key => {
-                    let val = Math.min(stats[key], 100);
+                    let val = Math.max(0, Math.min(stats[key], 100));
                     const bar = document.getElementById(`bar-${key}`);
                     const valText = document.getElementById(`val-${key}`);
                     if(bar) bar.style.width = val + "%";
@@ -242,9 +291,9 @@
                 });
             }, 100);
 
-            const parts = [currentCar.motor, currentCar.tires];
+            const parts = [currentCar.motor, currentCar.tires, currentCar.addon];
             parts.forEach(part => {
-                if(!part || part === "Standard") return;
+                if(!part || part === "Standard" || part === "None") return;
                 const safeId = "btn-" + part.replace(/\s+/g, '');
                 const btn = document.getElementById(safeId);
                 if(btn) {
