@@ -173,7 +173,6 @@
 
     <script>
         const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
-        // Check for studentID in localStorage
         let studentID = localStorage.getItem('studentID') ? localStorage.getItem('studentID').trim() : null;
         let currentCar = {};
 
@@ -188,7 +187,6 @@
             document.getElementById('driverName').innerText = "Driver: " + displayName;
             
             try {
-                // Fetching garage using the standardized "studentID" key
                 const response = await fetch(WEB_APP_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "getGarage", studentID: studentID })
@@ -216,7 +214,8 @@
                 });
                 const data = await res.json();
                 if(data.success) {
-                    const bal = parseFloat(data.student.balance) || 0;
+                    // Corrected to look for data.balance
+                    const bal = parseFloat(data.balance) || 0;
                     document.getElementById('balanceDisplay').innerText = "$" + bal.toFixed(2);
                 }
             } catch (err) { console.log("Balance fetch failed"); }
@@ -245,7 +244,7 @@
 
             const parts = [currentCar.motor, currentCar.tires];
             parts.forEach(part => {
-                if(!part) return;
+                if(!part || part === "Standard") return;
                 const safeId = "btn-" + part.replace(/\s+/g, '');
                 const btn = document.getElementById(safeId);
                 if(btn) {
@@ -264,7 +263,7 @@
                     method: "POST",
                     body: JSON.stringify({
                         action: "buyPart",
-                        studentID: studentID, // Using standardized studentID
+                        studentID: studentID,
                         partType: type,
                         partName: name,
                         cost: cost
@@ -273,7 +272,7 @@
                 const result = await res.json();
                 if(result.success) {
                     alert("Upgrade Complete!");
-                    location.reload();
+                    location.reload(); 
                 } else {
                     alert("Error: " + result.message);
                 }
@@ -296,8 +295,12 @@
                     })
                 });
                 const result = await res.json();
-                if(result.success) alert("Paint Job Updated!");
-                else alert("Error saving color.");
+                if(result.success) {
+                    alert("Paint Job Updated!");
+                    location.reload();
+                } else {
+                    alert("Error saving color.");
+                }
             } catch (e) { console.log(e); }
         }
 
