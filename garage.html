@@ -236,7 +236,6 @@
                 
                 if (data.success) {
                     currentCar = data;
-                    // Update balance directly from garage data
                     const bal = parseFloat(data.balance) || 0;
                     document.getElementById('balanceDisplay').innerText = "$" + bal.toFixed(2);
                     
@@ -254,19 +253,15 @@
             document.getElementById('stat-tires').innerText = currentCar.tires || "Standard";
             document.getElementById('stat-addon').innerText = currentCar.addon || "None";
             
-            // Base Stats
             let stats = { speed: 20, handling: 20, control: 20 };
 
-            // Motor Logic
             if (currentCar.motor === "Electric") { stats.control += 10; stats.speed += 3; }
             if (currentCar.motor === "V8 Motor") { stats.control += 5; stats.speed += 5; }
             if (currentCar.motor === "V12 Motor") { stats.speed += 20; stats.control += 10; stats.handling -= 10; }
 
-            // Tire Logic
             if (currentCar.tires === "Soft Tire") { stats.handling += 10; stats.speed -= 3; }
             if (currentCar.tires === "Hard Tire") { stats.speed += 10; stats.handling -= 4; }
 
-            // Addon Logic
             if (currentCar.addon === "Nitro") { stats.speed += 10; }
             if (currentCar.addon === "Suspension") { stats.handling += 10; }
 
@@ -302,7 +297,7 @@
                     body: JSON.stringify({
                         action: "buyPart",
                         studentID: studentID,
-                        partType: type,
+                        partType: type, // Explicitly passes "Addon"
                         partName: name,
                         cost: cost
                     })
@@ -310,7 +305,7 @@
                 const result = await res.json();
                 if(result.success) {
                     alert("Upgrade Complete!");
-                    location.reload(); 
+                    initGarage(); // Smoothly update without full reload
                 } else {
                     alert("Error: " + result.message);
                 }
@@ -335,7 +330,7 @@
                 const result = await res.json();
                 if(result.success) {
                     alert("Paint Job Updated!");
-                    location.reload();
+                    initGarage();
                 } else {
                     alert("Error saving color.");
                 }
@@ -348,14 +343,12 @@
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, 300, 400);
             
-            // Tires
             ctx.fillStyle = "#020617";
             ctx.roundRect(45, 60, 45, 80, 10); ctx.fill(); 
             ctx.roundRect(210, 60, 45, 80, 10); ctx.fill();
             ctx.roundRect(45, 300, 50, 90, 10); ctx.fill();
             ctx.roundRect(205, 300, 50, 90, 10); ctx.fill();
             
-            // Body
             ctx.fillStyle = color;
             ctx.shadowBlur = 15; ctx.shadowColor = color;
             ctx.beginPath();
@@ -365,12 +358,10 @@
             ctx.bezierCurveTo(60, 380, 60, 40, 150, 30);
             ctx.fill();
             
-            // Cockpit
             ctx.shadowBlur = 0;
             ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
             ctx.roundRect(100, 160, 100, 120, [40, 40, 10, 10]); ctx.fill();
             
-            // Wing
             ctx.fillStyle = "#020617";
             ctx.fillRect(60, 370, 180, 20);
         }
