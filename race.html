@@ -152,56 +152,67 @@
             if(!raceActive) return;
             racers.forEach(r => {
                 if(r.finished) return;
+                
                 let flatPenaltyMultiplier = Math.pow(0.75, r.flats);
                 let speedMod = Math.max(0.15, flatPenaltyMultiplier);
 
-                if(r.spinFrames > 0) {
-                    r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
-                } else {
-                    r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
-                    if(r.penalty > 0) r.penalty--;
-                    const pos = getPointOnPath(Math.max(0, r.progress));
-                    r.angle = pos.a;
-                    let variance = hasPurchasedItem(r, "Soft Tire") ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
-                    r.progress += r.currentSpeed * variance;
-                    r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
-                    r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
-                }
-
+                // --- HAZARD COLLISION LOGIC ---
                 hazards.forEach(h => {
-                    if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
+                    if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.007) {
                         if(h.type === 'cones') { 
                             if (r.hasBushBar) {
-                                announce(`🛡️ ${r.name.toUpperCase()} SMASHED CONE!`);
-                                // FIX: Explicitly ensure penalty is NOT set
-                                r.penalty = 0; 
+                                announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE!`);
+                                h.active = false;
+                                return; // JUMP OUT - NO PENALTY
                             } else {
-                                r.penalty = 120; // Increased penalty for non-protected cars
+                                r.penalty = 100; 
                                 announce(`⚠️ ${r.name.toUpperCase()} HIT A CONE!`);
+                                h.active = false;
                             }
-                            h.active = false; 
                         }
                         else if(h.type === 'spikes') { 
                             if (hasPurchasedItem(r, "Inflate") || hasPurchasedItem(r, "Self")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} REPAIRED SPIKES!`);
+                                h.active = false;
+                                return;
                             } else {
                                 r.flats++; 
                                 announce(`💥 ${r.name.toUpperCase()} POPPED A TIRE!`);
+                                h.active = false;
                             }
-                            h.active = false; 
                         }
                         else if(h.type === 'oil') { 
                             if (hasPurchasedItem(r, "Grip")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} CUT THROUGH OIL!`);
+                                h.active = false;
+                                return;
                             } else {
                                 r.spinFrames = 120; 
                                 announce(`🌀 ${r.name.toUpperCase()} SLIPPED ON OIL!`);
+                                h.active = false;
                             }
-                            h.active = false; 
                         }
                     }
                 });
 
+                // --- MOVEMENT LOGIC ---
+                if(r.spinFrames > 0) {
+                    r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
+                } else {
+                    // Calculate speed - if penalty exists, it's 30% speed
+                    r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
+                    if(r.penalty > 0) r.penalty--;
+                    
+                    const pos = getPointOnPath(Math.max(0, r.progress));
+                    r.angle = pos.a;
+                    let variance = hasPurchasedItem(r, "Soft Tire") ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
+                    r.progress += r.currentSpeed * variance;
+                    
+                    r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
+                    r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
+                }
+
+                // --- LAP LOGIC ---
                 if(r.progress >= 0.999) {
                     if(r.lap < parseInt(document.getElementById('totalLaps').value)) { 
                         r.lap++; r.progress = 0; 
@@ -211,11 +222,13 @@
                 }
             });
 
+            // Update Leader Announcer
             const leader = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress))[0];
             if(leader && leader.name !== currentLeader && leader.progress > 0) {
                 currentLeader = leader.name;
                 announce(`${currentLeader.toUpperCase()} IS IN THE LEAD!`);
             }
+
             updateUI(); draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
@@ -237,11 +250,14 @@
             ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
             textures.forEach(t => { ctx.fillStyle = t.c; ctx.beginPath(); ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); });
             scenery.forEach(s => { ctx.fillStyle = "#022c2288"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
+            
             const tw = canvas.width - 224;
             ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
             ctx.beginPath(); trackPath.forEach((p,i) => i===0 ? ctx.moveTo(p.x*tw, p.y*canvas.height) : ctx.lineTo(p.x*tw, p.y*canvas.height)); ctx.stroke();
             ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
             ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
+
+            // Finish Line
             const start = trackPath[0];
             ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
             ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
@@ -249,18 +265,23 @@
             for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
             ctx.restore();
 
+            // Draw Hazards
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
                 const lo = (h.lane - (racers.length / 2)) * 14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
-                if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); } 
-                else if(h.type === 'spikes') { 
+                if(h.type === 'cones') { 
+                    ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); 
+                } else if(h.type === 'spikes') { 
                     ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
                     for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
-                } else if(h.type === 'oil') { ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
+                } else if(h.type === 'oil') { 
+                    ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); 
+                }
             });
 
+            // Draw Racers
             racers.forEach(r => {
                 if (!raceActive && r.x === 0 && r.y === 0) {
                     const pos = getPointOnPath(Math.max(0, r.progress));
@@ -271,7 +292,13 @@
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
                 ctx.fillStyle = r.color; ctx.shadowBlur = 8; ctx.shadowColor = "black";
                 ctx.beginPath(); ctx.roundRect(-12,-7,24,14,3); ctx.fill();
-                if(r.hasBushBar) { ctx.fillStyle = "#475569"; ctx.fillRect(8, -8, 6, 16); ctx.fillStyle = "#94a3b8"; ctx.fillRect(10, -6, 2, 12); }
+                
+                // Visual Item: Bush Bar
+                if(r.hasBushBar) { 
+                    ctx.fillStyle = "#475569"; ctx.fillRect(8, -8, 6, 16); 
+                    ctx.fillStyle = "#94a3b8"; ctx.fillRect(10, -6, 2, 12); 
+                }
+                
                 ctx.restore(); 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
             });
@@ -317,6 +344,7 @@
                 }
             }, 1000);
         }
+        
         window.onload = () => initRaceData();
         window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; draw(); };
     </script>
