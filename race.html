@@ -4,21 +4,23 @@
     <script src="config.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BCE GRAND PRIX</title>
+    <title>BCE GRAND PRIX - RACE CONTROL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #064e3b; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
-        canvas { display: block; }
-        .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); pointer-events: auto; }
+        /* Changed overflow to auto so you can scroll down to the admin section */
+        body { background: #064e3b; margin: 0; overflow-x: hidden; overflow-y: auto; font-family: 'Inter', sans-serif; color: white; }
+        canvas { display: block; background: #064e3b; }
+        .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); }
         .leaderboard { background: rgba(15, 23, 42, 0.85); border-left: 2px solid #3b82f6; backdrop-filter: blur(5px); }
         .announcer-panel { background: rgba(0, 0, 0, 0.85); border-top: 4px solid #facc15; }
+        .management-section { background: #0f172a; padding: 40px; border-top: 4px solid #3b82f6; min-height: 500px; }
         input, select { background: #1e293b; border: 1px solid #475569; padding: 4px 6px; border-radius: 4px; color: white; outline: none; font-size: 0.75rem; }
         #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 30px #3b82f6; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div class="admin-panel fixed top-0 left-0 w-full z-50 p-3 flex justify-between items-center px-8 shadow-2xl">
+    <div class="admin-panel sticky top-0 left-0 w-full z-50 p-3 flex justify-between items-center px-8 shadow-2xl">
         <div class="flex items-center gap-4">
             <h1 class="text-2xl font-black italic uppercase tracking-tighter text-white">BCE <span class="text-blue-500">GP</span></h1>
             <div class="flex gap-3">
@@ -50,24 +52,56 @@
         <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-6 py-2 rounded font-black hover:bg-blue-500 transition-all uppercase tracking-widest text-xs active:scale-95">Start Heat</button>
     </div>
 
-    <div class="leaderboard fixed top-[72px] right-0 bottom-16 w-56 z-40 p-4 shadow-2xl">
-        <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-1">Live Standings</h2>
-        <div id="leaderList" class="flex flex-col gap-2"></div>
+    <div class="relative">
+        <div class="leaderboard absolute top-4 right-0 bottom-4 w-56 z-40 p-4 shadow-2xl rounded-l-xl">
+            <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-1">Live Standings</h2>
+            <div id="leaderList" class="flex flex-col gap-2"></div>
+        </div>
+        <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
+        <canvas id="raceCanvas"></canvas>
     </div>
 
-    <div class="announcer-panel fixed bottom-0 left-0 w-full h-16 z-50 flex items-center px-10 shadow-2xl">
+    <div class="announcer-panel sticky bottom-0 w-full h-16 z-50 flex items-center px-10 shadow-2xl">
         <div class="bg-yellow-400 text-black px-3 py-1 font-black italic uppercase text-xs mr-4">Broadcasting</div>
         <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate transition-all duration-300">Awaiting Race Signal...</div>
     </div>
 
-    <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
-    <canvas id="raceCanvas"></canvas>
+    <div class="management-section">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex justify-between items-end mb-8 border-b border-slate-800 pb-6">
+                <div>
+                    <h2 class="text-3xl font-black italic uppercase">Race <span class="text-blue-500">Control</span></h2>
+                    <p class="text-slate-400 text-sm">Assign students to heats or randomize the entire class.</p>
+                </div>
+                <div class="flex gap-3 bg-slate-900 p-4 rounded-lg border border-slate-700">
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Total Heats</label>
+                        <input type="number" id="targetHeats" value="3" class="w-20 h-10 text-center text-lg">
+                    </div>
+                    <button onclick="autoAssignHeats()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded font-bold text-xs uppercase self-end h-10">Randomize All</button>
+                    <button onclick="saveHeatsToSheet()" id="saveBtn" class="bg-yellow-600 hover:bg-yellow-500 px-6 py-2 rounded font-black text-xs uppercase self-end h-10">Save to Sheets</button>
+                </div>
+            </div>
+
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="text-slate-500 text-[10px] uppercase tracking-widest border-b border-slate-800">
+                        <th class="pb-4">Student Name</th>
+                        <th class="pb-4">Current Heat Assignment</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody" class="divide-y divide-slate-800">
+                    </tbody>
+            </table>
+        </div>
+    </div>
 
     <script>
         const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
         const canvas = document.getElementById('raceCanvas');
         const ctx = canvas.getContext('2d');
         
+        let allStudents = []; // NEW: Stores all students for the management table
         let racers = [], hazards = [], textures = [], scenery = [], currentLeader = null;
         let raceActive = false, raceFinished = false;
 
@@ -78,6 +112,63 @@
         ];
 
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
+
+        // --- MANAGEMENT LOGIC ---
+
+        async function loadStudentList() {
+            try {
+                const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getStudents" }) });
+                allStudents = await res.json();
+                renderStudentTable();
+            } catch(e) { console.error("Table Load Error", e); }
+        }
+
+        function renderStudentTable() {
+            const body = document.getElementById('studentTableBody');
+            body.innerHTML = allStudents.map(s => `
+                <tr>
+                    <td class="py-4 font-bold text-lg">${s.name}</td>
+                    <td class="py-4">
+                        <input type="number" value="${s.heat || 0}" 
+                               class="w-20 text-center text-lg font-bold border-slate-700" 
+                               onchange="updateLocalHeat('${s.id}', this.value)">
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateLocalHeat(id, val) {
+            const student = allStudents.find(s => s.id == id);
+            if(student) student.heat = parseInt(val);
+        }
+
+        function autoAssignHeats() {
+            const numHeats = parseInt(document.getElementById('targetHeats').value) || 1;
+            const shuffled = [...allStudents].sort(() => 0.5 - Math.random());
+            shuffled.forEach((s, index) => {
+                s.heat = (index % numHeats) + 1;
+            });
+            renderStudentTable();
+        }
+
+        async function saveHeatsToSheet() {
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "SAVING...";
+            try {
+                await fetch(WEB_APP_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ action: "updateBulkHeats", assignments: allStudents }) 
+                });
+                btn.innerText = "SAVE TO SHEETS";
+                initRaceData(); // Refresh current heat racers on track
+                alert("Heats updated in Google Sheets!");
+            } catch(e) { 
+                alert("Error saving."); 
+                btn.innerText = "SAVE TO SHEETS";
+            }
+        }
+
+        // --- PRE-EXISTING RACE LOGIC ---
 
         function createEnvironment() {
             if (textures.length === 0) {
@@ -110,17 +201,17 @@
 
         function updateHazardsLive() { createEnvironment(); draw(); }
 
-        // Updated to specifically check the combined inventory string from Code.gs
         function hasPurchasedItem(r, keyword) {
             const lowerKeyword = keyword.toLowerCase().trim();
-            // Check all properties of racer (this picks up the 'inventory' field we added)
             return Object.values(r).some(val => 
                 val && typeof val === 'string' && val.toLowerCase().trim().includes(lowerKeyword)
             );
         }
 
         async function initRaceData() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            // Adjust canvas to fit above management section
+            canvas.width = window.innerWidth; 
+            canvas.height = 600; 
             textures = []; scenery = [];
             createEnvironment();
             try {
@@ -130,7 +221,6 @@
                     const sID = r.StudentID || r.studentID || r.id;
                     const finalColor = r.color || r.Color || r.colour || "#3b82f6";
                     
-                    // --- BASE SPEED CALCULATION ---
                     let calculatedBaseSpeed = 0.0011;
                     if (hasPurchasedItem(r, "Electric")) calculatedBaseSpeed += 0.00015;
                     if (hasPurchasedItem(r, "V8")) calculatedBaseSpeed += 0.0003;
@@ -163,28 +253,24 @@
                 let flatPenaltyMultiplier = Math.pow(0.75, r.flats);
                 let speedMod = Math.max(0.15, flatPenaltyMultiplier);
 
-                // --- HAZARD COLLISION LOGIC ---
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.007) {
                         if(h.type === 'cones') { 
                             if (r.hasBushBar) {
                                 announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE!`);
-                                h.active = false;
-                                r.penalty = 0; 
+                                h.active = false; r.penalty = 0; 
                             } else {
-                                r.penalty = 120; 
+                                r.penalty = 120; h.active = false;
                                 announce(`⚠️ ${r.name.toUpperCase()} HIT A CONE!`);
-                                h.active = false;
                             }
                         }
                         else if(h.type === 'spikes') { 
                             if (r.hasSpikeShield) {
-                                announce(`🛡️ ${r.name.toUpperCase()} PROTECTED FROM SPIKES!`);
+                                announce(`🛡️ ${r.name.toUpperCase()} PROTECTED!`);
                                 h.active = false;
                             } else {
-                                r.flats++; 
+                                r.flats++; h.active = false;
                                 announce(`💥 ${r.name.toUpperCase()} POPPED A TIRE!`);
-                                h.active = false;
                             }
                         }
                         else if(h.type === 'oil') { 
@@ -192,15 +278,13 @@
                                 announce(`🛡️ ${r.name.toUpperCase()} GRIP THROUGH OIL!`);
                                 h.active = false;
                             } else {
-                                r.spinFrames = 120; 
-                                announce(`🌀 ${r.name.toUpperCase()} SLIPPED ON OIL!`);
-                                h.active = false;
+                                r.spinFrames = 120; h.active = false;
+                                announce(`🌀 ${r.name.toUpperCase()} SLIPPED!`);
                             }
                         }
                     }
                 });
 
-                // --- MOVEMENT LOGIC ---
                 if(r.spinFrames > 0) {
                     r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
                 } else {
@@ -244,8 +328,9 @@
             const secT = (p * sections) - sec;
             const p1 = trackPath[sec];
             const p2Actual = trackPath[sec+1] || trackPath[0];
+            const tw = canvas.width - 224;
             return { 
-                x: (p1.x + (p2Actual.x - p1.x)*secT)*(canvas.width-224), 
+                x: (p1.x + (p2Actual.x - p1.x)*secT)*tw, 
                 y: (p1.y + (p2Actual.y - p1.y)*secT)*canvas.height, 
                 a: Math.atan2(p2Actual.y-p1.y, p2Actual.x-p1.x) 
             };
@@ -262,7 +347,6 @@
             ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
             ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
 
-            // Finish Line
             const start = trackPath[0];
             ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
             ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
@@ -270,7 +354,6 @@
             for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
             ctx.restore();
 
-            // Draw Hazards
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
@@ -286,7 +369,6 @@
                 }
             });
 
-            // Draw Racers
             racers.forEach(r => {
                 if (!raceActive && r.x === 0 && r.y === 0) {
                     const pos = getPointOnPath(Math.max(0, r.progress));
@@ -349,8 +431,12 @@
             }, 1000);
         }
         
-        window.onload = () => initRaceData();
-        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; draw(); };
+        window.onload = () => {
+            initRaceData();
+            loadStudentList(); // Load the management table on startup
+        };
+
+        window.onresize = () => { canvas.width = window.innerWidth; draw(); };
     </script>
 </body>
 </html>
