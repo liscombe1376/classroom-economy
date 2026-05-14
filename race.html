@@ -108,11 +108,11 @@
             draw();
         }
 
-        // Helper function that scans any string/field within the racer data to find purchased equipment keywords safely
+        // Specifically looks for equipment strings in any data column provided by the sheet
         function hasPurchasedItem(r, keyword) {
-            const lowerKeyword = keyword.toLowerCase();
+            const lowerKeyword = keyword.toLowerCase().trim();
             return Object.values(r).some(val => 
-                typeof val === 'string' && val.toLowerCase().includes(lowerKeyword)
+                val && typeof val === 'string' && val.toLowerCase().includes(lowerKeyword)
             );
         }
 
@@ -124,24 +124,23 @@
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
                 const data = await res.json();
                 
-                // CRITICAL DEBUG LOG: Open your browser inspection tool console to view exact keys coming from web apps!
                 console.log("LOADED RACERS RAW DATA:", data.racers);
 
                 racers = (data.racers || []).map((r, i) => {
                     const sID = r.StudentID || r.studentID || r.id;
                     const finalColor = r.color || r.Color || r.colour || "#3b82f6";
                     
-                    // Base Engine parsing via universal scanner check
+                    // Engine performance logic
                     let calculatedBaseSpeed = 0.0011;
                     if (hasPurchasedItem(r, "Electric")) calculatedBaseSpeed += 0.00015;
-                    if (hasPurchasedItem(r, "V8 Motor") || hasPurchasedItem(r, "V8 Engine")) calculatedBaseSpeed += 0.0003;
+                    if (hasPurchasedItem(r, "V8")) calculatedBaseSpeed += 0.0003;
                     if (hasPurchasedItem(r, "V12")) calculatedBaseSpeed += 0.0008;
 
-                    // Hard / Soft tire speed mods
+                    // Tire speed logic
                     if (hasPurchasedItem(r, "Hard Tire")) calculatedBaseSpeed += 0.0003;
                     if (hasPurchasedItem(r, "Soft Tire")) calculatedBaseSpeed -= 0.0001;
 
-                    // Nitro modification add-on performance boosts
+                    // Add-on speed logic
                     if (hasPurchasedItem(r, "Nitro")) calculatedBaseSpeed += 0.0004;
 
                     return {
@@ -165,7 +164,7 @@
             racers.forEach(r => {
                 if(r.finished) return;
 
-                // Speed penalty drops output scaling cleanly by 25% for every sustained flat tire puncture
+                // Speed penalty drops output scaling by 25% for every sustained spike strip hit
                 let flatPenaltyMultiplier = Math.pow(0.75, r.flats);
                 let speedMod = Math.max(0.15, flatPenaltyMultiplier);
 
@@ -188,25 +187,25 @@
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
                         if(h.type === 'cones') { 
                             if (hasPurchasedItem(r, "Bush Bar")) {
-                                announce(`${r.name.toUpperCase()} SMASHED CONE WITH BUSH BAR!`);
+                                announce(`${r.name.toUpperCase()} SMASHED CONE!`);
                             } else {
                                 r.penalty = 80; 
                             }
                             h.active = false; 
                         }
                         if(h.type === 'spikes') { 
-                            // Scans for 'Self-Inflated', 'Inflatable', or 'Spare Tire' accessories explicitly inside item payloads
-                            if (hasPurchasedItem(r, "Self-Inflated") || hasPurchasedItem(r, "Inflatable") || hasPurchasedItem(r, "Spare")) {
-                                announce(`🛡️ ${r.name.toUpperCase()} IMMUNE TO SPIKES! (INFLATABLE SHIELD)`);
+                            // CHECKING FOR "Self Inflated" FROM COLUMN B
+                            if (hasPurchasedItem(r, "Self Inflated") || hasPurchasedItem(r, "Inflatable")) {
+                                announce(`🛡️ ${r.name.toUpperCase()} IGNORED SPIKES (SELF-INFLATED)!`);
                             } else {
                                 r.flats++; 
-                                announce(`💥 ${r.name.toUpperCase()} HIT SPIKES! SPEED DOWN 25%!`);
+                                announce(`💥 ${r.name.toUpperCase()} HIT SPIKES! SPEED -25%`);
                             }
                             h.active = false; 
                         }
                         if(h.type === 'oil') { 
                             if (hasPurchasedItem(r, "Grip Tires") || hasPurchasedItem(r, "Suspension")) {
-                                announce(`${r.name.toUpperCase()} CONTROLLED OIL SLICK SLIDE!`);
+                                announce(`${r.name.toUpperCase()} CONTROLLED OIL SLIDE!`);
                             } else {
                                 r.spinFrames = 120; 
                             }
