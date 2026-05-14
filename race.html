@@ -112,7 +112,6 @@
 
         function hasPurchasedItem(r, keyword) {
             const lowerKeyword = keyword.toLowerCase().trim();
-            // Check all values in the row and trim them to avoid hidden spaces
             return Object.values(r).some(val => 
                 val && typeof val === 'string' && val.toLowerCase().trim().includes(lowerKeyword)
             );
@@ -142,7 +141,9 @@
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
                         color: finalColor,
-                        hasBushBar: hasPurchasedItem(r, "Bush")
+                        hasBushBar: hasPurchasedItem(r, "Bush"),
+                        hasSpikeShield: hasPurchasedItem(r, "Inflate") || hasPurchasedItem(r, "Self") || hasPurchasedItem(r, "Spare"),
+                        hasGrip: hasPurchasedItem(r, "Grip")
                     }
                 });
                 announce("Drivers at the Starting Line...");
@@ -165,7 +166,7 @@
                             if (r.hasBushBar) {
                                 announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE!`);
                                 h.active = false;
-                                r.penalty = 0; // Immediate reset
+                                r.penalty = 0; 
                             } else {
                                 r.penalty = 120; 
                                 announce(`⚠️ ${r.name.toUpperCase()} HIT A CONE!`);
@@ -173,8 +174,8 @@
                             }
                         }
                         else if(h.type === 'spikes') { 
-                            if (hasPurchasedItem(r, "Inflate") || hasPurchasedItem(r, "Self")) {
-                                announce(`🛡️ ${r.name.toUpperCase()} REPAIRED SPIKES!`);
+                            if (r.hasSpikeShield) {
+                                announce(`🛡️ ${r.name.toUpperCase()} PROTECTED FROM SPIKES!`);
                                 h.active = false;
                             } else {
                                 r.flats++; 
@@ -183,8 +184,8 @@
                             }
                         }
                         else if(h.type === 'oil') { 
-                            if (hasPurchasedItem(r, "Grip")) {
-                                announce(`🛡️ ${r.name.toUpperCase()} CUT THROUGH OIL!`);
+                            if (r.hasGrip) {
+                                announce(`🛡️ ${r.name.toUpperCase()} GRIP THROUGH OIL!`);
                                 h.active = false;
                             } else {
                                 r.spinFrames = 120; 
@@ -199,12 +200,10 @@
                 if(r.spinFrames > 0) {
                     r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
                 } else {
-                    // HARD OVERRIDE: Force penalty to 0 if Bush Bar is equipped before calculating speed
+                    // Bush Bar Safety Check
                     if (r.hasBushBar) r.penalty = 0;
 
-                    // Calculate speed - if penalty exists, it's 30% speed
                     r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
-                    
                     if(r.penalty > 0) r.penalty--;
                     
                     const pos = getPointOnPath(Math.max(0, r.progress));
@@ -216,7 +215,6 @@
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                 }
 
-                // --- LAP LOGIC ---
                 if(r.progress >= 0.999) {
                     if(r.lap < parseInt(document.getElementById('totalLaps').value)) { 
                         r.lap++; r.progress = 0; 
@@ -226,7 +224,6 @@
                 }
             });
 
-            // Update Leader Announcer
             const leader = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress))[0];
             if(leader && leader.name !== currentLeader && leader.progress > 0) {
                 currentLeader = leader.name;
@@ -242,13 +239,16 @@
             const p = Math.max(0, Math.min(0.999, t));
             const sec = Math.floor(p * sections);
             const secT = (p * sections) - sec;
-            const p1 = trackPath[sec], p2 = trackPath[sec+1];
+            const p1 = trackPath[sec], p2 = trackPath[sec+SectionValue(sec,sections)]; // Safety handling for end of path
+            const p2Actual = trackPath[sec+1] || trackPath[0];
             return { 
-                x: (p1.x + (p2.x - p1.x)*secT)*(canvas.width-224), 
-                y: (p1.y + (p2.y - p1.y)*secT)*canvas.height, 
-                a: Math.atan2(p2.y-p1.y, p2.x-p1.x) 
+                x: (p1.x + (p2Actual.x - p1.x)*secT)*(canvas.width-224), 
+                y: (p1.y + (p2Actual.y - p1.y)*secT)*canvas.height, 
+                a: Math.atan2(p2Actual.y-p1.y, p2Actual.x-p1.x) 
             };
         }
+
+        function SectionValue(s, tot) { return s < tot ? 1 : 0; }
 
         function draw() {
             ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -281,7 +281,7 @@
                     ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
                     for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
                 } else if(h.type === 'oil') { 
-                    ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); 
+                    ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); 
                 }
             });
 
@@ -294,14 +294,22 @@
                     r.angle = pos.a;
                 }
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                ctx.fillStyle = r.color; ctx.shadowBlur = 8; ctx.shadowColor = "black";
+                
+                // Shadow
+                ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-10, -5, 24, 14);
+
+                // Body
+                ctx.fillStyle = r.color; 
                 ctx.beginPath(); ctx.roundRect(-12,-7,24,14,3); ctx.fill();
                 
-                // Visual Item: Bush Bar
+                // Bush Bar Visual
                 if(r.hasBushBar) { 
-                    ctx.fillStyle = "#475569"; ctx.fillRect(8, -8, 6, 16); 
-                    ctx.fillStyle = "#94a3b8"; ctx.fillRect(10, -6, 2, 12); 
+                    ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(10, -8); ctx.lineTo(14, -8); ctx.lineTo(14, 8); ctx.lineTo(10, 8); ctx.stroke();
                 }
+
+                // Windows
+                ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; ctx.fillRect(-2, -5, 8, 10);
                 
                 ctx.restore(); 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
