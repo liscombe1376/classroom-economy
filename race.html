@@ -112,8 +112,9 @@
 
         function hasPurchasedItem(r, keyword) {
             const lowerKeyword = keyword.toLowerCase().trim();
+            // Check all values in the row and trim them to avoid hidden spaces
             return Object.values(r).some(val => 
-                val && typeof val === 'string' && val.toLowerCase().includes(lowerKeyword)
+                val && typeof val === 'string' && val.toLowerCase().trim().includes(lowerKeyword)
             );
         }
 
@@ -128,6 +129,7 @@
                     const sID = r.StudentID || r.studentID || r.id;
                     const finalColor = r.color || r.Color || r.colour || "#3b82f6";
                     let calculatedBaseSpeed = 0.0011;
+                    
                     if (hasPurchasedItem(r, "Electric")) calculatedBaseSpeed += 0.00015;
                     if (hasPurchasedItem(r, "V8")) calculatedBaseSpeed += 0.0003;
                     if (hasPurchasedItem(r, "V12")) calculatedBaseSpeed += 0.0008;
@@ -136,7 +138,7 @@
                     if (hasPurchasedItem(r, "Nitro")) calculatedBaseSpeed += 0.0004;
 
                     return {
-                        ...r, id: sID, progress: 0 - (i*0.012), lap: 1, speedBase: calculatedBaseSpeed,
+                        ...r, id: sID, name: r.Name || r.name || "Racer", progress: 0 - (i*0.012), lap: 1, speedBase: calculatedBaseSpeed,
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
                         color: finalColor,
@@ -163,9 +165,9 @@
                             if (r.hasBushBar) {
                                 announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE!`);
                                 h.active = false;
-                                return; // JUMP OUT - NO PENALTY
+                                r.penalty = 0; // Immediate reset
                             } else {
-                                r.penalty = 100; 
+                                r.penalty = 120; 
                                 announce(`⚠️ ${r.name.toUpperCase()} HIT A CONE!`);
                                 h.active = false;
                             }
@@ -174,7 +176,6 @@
                             if (hasPurchasedItem(r, "Inflate") || hasPurchasedItem(r, "Self")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} REPAIRED SPIKES!`);
                                 h.active = false;
-                                return;
                             } else {
                                 r.flats++; 
                                 announce(`💥 ${r.name.toUpperCase()} POPPED A TIRE!`);
@@ -185,7 +186,6 @@
                             if (hasPurchasedItem(r, "Grip")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} CUT THROUGH OIL!`);
                                 h.active = false;
-                                return;
                             } else {
                                 r.spinFrames = 120; 
                                 announce(`🌀 ${r.name.toUpperCase()} SLIPPED ON OIL!`);
@@ -199,8 +199,12 @@
                 if(r.spinFrames > 0) {
                     r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
                 } else {
+                    // HARD OVERRIDE: Force penalty to 0 if Bush Bar is equipped before calculating speed
+                    if (r.hasBushBar) r.penalty = 0;
+
                     // Calculate speed - if penalty exists, it's 30% speed
                     r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
+                    
                     if(r.penalty > 0) r.penalty--;
                     
                     const pos = getPointOnPath(Math.max(0, r.progress));
