@@ -78,14 +78,12 @@
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
 
         function createEnvironment() {
-            // Only rebuild scenery textures if they don't exist yet to prevent jarring re-renders on slider movement
             if (textures.length === 0) {
                 const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
                 for(let i=0; i<45; i++) textures.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, w: 150+Math.random()*300, h: 100+Math.random()*200, c: colors[Math.floor(Math.random()*colors.length)] + "55" });
                 for(let i=0; i<30; i++) scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
             }
 
-            // Always clear and completely regenerate hazards matching the input counts
             hazards = [];
             const counts = { 
                 cones: parseInt(document.getElementById('hCone').value) || 0, 
@@ -96,7 +94,7 @@
             Object.entries(counts).forEach(([type, count]) => {
                 for(let i=0; i<count; i++) {
                     hazards.push({ 
-                        progress: 0.12 + Math.random()*0.82, // Keeps items distributed nicely across layout lap path
+                        progress: 0.12 + Math.random()*0.82, 
                         lane: Math.floor(Math.random()*6), 
                         type: type, 
                         active: true 
@@ -105,7 +103,6 @@
             });
         }
 
-        // Live visual update loop triggered when changing hazard values via input selectors
         function updateHazardsLive() {
             createEnvironment();
             draw();
@@ -113,7 +110,6 @@
 
         async function initRaceData() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            // Clear prior textures so they size to match new screen updates safely
             textures = []; scenery = [];
             createEnvironment();
             try {
@@ -153,7 +149,10 @@
             if(!raceActive) return;
             racers.forEach(r => {
                 if(r.finished) return;
-                let speedMod = Math.max(0.4, 1 - (r.flats * 0.25));
+
+                // Permanent 25% speed degradation penalty for each unshielded spike strip flat tire sustained
+                let flatPenaltyMultiplier = Math.pow(0.75, r.flats);
+                let speedMod = Math.max(0.15, flatPenaltyMultiplier);
 
                 if(r.spinFrames > 0) {
                     r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
@@ -182,9 +181,10 @@
                         }
                         if(h.type === 'spikes') { 
                             if (r.tires === "Self-Inflated" || r.addon === "Spare Tire") {
-                                announce(`${r.name.toUpperCase()} SHIELDED FROM SPIKES!`);
+                                announce(`🛡️ ${r.name.toUpperCase()} IMMUNE TO SPIKES (SELF-INFLATED/SPARE)!`);
                             } else {
                                 r.flats++; 
+                                announce(`💥 ${r.name.toUpperCase()} POPPED A TIRE! SPEED DOWN 25%!`);
                             }
                             h.active = false; 
                         }
@@ -245,7 +245,6 @@
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
-                // Dynamically offset spacing depending on racers loaded, defaulting cleanly to a base track layout scale if empty
                 const activeLanesCount = racers.length > 0 ? racers.length : 6;
                 const lo = (h.lane - (activeLanesCount / 2)) * 14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
@@ -260,7 +259,6 @@
             });
 
             racers.forEach(r => {
-                // If the race hasn't started yet, force calculate pre-start position models to render them visually at grid lines
                 if (!raceActive && r.x === 0 && r.y === 0) {
                     const pos = getPointOnPath(Math.max(0, r.progress));
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
