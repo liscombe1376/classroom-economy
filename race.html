@@ -160,7 +160,7 @@
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
                         color: finalColor,
-                        hasBushBar: hasPurchasedItem(r, "Bush") // Cached for rendering
+                        hasBushBar: hasPurchasedItem(r, "Bush")
                     }
                 });
                 announce("Drivers at the Starting Line...");
@@ -197,7 +197,6 @@
                         if(h.type === 'cones') { 
                             if (r.hasBushBar) {
                                 announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE (BUSH BAR)!`);
-                                // No penalty set
                             } else {
                                 r.penalty = 80; 
                                 announce(`⚠️ ${r.name.toUpperCase()} HIT A CONE!`);
@@ -321,7 +320,6 @@
                 ctx.beginPath();
                 ctx.roundRect(-12,-7,24,14,3); ctx.fill();
                 
-                // Draw Bush Bar Visual
                 if(r.hasBushBar) {
                     ctx.fillStyle = "#475569";
                     ctx.fillRect(8, -8, 6, 16);
