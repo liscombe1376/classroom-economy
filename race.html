@@ -80,7 +80,6 @@
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
 
         function createEnvironment() {
-            // Keep existing environment if already generated to prevent flickering
             if (textures.length === 0) {
                 const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
                 for(let i=0; i<45; i++) {
@@ -193,8 +192,9 @@
 
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
+                        
                         if(h.type === 'cones') { 
-                            if (hasPurchasedItem(r, "Bush Bar")) {
+                            if (hasPurchasedItem(r, "Bush")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE (BUSH BAR)!`);
                             } else {
                                 r.penalty = 80; 
@@ -202,8 +202,9 @@
                             }
                             h.active = false; 
                         }
+
                         else if(h.type === 'spikes') { 
-                            if (hasPurchasedItem(r, "Self Inflated") || hasPurchasedItem(r, "Inflatable")) {
+                            if (hasPurchasedItem(r, "Inflate") || hasPurchasedItem(r, "Self")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} IGNORED SPIKES (SELF-INFLATED)!`);
                             } else {
                                 r.flats++; 
@@ -211,8 +212,9 @@
                             }
                             h.active = false; 
                         }
+
                         else if(h.type === 'oil') { 
-                            if (hasPurchasedItem(r, "Grip Tires") || hasPurchasedItem(r, "Grip")) {
+                            if (hasPurchasedItem(r, "Grip")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} STEADY ON OIL (GRIP TIRES)!`);
                             } else {
                                 r.spinFrames = 120; 
