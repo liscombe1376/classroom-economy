@@ -32,9 +32,9 @@
                 <div class="flex flex-col border-l border-slate-700 pl-3">
                     <label class="text-[8px] uppercase font-bold text-slate-400">Hazards (Cone / Spike / Oil)</label>
                     <div class="flex gap-1">
-                        <input type="number" id="hCone" value="8" class="w-10" title="Cones">
-                        <input type="number" id="hSpike" value="3" class="w-10" title="Spikes">
-                        <input type="number" id="hOil" value="2" class="w-10" title="Oil Slicks">
+                        <input type="number" id="hCone" value="8" class="w-10" title="Cones" onchange="updateHazardsLive()">
+                        <input type="number" id="hSpike" value="3" class="w-10" title="Spikes" onchange="updateHazardsLive()">
+                        <input type="number" id="hOil" value="2" class="w-10" title="Oil Slicks" onchange="updateHazardsLive()">
                     </div>
                 </div>
                 <div class="flex flex-col border-l border-slate-700 pl-3">
@@ -78,19 +78,43 @@
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
 
         function createEnvironment() {
-            textures = []; scenery = []; hazards = [];
-            const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
-            for(let i=0; i<45; i++) textures.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, w: 150+Math.random()*300, h: 100+Math.random()*200, c: colors[Math.floor(Math.random()*colors.length)] + "55" });
-            for(let i=0; i<30; i++) scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
-            
-            const counts = { cones: parseInt(document.getElementById('hCone').value), spikes: parseInt(document.getElementById('hSpike').value), oil: parseInt(document.getElementById('hOil').value) };
+            // Only rebuild scenery textures if they don't exist yet to prevent jarring re-renders on slider movement
+            if (textures.length === 0) {
+                const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
+                for(let i=0; i<45; i++) textures.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, w: 150+Math.random()*300, h: 100+Math.random()*200, c: colors[Math.floor(Math.random()*colors.length)] + "55" });
+                for(let i=0; i<30; i++) scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
+            }
+
+            // Always clear and completely regenerate hazards matching the input counts
+            hazards = [];
+            const counts = { 
+                cones: parseInt(document.getElementById('hCone').value) || 0, 
+                spikes: parseInt(document.getElementById('hSpike').value) || 0, 
+                oil: parseInt(document.getElementById('hOil').value) || 0 
+            };
+
             Object.entries(counts).forEach(([type, count]) => {
-                for(let i=0; i<count; i++) hazards.push({ progress: 0.12 + Math.random()*0.85, lane: Math.floor(Math.random()*6), type: type, active: true });
+                for(let i=0; i<count; i++) {
+                    hazards.push({ 
+                        progress: 0.12 + Math.random()*0.82, // Keeps items distributed nicely across layout lap path
+                        lane: Math.floor(Math.random()*6), 
+                        type: type, 
+                        active: true 
+                    });
+                }
             });
+        }
+
+        // Live visual update loop triggered when changing hazard values via input selectors
+        function updateHazardsLive() {
+            createEnvironment();
+            draw();
         }
 
         async function initRaceData() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            // Clear prior textures so they size to match new screen updates safely
+            textures = []; scenery = [];
             createEnvironment();
             try {
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
@@ -99,17 +123,14 @@
                     const sID = r.StudentID || r.studentID || r.id;
                     const finalColor = r.color || r.Color || r.colour || "#3b82f6";
                     
-                    // 1. Base Speed calculation matching garage upgrades
                     let calculatedBaseSpeed = 0.0011;
                     if (r.motor === "Electric Motor") calculatedBaseSpeed += 0.00015;
                     if (r.motor === "V8 Motor") calculatedBaseSpeed += 0.0003;
                     if (r.motor === "V12 Performance") calculatedBaseSpeed += 0.0008;
 
-                    // 2. Tire speed modifiers
                     if (r.tires === "Hard Tire") calculatedBaseSpeed += 0.0003;
                     if (r.tires === "Soft Tire") calculatedBaseSpeed -= 0.0001;
 
-                    // 3. Addon constant modifiers
                     if (r.addon === "Nitro") calculatedBaseSpeed += 0.0004;
 
                     return {
@@ -142,7 +163,6 @@
                     const pos = getPointOnPath(Math.max(0, r.progress));
                     r.angle = pos.a;
                     
-                    // Soft tires drop random variance down, providing reliable speed handling
                     let variance = (r.tires === "Soft Tire") ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
                     r.progress += r.currentSpeed * variance;
                     
@@ -150,7 +170,6 @@
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                 }
 
-                // Check Item Protection Modifiers on Hazard Hits
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
                         if(h.type === 'cones') { 
@@ -226,7 +245,9 @@
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
-                const lo = (h.lane - (racers.length/2))*14;
+                // Dynamically offset spacing depending on racers loaded, defaulting cleanly to a base track layout scale if empty
+                const activeLanesCount = racers.length > 0 ? racers.length : 6;
+                const lo = (h.lane - (activeLanesCount / 2)) * 14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
                 
                 if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
@@ -239,6 +260,13 @@
             });
 
             racers.forEach(r => {
+                // If the race hasn't started yet, force calculate pre-start position models to render them visually at grid lines
+                if (!raceActive && r.x === 0 && r.y === 0) {
+                    const pos = getPointOnPath(Math.max(0, r.progress));
+                    r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
+                    r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
+                    r.angle = pos.a;
+                }
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
                 ctx.fillStyle = r.color; 
                 ctx.shadowBlur = 8; ctx.shadowColor = "black";
@@ -292,7 +320,13 @@
                 else { div.innerText = "GO!"; clearInterval(timer); setTimeout(() => div.classList.add('hidden'), 1000); raceActive = true; raceFinished = false; gameLoop(); }
             }, 1000);
         }
+        
         window.onload = () => initRaceData();
+        window.onresize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            draw();
+        };
     </script>
 </body>
 </html>
