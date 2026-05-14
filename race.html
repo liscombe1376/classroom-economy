@@ -127,13 +127,14 @@
                 racers = (data.racers || []).map((r, i) => {
                     const sID = r.StudentID || r.studentID || r.id;
                     const finalColor = r.color || r.Color || r.colour || "#3b82f6";
-                    let calculatedBaseSpeed = 0.0011;
                     
+                    // --- BASE SPEED CALCULATION ---
+                    let calculatedBaseSpeed = 0.0011;
                     if (hasPurchasedItem(r, "Electric")) calculatedBaseSpeed += 0.00015;
                     if (hasPurchasedItem(r, "V8")) calculatedBaseSpeed += 0.0003;
                     if (hasPurchasedItem(r, "V12")) calculatedBaseSpeed += 0.0008;
                     if (hasPurchasedItem(r, "Hard Tire")) calculatedBaseSpeed += 0.0003;
-                    if (hasPurchasedItem(r, "Soft Tire")) calculatedBaseSpeed -= 0.0001;
+                    if (hasPurchasedItem(r, "Soft Tire")) calculatedBaseSpeed -= 0.0001; // Slower base, but lower variance later
                     if (hasPurchasedItem(r, "Nitro")) calculatedBaseSpeed += 0.0004;
 
                     return {
@@ -143,7 +144,8 @@
                         color: finalColor,
                         hasBushBar: hasPurchasedItem(r, "Bush"),
                         hasSpikeShield: hasPurchasedItem(r, "Inflate") || hasPurchasedItem(r, "Self") || hasPurchasedItem(r, "Spare"),
-                        hasGrip: hasPurchasedItem(r, "Grip")
+                        hasGrip: hasPurchasedItem(r, "Grip"),
+                        hasSoftTires: hasPurchasedItem(r, "Soft Tire")
                     }
                 });
                 announce("Drivers at the Starting Line...");
@@ -200,15 +202,15 @@
                 if(r.spinFrames > 0) {
                     r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
                 } else {
-                    // Bush Bar Safety Check
                     if (r.hasBushBar) r.penalty = 0;
-
                     r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
                     if(r.penalty > 0) r.penalty--;
                     
                     const pos = getPointOnPath(Math.max(0, r.progress));
                     r.angle = pos.a;
-                    let variance = hasPurchasedItem(r, "Soft Tire") ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
+                    
+                    // Soft Tire reduces random variance for more consistent speed
+                    let variance = r.hasSoftTires ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
                     r.progress += r.currentSpeed * variance;
                     
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
@@ -239,7 +241,7 @@
             const p = Math.max(0, Math.min(0.999, t));
             const sec = Math.floor(p * sections);
             const secT = (p * sections) - sec;
-            const p1 = trackPath[sec], p2 = trackPath[sec+SectionValue(sec,sections)]; // Safety handling for end of path
+            const p1 = trackPath[sec];
             const p2Actual = trackPath[sec+1] || trackPath[0];
             return { 
                 x: (p1.x + (p2Actual.x - p1.x)*secT)*(canvas.width-224), 
@@ -247,8 +249,6 @@
                 a: Math.atan2(p2Actual.y-p1.y, p2Actual.x-p1.x) 
             };
         }
-
-        function SectionValue(s, tot) { return s < tot ? 1 : 0; }
 
         function draw() {
             ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -294,23 +294,14 @@
                     r.angle = pos.a;
                 }
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                
-                // Shadow
                 ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-10, -5, 24, 14);
-
-                // Body
                 ctx.fillStyle = r.color; 
                 ctx.beginPath(); ctx.roundRect(-12,-7,24,14,3); ctx.fill();
-                
-                // Bush Bar Visual
                 if(r.hasBushBar) { 
                     ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
                     ctx.beginPath(); ctx.moveTo(10, -8); ctx.lineTo(14, -8); ctx.lineTo(14, 8); ctx.lineTo(10, 8); ctx.stroke();
                 }
-
-                // Windows
                 ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; ctx.fillRect(-2, -5, 8, 10);
-                
                 ctx.restore(); 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
             });
