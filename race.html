@@ -3,6 +3,7 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BCE GRAND PRIX</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -95,15 +96,28 @@
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
                 const data = await res.json();
                 racers = (data.racers || []).map((r, i) => {
-                    // Normalize ID to match your new "StudentID" header
                     const sID = r.StudentID || r.studentID || r.id;
                     const finalColor = r.color || r.Color || r.colour || "#3b82f6";
+                    
+                    // 1. Base Speed calculation matching garage upgrades
+                    let calculatedBaseSpeed = 0.0011;
+                    if (r.motor === "Electric Motor") calculatedBaseSpeed += 0.00015;
+                    if (r.motor === "V8 Motor") calculatedBaseSpeed += 0.0003;
+                    if (r.motor === "V12 Performance") calculatedBaseSpeed += 0.0008;
+
+                    // 2. Tire speed modifiers
+                    if (r.tires === "Hard Tire") calculatedBaseSpeed += 0.0003;
+                    if (r.tires === "Soft Tire") calculatedBaseSpeed -= 0.0001;
+
+                    // 3. Addon constant modifiers
+                    if (r.addon === "Nitro") calculatedBaseSpeed += 0.0004;
+
                     return {
                         ...r, 
                         id: sID,
                         progress: 0 - (i*0.012), 
                         lap: 1, 
-                        speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0004 : 0) + (r.motor === "Electric" ? 0.00015 : 0),
+                        speedBase: calculatedBaseSpeed,
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
                         color: finalColor
@@ -127,16 +141,42 @@
                     if(r.penalty > 0) r.penalty--;
                     const pos = getPointOnPath(Math.max(0, r.progress));
                     r.angle = pos.a;
-                    r.progress += r.currentSpeed * (0.9 + Math.random()*0.2);
+                    
+                    // Soft tires drop random variance down, providing reliable speed handling
+                    let variance = (r.tires === "Soft Tire") ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
+                    r.progress += r.currentSpeed * variance;
+                    
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                 }
 
+                // Check Item Protection Modifiers on Hazard Hits
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
-                        if(h.type === 'cones') { r.penalty = 80; h.active = false; }
-                        if(h.type === 'spikes') { r.flats++; h.active = false; }
-                        if(h.type === 'oil') { r.spinFrames = 120; h.active = false; }
+                        if(h.type === 'cones') { 
+                            if (r.addon === "Bush Bar") {
+                                announce(`${r.name.toUpperCase()} SMASHED CONE WITH BUSH BAR!`);
+                            } else {
+                                r.penalty = 80; 
+                            }
+                            h.active = false; 
+                        }
+                        if(h.type === 'spikes') { 
+                            if (r.tires === "Self-Inflated" || r.addon === "Spare Tire") {
+                                announce(`${r.name.toUpperCase()} SHIELDED FROM SPIKES!`);
+                            } else {
+                                r.flats++; 
+                            }
+                            h.active = false; 
+                        }
+                        if(h.type === 'oil') { 
+                            if (r.tires === "Grip Tires" || r.addon === "Suspension") {
+                                announce(`${r.name.toUpperCase()} CONTROLLED OIL SLICK SLIDE!`);
+                            } else {
+                                r.spinFrames = 120; 
+                            }
+                            h.active = false; 
+                        }
                     }
                 });
 
@@ -226,7 +266,6 @@
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
                 announce(`🏁 RACE OVER: ${s[0].name.toUpperCase()} WINS!`);
                 
-                // Sending payouts using the normalized StudentID
                 for(let i=0; i<3; i++) { 
                     if(s[i] && s[i].id) {
                         try {
