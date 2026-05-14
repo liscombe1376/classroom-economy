@@ -92,37 +92,23 @@
                     });
                 }
                 for(let i=0; i<30; i++) {
-                    scenery.push({ 
-                        x: Math.random()*canvas.width, 
-                        y: Math.random()*canvas.height, 
-                        r: 8+Math.random()*15 
-                    });
+                    scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
                 }
             }
-
             hazards = [];
             const counts = { 
                 cones: parseInt(document.getElementById('hCone').value) || 0, 
                 spikes: parseInt(document.getElementById('hSpike').value) || 0, 
                 oil: parseInt(document.getElementById('hOil').value) || 0 
             };
-
             Object.entries(counts).forEach(([type, count]) => {
                 for(let i=0; i<count; i++) {
-                    hazards.push({ 
-                        progress: 0.12 + Math.random()*0.82, 
-                        lane: Math.floor(Math.random()*6), 
-                        type: type, 
-                        active: true 
-                    });
+                    hazards.push({ progress: 0.12 + Math.random()*0.82, lane: Math.floor(Math.random()*6), type: type, active: true });
                 }
             });
         }
 
-        function updateHazardsLive() {
-            createEnvironment();
-            draw();
-        }
+        function updateHazardsLive() { createEnvironment(); draw(); }
 
         function hasPurchasedItem(r, keyword) {
             const lowerKeyword = keyword.toLowerCase().trim();
@@ -138,11 +124,9 @@
             try {
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
                 const data = await res.json();
-                
                 racers = (data.racers || []).map((r, i) => {
                     const sID = r.StudentID || r.studentID || r.id;
                     const finalColor = r.color || r.Color || r.colour || "#3b82f6";
-                    
                     let calculatedBaseSpeed = 0.0011;
                     if (hasPurchasedItem(r, "Electric")) calculatedBaseSpeed += 0.00015;
                     if (hasPurchasedItem(r, "V8")) calculatedBaseSpeed += 0.0003;
@@ -152,11 +136,7 @@
                     if (hasPurchasedItem(r, "Nitro")) calculatedBaseSpeed += 0.0004;
 
                     return {
-                        ...r, 
-                        id: sID,
-                        progress: 0 - (i*0.012), 
-                        lap: 1, 
-                        speedBase: calculatedBaseSpeed,
+                        ...r, id: sID, progress: 0 - (i*0.012), lap: 1, speedBase: calculatedBaseSpeed,
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
                         color: finalColor,
@@ -172,7 +152,6 @@
             if(!raceActive) return;
             racers.forEach(r => {
                 if(r.finished) return;
-
                 let flatPenaltyMultiplier = Math.pow(0.75, r.flats);
                 let speedMod = Math.max(0.15, flatPenaltyMultiplier);
 
@@ -183,43 +162,40 @@
                     if(r.penalty > 0) r.penalty--;
                     const pos = getPointOnPath(Math.max(0, r.progress));
                     r.angle = pos.a;
-                    
                     let variance = hasPurchasedItem(r, "Soft Tire") ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
                     r.progress += r.currentSpeed * variance;
-                    
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                 }
 
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
-                        
                         if(h.type === 'cones') { 
                             if (r.hasBushBar) {
-                                announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE (BUSH BAR)!`);
+                                announce(`🛡️ ${r.name.toUpperCase()} SMASHED CONE!`);
+                                // FIX: Explicitly ensure penalty is NOT set
+                                r.penalty = 0; 
                             } else {
-                                r.penalty = 80; 
+                                r.penalty = 120; // Increased penalty for non-protected cars
                                 announce(`⚠️ ${r.name.toUpperCase()} HIT A CONE!`);
                             }
                             h.active = false; 
                         }
-
                         else if(h.type === 'spikes') { 
                             if (hasPurchasedItem(r, "Inflate") || hasPurchasedItem(r, "Self")) {
-                                announce(`🛡️ ${r.name.toUpperCase()} IGNORED SPIKES (SELF-INFLATED)!`);
+                                announce(`🛡️ ${r.name.toUpperCase()} REPAIRED SPIKES!`);
                             } else {
                                 r.flats++; 
-                                announce(`💥 ${r.name.toUpperCase()} POPPED A TIRE! SPEED -25%`);
+                                announce(`💥 ${r.name.toUpperCase()} POPPED A TIRE!`);
                             }
                             h.active = false; 
                         }
-
                         else if(h.type === 'oil') { 
                             if (hasPurchasedItem(r, "Grip")) {
-                                announce(`🛡️ ${r.name.toUpperCase()} STEADY ON OIL (GRIP TIRES)!`);
+                                announce(`🛡️ ${r.name.toUpperCase()} CUT THROUGH OIL!`);
                             } else {
                                 r.spinFrames = 120; 
-                                announce(`🌀 ${r.name.toUpperCase()} LOST CONTROL ON OIL!`);
+                                announce(`🌀 ${r.name.toUpperCase()} SLIPPED ON OIL!`);
                             }
                             h.active = false; 
                         }
@@ -228,11 +204,9 @@
 
                 if(r.progress >= 0.999) {
                     if(r.lap < parseInt(document.getElementById('totalLaps').value)) { 
-                        r.lap++; 
-                        r.progress = 0; 
+                        r.lap++; r.progress = 0; 
                     } else { 
-                        r.finished = true; 
-                        checkWinner(); 
+                        r.finished = true; checkWinner(); 
                     }
                 }
             });
@@ -242,7 +216,6 @@
                 currentLeader = leader.name;
                 announce(`${currentLeader.toUpperCase()} IS IN THE LEAD!`);
             }
-
             updateUI(); draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
@@ -262,49 +235,30 @@
 
         function draw() {
             ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
-            textures.forEach(t => { 
-                ctx.fillStyle = t.c; ctx.beginPath(); 
-                ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); 
-            });
-            scenery.forEach(s => { 
-                ctx.fillStyle = "#022c2288"; ctx.beginPath(); 
-                ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); 
-            });
-            
+            textures.forEach(t => { ctx.fillStyle = t.c; ctx.beginPath(); ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); });
+            scenery.forEach(s => { ctx.fillStyle = "#022c2288"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
             const tw = canvas.width - 224;
             ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
             ctx.beginPath(); trackPath.forEach((p,i) => i===0 ? ctx.moveTo(p.x*tw, p.y*canvas.height) : ctx.lineTo(p.x*tw, p.y*canvas.height)); ctx.stroke();
             ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
             ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
-
             const start = trackPath[0];
             ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
             ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
             ctx.fillStyle = "black";
-            for(let i=0; i<8; i++) { 
-                if(i%2==0) { 
-                    ctx.fillRect(-4, i*10-40, 4, 10); 
-                    ctx.fillRect(0, i*10-30, 4, 10); 
-                } 
-            }
+            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
             ctx.restore();
 
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
-                const activeLanesCount = racers.length > 0 ? racers.length : 6;
-                const lo = (h.lane - (activeLanesCount / 2)) * 14;
+                const lo = (h.lane - (racers.length / 2)) * 14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
-                
-                if(h.type === 'cones') { 
-                    ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); 
-                } else if(h.type === 'spikes') { 
+                if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); } 
+                else if(h.type === 'spikes') { 
                     ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
-                    ctx.fillStyle = "#475569";
                     for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
-                } else if(h.type === 'oil') { 
-                    ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); 
-                }
+                } else if(h.type === 'oil') { ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
             });
 
             racers.forEach(r => {
@@ -315,18 +269,9 @@
                     r.angle = pos.a;
                 }
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                ctx.fillStyle = r.color; 
-                ctx.shadowBlur = 8; ctx.shadowColor = "black";
-                ctx.beginPath();
-                ctx.roundRect(-12,-7,24,14,3); ctx.fill();
-                
-                if(r.hasBushBar) {
-                    ctx.fillStyle = "#475569";
-                    ctx.fillRect(8, -8, 6, 16);
-                    ctx.fillStyle = "#94a3b8";
-                    ctx.fillRect(10, -6, 2, 12);
-                }
-                
+                ctx.fillStyle = r.color; ctx.shadowBlur = 8; ctx.shadowColor = "black";
+                ctx.beginPath(); ctx.roundRect(-12,-7,24,14,3); ctx.fill();
+                if(r.hasBushBar) { ctx.fillStyle = "#475569"; ctx.fillRect(8, -8, 6, 16); ctx.fillStyle = "#94a3b8"; ctx.fillRect(10, -6, 2, 12); }
                 ctx.restore(); 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
             });
@@ -349,50 +294,31 @@
                 const s = [...racers].sort((a,b) => b.progress - a.progress);
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
                 announce(`🏁 RACE OVER: ${s[0].name.toUpperCase()} WINS!`);
-                
                 for(let i=0; i<3; i++) { 
                     if(s[i] && s[i].id) {
                         try {
-                            await fetch(WEB_APP_URL, { 
-                                method: "POST", 
-                                body: JSON.stringify({ 
-                                    action: "payoutRace", 
-                                    winnerID: s[i].id, 
-                                    amount: parseInt(p[i]) 
-                                }) 
-                            });
-                        } catch(e) { console.error("Payout failed for " + s[i].name); }
+                            await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: s[i].id, amount: parseInt(p[i]) }) });
+                        } catch(e) { console.error("Payout failed"); }
                     } 
                 }
-                alert(`PODIUM:\n1st: ${s[0].name} ($${p[0]})\n2nd: ${s[1].name} ($${p[1]})\n3rd: ${s[2].name} ($${p[2]})`);
+                alert(`PODIUM:\n1st: ${s[0].name}\n2nd: ${s[1].name}\n3rd: ${s[2].name}`);
             }
         }
 
         function startCountdown() {
             const div = document.getElementById('countdown'); div.classList.remove('hidden');
-            let count = 3; 
-            document.getElementById('startBtn').classList.add('hidden');
+            let count = 3; document.getElementById('startBtn').classList.add('hidden');
             const timer = setInterval(() => {
-                if(count > 0) { 
-                    div.innerText = count; 
-                    count--; 
-                } else { 
-                    div.innerText = "GO!"; 
-                    clearInterval(timer); 
+                if(count > 0) { div.innerText = count--; } 
+                else { 
+                    div.innerText = "GO!"; clearInterval(timer); 
                     setTimeout(() => div.classList.add('hidden'), 1000); 
-                    raceActive = true; 
-                    raceFinished = false; 
-                    gameLoop(); 
+                    raceActive = true; raceFinished = false; gameLoop(); 
                 }
             }, 1000);
         }
-        
         window.onload = () => initRaceData();
-        window.onresize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            draw();
-        };
+        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; draw(); };
     </script>
 </body>
 </html>
