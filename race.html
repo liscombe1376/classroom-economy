@@ -40,7 +40,9 @@
                 <div class="flex flex-col border-l border-slate-700 pl-3">
                     <label class="text-[8px] uppercase font-bold text-slate-400">Prizes (1st / 2nd / 3rd)</label>
                     <div class="flex gap-1">
-                        <input type="number" id="p1" value="100" class="w-12"><input type="number" id="p2" value="50" class="w-12"><input type="number" id="p3" value="25" class="w-12">
+                        <input type="number" id="p1" value="100" class="w-12">
+                        <input type="number" id="p2" value="50" class="w-12">
+                        <input type="number" id="p3" value="25" class="w-12">
                     </div>
                 </div>
             </div>
@@ -80,8 +82,22 @@
         function createEnvironment() {
             if (textures.length === 0) {
                 const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
-                for(let i=0; i<45; i++) textures.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, w: 150+Math.random()*300, h: 100+Math.random()*200, c: colors[Math.floor(Math.random()*colors.length)] + "55" });
-                for(let i=0; i<30; i++) scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
+                for(let i=0; i<45; i++) {
+                    textures.push({ 
+                        x: Math.random()*canvas.width, 
+                        y: Math.random()*canvas.height, 
+                        w: 150+Math.random()*300, 
+                        h: 100+Math.random()*200, 
+                        c: colors[Math.floor(Math.random()*colors.length)] + "55" 
+                    });
+                }
+                for(let i=0; i<30; i++) {
+                    scenery.push({ 
+                        x: Math.random()*canvas.width, 
+                        y: Math.random()*canvas.height, 
+                        r: 8+Math.random()*15 
+                    });
+                }
             }
 
             hazards = [];
@@ -176,7 +192,8 @@
 
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
-                        // CONE CHECK: Resistant with "Bush Bar"
+                        
+                        // BUSH BAR vs CONES
                         if(h.type === 'cones') { 
                             if (hasPurchasedItem(r, "Bush Bar")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE (BUSH BAR)!`);
@@ -186,8 +203,9 @@
                             }
                             h.active = false; 
                         }
-                        // SPIKE CHECK: Resistant with "Self Inflated"
-                        if(h.type === 'spikes') { 
+
+                        // SELF INFLATED vs SPIKES
+                        else if(h.type === 'spikes') { 
                             if (hasPurchasedItem(r, "Self Inflated") || hasPurchasedItem(r, "Inflatable")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} IGNORED SPIKES (SELF-INFLATED)!`);
                             } else {
@@ -196,8 +214,9 @@
                             }
                             h.active = false; 
                         }
-                        // OIL CHECK: Resistant with "Grip Tires"
-                        if(h.type === 'oil') { 
+
+                        // GRIP TIRES vs OIL
+                        else if(h.type === 'oil') { 
                             if (hasPurchasedItem(r, "Grip Tires") || hasPurchasedItem(r, "Grip")) {
                                 announce(`🛡️ ${r.name.toUpperCase()} STEADY ON OIL (GRIP TIRES)!`);
                             } else {
@@ -210,8 +229,13 @@
                 });
 
                 if(r.progress >= 0.999) {
-                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { r.lap++; r.progress = 0; }
-                    else { r.finished = true; checkWinner(); }
+                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { 
+                        r.lap++; 
+                        r.progress = 0; 
+                    } else { 
+                        r.finished = true; 
+                        checkWinner(); 
+                    }
                 }
             });
 
@@ -231,13 +255,23 @@
             const sec = Math.floor(p * sections);
             const secT = (p * sections) - sec;
             const p1 = trackPath[sec], p2 = trackPath[sec+1];
-            return { x: (p1.x + (p2.x - p1.x)*secT)*(canvas.width-224), y: (p1.y + (p2.y - p1.y)*secT)*canvas.height, a: Math.atan2(p2.y-p1.y, p2.x-p1.x) };
+            return { 
+                x: (p1.x + (p2.x - p1.x)*secT)*(canvas.width-224), 
+                y: (p1.y + (p2.y - p1.y)*secT)*canvas.height, 
+                a: Math.atan2(p2.y-p1.y, p2.x-p1.x) 
+            };
         }
 
         function draw() {
             ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
-            textures.forEach(t => { ctx.fillStyle = t.c; ctx.beginPath(); ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); });
-            scenery.forEach(s => { ctx.fillStyle = "#022c2288"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
+            textures.forEach(t => { 
+                ctx.fillStyle = t.c; ctx.beginPath(); 
+                ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); 
+            });
+            scenery.forEach(s => { 
+                ctx.fillStyle = "#022c2288"; ctx.beginPath(); 
+                ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); 
+            });
             
             const tw = canvas.width - 224;
             ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
@@ -249,7 +283,12 @@
             ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
             ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
             ctx.fillStyle = "black";
-            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
+            for(let i=0; i<8; i++) { 
+                if(i%2==0) { 
+                    ctx.fillRect(-4, i*10-40, 4, 10); 
+                    ctx.fillRect(0, i*10-30, 4, 10); 
+                } 
+            }
             ctx.restore();
 
             hazards.forEach(h => {
@@ -259,13 +298,15 @@
                 const lo = (h.lane - (activeLanesCount / 2)) * 14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
                 
-                if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
-                else if(h.type === 'spikes') { 
+                if(h.type === 'cones') { 
+                    ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); 
+                } else if(h.type === 'spikes') { 
                     ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
                     ctx.fillStyle = "#475569";
                     for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
+                } else if(h.type === 'oil') { 
+                    ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); 
                 }
-                else if(h.type === 'oil') { ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
             });
 
             racers.forEach(r => {
@@ -322,10 +363,20 @@
 
         function startCountdown() {
             const div = document.getElementById('countdown'); div.classList.remove('hidden');
-            let count = 3; document.getElementById('startBtn').classList.add('hidden');
+            let count = 3; 
+            document.getElementById('startBtn').classList.add('hidden');
             const timer = setInterval(() => {
-                if(count > 0) { div.innerText = count; count--; }
-                else { div.innerText = "GO!"; clearInterval(timer); setTimeout(() => div.classList.add('hidden'), 1000); raceActive = true; raceFinished = false; gameLoop(); }
+                if(count > 0) { 
+                    div.innerText = count; 
+                    count--; 
+                } else { 
+                    div.innerText = "GO!"; 
+                    clearInterval(timer); 
+                    setTimeout(() => div.classList.add('hidden'), 1000); 
+                    raceActive = true; 
+                    raceFinished = false; 
+                    gameLoop(); 
+                }
             }, 1000);
         }
         
