@@ -159,7 +159,8 @@
                         speedBase: calculatedBaseSpeed,
                         currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
-                        color: finalColor
+                        color: finalColor,
+                        hasBushBar: hasPurchasedItem(r, "Bush") // Cached for rendering
                     }
                 });
                 announce("Drivers at the Starting Line...");
@@ -194,8 +195,9 @@
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
                         
                         if(h.type === 'cones') { 
-                            if (hasPurchasedItem(r, "Bush")) {
+                            if (r.hasBushBar) {
                                 announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE (BUSH BAR)!`);
+                                // No penalty set
                             } else {
                                 r.penalty = 80; 
                                 announce(`⚠️ ${r.name.toUpperCase()} HIT A CONE!`);
@@ -316,7 +318,17 @@
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
                 ctx.fillStyle = r.color; 
                 ctx.shadowBlur = 8; ctx.shadowColor = "black";
+                ctx.beginPath();
                 ctx.roundRect(-12,-7,24,14,3); ctx.fill();
+                
+                // Draw Bush Bar Visual
+                if(r.hasBushBar) {
+                    ctx.fillStyle = "#475569";
+                    ctx.fillRect(8, -8, 6, 16);
+                    ctx.fillStyle = "#94a3b8";
+                    ctx.fillRect(10, -6, 2, 12);
+                }
+                
                 ctx.restore(); 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
             });
