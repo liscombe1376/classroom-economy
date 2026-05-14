@@ -110,8 +110,10 @@
 
         function updateHazardsLive() { createEnvironment(); draw(); }
 
+        // Updated to specifically check the combined inventory string from Code.gs
         function hasPurchasedItem(r, keyword) {
             const lowerKeyword = keyword.toLowerCase().trim();
+            // Check all properties of racer (this picks up the 'inventory' field we added)
             return Object.values(r).some(val => 
                 val && typeof val === 'string' && val.toLowerCase().trim().includes(lowerKeyword)
             );
@@ -134,7 +136,7 @@
                     if (hasPurchasedItem(r, "V8")) calculatedBaseSpeed += 0.0003;
                     if (hasPurchasedItem(r, "V12")) calculatedBaseSpeed += 0.0008;
                     if (hasPurchasedItem(r, "Hard Tire")) calculatedBaseSpeed += 0.0003;
-                    if (hasPurchasedItem(r, "Soft Tire")) calculatedBaseSpeed -= 0.0001; // Slower base, but lower variance later
+                    if (hasPurchasedItem(r, "Soft Tire")) calculatedBaseSpeed -= 0.0001; 
                     if (hasPurchasedItem(r, "Nitro")) calculatedBaseSpeed += 0.0004;
 
                     return {
@@ -209,7 +211,6 @@
                     const pos = getPointOnPath(Math.max(0, r.progress));
                     r.angle = pos.a;
                     
-                    // Soft Tire reduces random variance for more consistent speed
                     let variance = r.hasSoftTires ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
                     r.progress += r.currentSpeed * variance;
                     
