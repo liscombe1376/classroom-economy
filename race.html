@@ -143,8 +143,16 @@
         function updateLocalHeat(id, val) {
             const student = allStudents.find(s => parseStudent(s).id == id);
             if(student) {
-                if (student.Heat !== undefined) student.Heat = parseInt(val);
-                student.heat = parseInt(val);
+                const heatNum = parseInt(val) || 0;
+                
+                student.heat = heatNum;
+                student.Heat = heatNum;
+                
+                Object.keys(student).forEach(key => {
+                    if(key.toLowerCase() === 'heat') {
+                        student[key] = heatNum;
+                    }
+                });
             }
         }
 
@@ -153,8 +161,13 @@
             const shuffled = [...allStudents].sort(() => 0.5 - Math.random());
             shuffled.forEach((s, index) => {
                 const h = (index % numHeats) + 1;
-                if (s.Heat !== undefined) s.Heat = h;
                 s.heat = h;
+                s.Heat = h;
+                Object.keys(s).forEach(key => {
+                    if(key.toLowerCase() === 'heat') {
+                        s[key] = h;
+                    }
+                });
             });
             renderStudentTable();
         }
