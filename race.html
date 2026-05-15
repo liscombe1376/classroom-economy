@@ -221,6 +221,15 @@
                     }
                 });
                 announce("Drivers at the Starting Line...");
+                
+                // Track-bound setup: Ensure starting cars align to lanes correctly prior to starting
+                racers.forEach(r => {
+                    const pos = getPointOnPath(Math.max(0, r.progress));
+                    r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
+                    r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
+                    r.angle = pos.a;
+                });
+                
                 draw();
             } catch(e) { console.error(e); }
         }
@@ -238,7 +247,7 @@
                             if (r.hasBushBar) {
                                 announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE! (BUSHBAR BONUS)`);
                                 h.active = false; 
-                                r.penalty = 0; // Completely immune
+                                r.penalty = 0; 
                             } else {
                                 r.penalty = 120; 
                                 h.active = false;
@@ -268,8 +277,12 @@
 
                 if(r.spinFrames > 0) {
                     r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
+                    
+                    // Track-bound logic: Track center anchor position while spinning out
+                    const pos = getPointOnPath(Math.max(0, r.progress));
+                    r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
+                    r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                 } else {
-                    // FIX: Ensure penalty doesn't stick around if they have a bushbar
                     if (r.hasBushBar) r.penalty = 0; 
                     
                     r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
@@ -281,6 +294,7 @@
                     let variance = r.hasSoftTires ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
                     r.progress += r.currentSpeed * variance;
                     
+                    // Track-bound calculation: Keeping car values tightly anchored to the lane path
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                 }
@@ -345,18 +359,11 @@
                 }
             });
             racers.forEach(r => {
-                if (!raceActive && r.x === 0 && r.y === 0) {
-                    const pos = getPointOnPath(Math.max(0, r.progress));
-                    r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
-                    r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
-                    r.angle = pos.a;
-                }
                 ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
                 ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-10, -5, 24, 14);
                 ctx.fillStyle = r.color; 
                 ctx.beginPath(); ctx.roundRect(-12,-7,24,14,3); ctx.fill();
                 
-                // Draws the physical Bushbar on the front of the car canvas element
                 if(r.hasBushBar) { 
                     ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
                     ctx.beginPath(); ctx.moveTo(10, -8); ctx.lineTo(14, -8); ctx.lineTo(14, 8); ctx.lineTo(10, 8); ctx.stroke();
@@ -409,7 +416,16 @@
             initRaceData();
             loadStudentList(); 
         };
-        window.onresize = () => { canvas.width = window.innerWidth; draw(); };
+        window.onresize = () => { 
+            canvas.width = window.innerWidth; 
+            // Track-bound handling: Re-render relative values mapping to layout sizes seamlessly on screen adjustment
+            racers.forEach(r => {
+                const pos = getPointOnPath(Math.max(0, r.progress));
+                r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
+                r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
+            });
+            draw(); 
+        };
     </script>
 </body>
 </html>
