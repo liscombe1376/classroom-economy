@@ -49,27 +49,24 @@
         </div>
         <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-6 py-2 rounded font-black hover:bg-blue-500 transition-all uppercase tracking-widest text-xs active:scale-95">Start Heat</button>
     </div>
-
     <div class="relative">
         <div class="leaderboard absolute top-4 right-0 bottom-4 w-56 z-40 p-4 shadow-2xl rounded-l-xl">
             <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-1">Live Standings</h2>
             <div id="leaderList" class="flex flex-col gap-2"></div>
         </div>
-        <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase text-white"></div>
+        <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
         <canvas id="raceCanvas"></canvas>
     </div>
-
     <div class="announcer-panel sticky bottom-0 w-full h-16 z-50 flex items-center px-10 shadow-2xl">
         <div class="bg-yellow-400 text-black px-3 py-1 font-black italic uppercase text-xs mr-4">Broadcasting</div>
-        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate">Awaiting Race Signal...</div>
+        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate transition-all duration-300">Awaiting Race Signal...</div>
     </div>
-
     <div class="management-section">
         <div class="max-w-5xl mx-auto">
             <div class="flex justify-between items-end mb-8 border-b border-slate-800 pb-6">
                 <div>
                     <h2 class="text-3xl font-black italic uppercase">Race <span class="text-blue-500">Control</span></h2>
-                    <p class="text-slate-400 text-sm">Assign students to heats based on Garage Sheet data.</p>
+                    <p class="text-slate-400 text-sm">Assign students to heats or randomize the entire class.</p>
                 </div>
                 <div class="flex gap-3 bg-slate-900 p-4 rounded-lg border border-slate-700">
                     <div class="flex flex-col">
@@ -84,42 +81,30 @@
                 <thead>
                     <tr class="text-slate-500 text-[10px] uppercase tracking-widest border-b border-slate-800">
                         <th class="pb-4">Student Name</th>
-                        <th class="pb-4">Current Heat</th>
+                        <th class="pb-4">Current Heat Assignment</th>
                     </tr>
                 </thead>
-                <tbody id="studentTableBody" class="divide-y divide-slate-800"></tbody>
+                <tbody id="studentTableBody" class="divide-y divide-slate-800">
+                </tbody>
             </table>
         </div>
     </div>
-
     <script>
         const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
         const canvas = document.getElementById('raceCanvas');
         const ctx = canvas.getContext('2d');
         
-        let allStudents = [], racers = [], hazards = [], textures = [], scenery = [], particles = [], currentLeader = null;
+        let allStudents = []; 
+        let racers = [], hazards = [], textures = [], scenery = [], currentLeader = null;
         let raceActive = false, raceFinished = false;
-        let finishedPlacements = []; // Tracks order of cars crossing the finish line
-        
         const trackPath = [
-            {x: 0.15, y: 0.20}, {x: 0.50, y: 0.20}, {x: 0.82, y: 0.20},
-            {x: 0.85, y: 0.45}, {x: 0.65, y: 0.55}, {x: 0.45, y: 0.45},
-            {x: 0.30, y: 0.65}, {x: 0.50, y: 0.82}, {x: 0.82, y: 0.82},
-            {x: 0.85, y: 0.90}, {x: 0.15, y: 0.90}, {x: 0.10, y: 0.55},
-            {x: 0.15, y: 0.20}
+            {x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.1, y: 0.3}, {x: 0.3, y: 0.15}, 
+            {x: 0.6, y: 0.4}, {x: 0.8, y: 0.15}, {x: 0.9, y: 0.5}, 
+            {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85}
         ];
-
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
 
-        function parseStudent(s) {
-            const vals = Object.values(s);
-            const id = s.studentID || s.StudentID || s.id || s.ID || vals[0] || "NoID";
-            const name = s.Name || s.name || s.DisplayName || vals[1] || "Racer";
-            const heat = s.Heat !== undefined ? s.Heat : (s.heat !== undefined ? s.heat : 0);
-            const color = s.Colour || s.Color || s.color || "#3b82f6";
-            return { id, name, heat, color, raw: s };
-        }
-
+        // --- MANAGEMENT LOGIC ---
         async function loadStudentList() {
             try {
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getStudents" }) });
@@ -127,343 +112,286 @@
                 renderStudentTable();
             } catch(e) { console.error("Table Load Error", e); }
         }
-
         function renderStudentTable() {
             const body = document.getElementById('studentTableBody');
-            body.innerHTML = allStudents.map(s => {
-                const data = parseStudent(s);
-                return `
+            body.innerHTML = allStudents.map(s => `
                 <tr>
-                    <td class="py-4 font-bold text-lg">${data.name} <span class="text-[10px] text-slate-600 block">${data.id}</span></td>
+                    <td class="py-4 font-bold text-lg">${s.name}</td>
                     <td class="py-4">
-                        <input type="number" value="${data.heat}" 
+                        <input type="number" value="${s.heat || 0}" 
                                class="w-20 text-center text-lg font-bold border-slate-700" 
-                               onchange="updateLocalHeat('${data.id}', this.value)">
+                               onchange="updateLocalHeat('${s.id}', this.value)">
                     </td>
-                </tr>`;
-            }).join('');
+                </tr>
+            `).join('');
         }
-
         function updateLocalHeat(id, val) {
-            const student = allStudents.find(s => parseStudent(s).id == id);
-            if(student) {
-                const heatNum = parseInt(val) || 0;
-                student.heat = heatNum;
-                student.Heat = heatNum;
-                if(student.studentID) student.id = student.studentID; 
-            }
+            const student = allStudents.find(s => s.id == id);
+            if(student) student.heat = parseInt(val);
         }
-
         function autoAssignHeats() {
             const numHeats = parseInt(document.getElementById('targetHeats').value) || 1;
             const shuffled = [...allStudents].sort(() => 0.5 - Math.random());
             shuffled.forEach((s, index) => {
-                const h = (index % numHeats) + 1;
-                s.heat = h;
-                s.Heat = h;
-                const parsed = parseStudent(s);
-                s.id = parsed.id;
+                s.heat = (index % numHeats) + 1;
             });
             renderStudentTable();
         }
-
         async function saveHeatsToSheet() {
             const btn = document.getElementById('saveBtn');
             btn.innerText = "SAVING...";
-            const cleanAssignments = allStudents.map(s => {
-                const parsed = parseStudent(s);
-                return { id: parsed.id, heat: parsed.heat };
-            });
             try {
-                const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "updateBulkHeats", assignments: cleanAssignments }) });
-                const result = await response.json();
-                if(result.success) { alert("Cloud Sync Complete!"); initRaceData(); } 
-                else { alert("Error saving: " + (result.message || "Unknown error")); }
-            } catch(e) { console.error(e); alert("Network error syncing to Sheets."); } 
-            finally { btn.innerText = "SAVE TO SHEETS"; }
-        }
-
-        function createSmoke(x, y) {
-            particles.push({
-                x: x, y: y,
-                vx: (Math.random() - 0.5) * 0.3,
-                vy: (Math.random() - 0.5) * 0.3,
-                alpha: 0.5,
-                size: 3 + Math.random() * 5
-            });
-        }
-
-        function updateParticles() {
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx; p.y += p.vy;
-                p.alpha -= 0.02; p.size += 0.12;
-                if (p.alpha <= 0) particles.splice(i, 1);
+                await fetch(WEB_APP_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ action: "updateBulkHeats", assignments: allStudents }) 
+                });
+                btn.innerText = "SAVE TO SHEETS";
+                initRaceData(); 
+                alert("Heats updated in Google Sheets!");
+            } catch(e) { 
+                alert("Error saving."); 
+                btn.innerText = "SAVE TO SHEETS";
             }
         }
 
+        // --- RACE LOGIC ---
         function createEnvironment() {
             if (textures.length === 0) {
                 const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
                 for(let i=0; i<45; i++) {
-                    textures.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, w: 150+Math.random()*300, h: 100+Math.random()*200, c: colors[Math.floor(Math.random()*colors.length)] + "55" });
+                    textures.push({ 
+                        x: Math.random()*canvas.width, 
+                        y: Math.random()*canvas.height, 
+                        w: 150+Math.random()*300, 
+                        h: 100+Math.random()*200, 
+                        c: colors[Math.floor(Math.random()*colors.length)] + "55" 
+                    });
                 }
-                for(let i=0; i<30; i++) { scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 }); }
+                for(let i=0; i<30; i++) {
+                    scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
+                }
             }
             hazards = [];
-            const counts = { cones: parseInt(document.getElementById('hCone').value) || 0, spikes: parseInt(document.getElementById('hSpike').value) || 0, oil: parseInt(document.getElementById('hOil').value) || 0 };
+            const counts = { 
+                cones: parseInt(document.getElementById('hCone').value) || 0, 
+                spikes: parseInt(document.getElementById('hSpike').value) || 0, 
+                oil: parseInt(document.getElementById('hOil').value) || 0 
+            };
             Object.entries(counts).forEach(([type, count]) => {
-                for(let i=0; i<count; i++) { hazards.push({ progress: 0.15 + Math.random()*0.80, lane: Math.floor(Math.random()*4), type: type, active: true }); }
+                for(let i=0; i<count; i++) {
+                    hazards.push({ progress: 0.12 + Math.random()*0.82, lane: Math.floor(Math.random()*6), type: type, active: true });
+                }
             });
         }
-
         function updateHazardsLive() { createEnvironment(); draw(); }
-        function hasUpgrade(r, keyword) { return Object.values(r).some(val => val && String(val).toLowerCase().includes(keyword.toLowerCase())); }
-
+        function hasPurchasedItem(r, keyword) {
+            const lowerKeyword = keyword.toLowerCase().trim();
+            return Object.values(r).some(val => 
+                val && typeof val === 'string' && val.toLowerCase().trim().includes(lowerKeyword)
+            );
+        }
         async function initRaceData() {
-            canvas.width = window.innerWidth; canvas.height = 600;
-            textures = []; scenery = []; particles = [];
-            finishedPlacements = []; 
+            canvas.width = window.innerWidth; 
+            canvas.height = 600; 
+            textures = []; scenery = [];
             createEnvironment();
             try {
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
                 const data = await res.json();
-                
                 racers = (data.racers || []).map((r, i) => {
-                    const p = parseStudent(r);
-                    let base = 0.0011;
-                    if (hasUpgrade(r, "Electric")) base += 0.00015;
-                    if (hasUpgrade(r, "V8")) base += 0.0003;
-                    if (hasUpgrade(r, "V12")) base += 0.0008;
-                    if (hasUpgrade(r, "Hard Tire")) base += 0.0003;
-                    if (hasUpgrade(r, "Soft Tire")) base -= 0.0001; 
-                    if (hasUpgrade(r, "Nitro")) base += 0.0004;
-
-                    let rowIndex = Math.floor(i / 4);  
-                    let colIndex = i % 4;              
-                    let gridStartProgress = 0 - (rowIndex * 0.022);
-                    let exactLaneOffset = (colIndex - 1.5) * 16; 
-
+                    const sID = r.StudentID || r.studentID || r.id;
+                    const finalColor = r.color || r.Color || r.colour || "#3b82f6";
+                    
+                    let calculatedBaseSpeed = 0.0011;
+                    if (hasPurchasedItem(r, "Electric")) calculatedBaseSpeed += 0.00015;
+                    if (hasPurchasedItem(r, "V8")) calculatedBaseSpeed += 0.0003;
+                    if (hasPurchasedItem(r, "V12")) calculatedBaseSpeed += 0.0008;
+                    if (hasPurchasedItem(r, "Hard Tire")) calculatedBaseSpeed += 0.0003;
+                    if (hasPurchasedItem(r, "Soft Tire")) calculatedBaseSpeed -= 0.0001; 
+                    if (hasPurchasedItem(r, "Nitro")) calculatedBaseSpeed += 0.0004;
                     return {
-                        ...r, id: p.id, name: p.name, color: p.color,
-                        progress: gridStartProgress, lap: 1, speedBase: base, currentSpeed: 0, 
-                        penalty: 0, spinFrames: 0, flats: 0, collisionCooldown: 0,
-                        x: 0, y: 0, angle: 0, lane: colIndex, laneOffset: exactLaneOffset, finished: false,
-                        hasBushBar: hasUpgrade(r, "Bush"),
-                        hasSpikeShield: hasUpgrade(r, "Inflate") || hasUpgrade(r, "Self") || hasUpgrade(r, "Spare"),
-                        hasGrip: hasUpgrade(r, "Grip"),
-                        hasSoftTires: hasUpgrade(r, "Soft Tire")
+                        ...r, id: sID, name: r.Name || r.name || "Racer", progress: 0 - (i*0.012), lap: 1, speedBase: calculatedBaseSpeed,
+                        currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
+                        x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
+                        color: finalColor,
+                        hasBushBar: hasPurchasedItem(r, "Bush"),
+                        hasSpikeShield: hasPurchasedItem(r, "Inflate") || hasPurchasedItem(r, "Self") || hasPurchasedItem(r, "Spare"),
+                        hasGrip: hasPurchasedItem(r, "Grip"),
+                        hasSoftTires: hasPurchasedItem(r, "Soft Tire")
                     }
                 });
-                announce("Heat " + document.getElementById('heatSelect').value + " Grid Locked.");
+                announce("Drivers at the Starting Line...");
                 draw();
             } catch(e) { console.error(e); }
         }
-
         function gameLoop() {
             if(!raceActive) return;
-            
-            updateParticles();
-
-            for (let i = 0; i < racers.length; i++) {
-                for (let j = i + 1; j < racers.length; j++) {
-                    let r1 = racers[i]; let r2 = racers[j];
-                    if (r1.finished || r2.finished || r1.progress < 0 || r2.progress < 0) continue;
-
-                    let dx = r1.x - r2.x; let dy = r1.y - r2.y;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-                    
-                    if (dist < 16) { 
-                        if (r1.collisionCooldown === 0 && r2.collisionCooldown === 0) {
-                            r1.collisionCooldown = 60; r2.collisionCooldown = 60;
-                            announce(`💥 CONTACT: ${r1.name.toUpperCase()} & ${r2.name.toUpperCase()} BUMPED!`);
-                        }
-                    }
-                }
-            }
-
             racers.forEach(r => {
                 if(r.finished) return;
                 
-                let speedMod = Math.max(0.15, Math.pow(0.75, r.flats));
-                if (r.collisionCooldown > 0) { speedMod *= 0.5; r.collisionCooldown--; }
-
+                let flatPenaltyMultiplier = Math.pow(0.75, r.flats);
+                let speedMod = Math.max(0.15, flatPenaltyMultiplier);
+                
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.007) {
                         if(h.type === 'cones') { 
-                            if (r.hasBushBar) { announce(`🛡️ ${r.name.toUpperCase()} SMASHED CONE!`); h.active = false; }
-                            else { r.penalty = 120; h.active = false; announce(`⚠️ ${r.name.toUpperCase()} HIT CONE!`); }
+                            if (r.hasBushBar) {
+                                announce(`🛡️ ${r.name.toUpperCase()} RAMMED CONE! (BUSHBAR BONUS)`);
+                                h.active = false; 
+                                r.penalty = 0; // Completely immune
+                            } else {
+                                r.penalty = 120; 
+                                h.active = false;
+                                announce(`⚠️ ${r.name.toUpperCase()} HIT A CONE!`);
+                            }
                         }
                         else if(h.type === 'spikes') { 
-                            if (r.hasSpikeShield) { announce(`🛡️ ${r.name.toUpperCase()} TIRE PROTECTED!`); h.active = false; }
-                            else { r.flats++; h.active = false; announce(`💥 ${r.name.toUpperCase()} POPPED TIRE!`); }
+                            if (r.hasSpikeShield) {
+                                announce(`🛡️ ${r.name.toUpperCase()} PROTECTED!`);
+                                h.active = false;
+                            } else {
+                                r.flats++; h.active = false;
+                                announce(`💥 ${r.name.toUpperCase()} POPPED A TIRE!`);
+                            }
                         }
                         else if(h.type === 'oil') { 
-                            if (r.hasGrip) { announce(`🛡️ ${r.name.toUpperCase()} GRIPPED OIL!`); h.active = false; }
-                            else { r.spinFrames = 120; h.active = false; announce(`🌀 ${r.name.toUpperCase()} SPINNING!`); }
+                            if (r.hasGrip) {
+                                announce(`🛡️ ${r.name.toUpperCase()} GRIP THROUGH OIL!`);
+                                h.active = false;
+                            } else {
+                                r.spinFrames = 120; h.active = false;
+                                announce(`🌀 ${r.name.toUpperCase()} SLIPPED!`);
+                            }
                         }
                     }
                 });
 
-                if(r.spinFrames > 0) { r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--; } 
-                else {
+                if(r.spinFrames > 0) {
+                    r.currentSpeed = 0; r.angle += 0.4; r.spinFrames--;
+                } else {
+                    // FIX: Ensure penalty doesn't stick around if they have a bushbar
+                    if (r.hasBushBar) r.penalty = 0; 
+                    
                     r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
                     if(r.penalty > 0) r.penalty--;
                     
-                    let randomJitter = 0.96 + Math.random() * 0.08;
-                    r.progress += r.currentSpeed * randomJitter;
-
-                    const pos = getPointOnPath(Math.max(0, Math.min(0.999, r.progress)));
+                    const pos = getPointOnPath(Math.max(0, r.progress));
+                    r.angle = pos.a;
                     
-                    r.angle = pos.a; 
+                    let variance = r.hasSoftTires ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
+                    r.progress += r.currentSpeed * variance;
+                    
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
-
-                    if(r.progress > 0 && Math.random() > 0.4) {
-                        let backX = r.x - Math.cos(r.angle) * 10;
-                        let backY = r.y - Math.sin(r.angle) * 10;
-                        createSmoke(backX, backY);
-                    }
                 }
-
                 if(r.progress >= 0.999) {
-                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { r.lap++; r.progress = 0; }
-                    else { 
-                        r.finished = true; 
-                        finishedPlacements.push(r); // Lock position instantly upon passing checkout line
-                        announce(`🏁 ${r.name.toUpperCase()} HAS FINISHED IN POSITION #${finishedPlacements.length}!`);
-                        checkWinner(); 
+                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { 
+                        r.lap++; r.progress = 0; 
+                    } else { 
+                        r.finished = true; checkWinner(); 
                     }
                 }
             });
-
-            // Find leading dynamic car out of non-finished racers
-            const activeRacers = racers.filter(r => !r.finished);
-            const leader = [...activeRacers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress))[0];
+            const leader = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress))[0];
             if(leader && leader.name !== currentLeader && leader.progress > 0) {
                 currentLeader = leader.name;
-                announce(`${currentLeader.toUpperCase()} TAKES THE LEAD!`);
+                announce(`${currentLeader.toUpperCase()} IS IN THE LEAD!`);
             }
             updateUI(); draw();
             if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
         }
-
         function getPointOnPath(t) {
             const sections = trackPath.length - 1;
             const p = Math.max(0, Math.min(0.999, t));
             const sec = Math.floor(p * sections);
             const secT = (p * sections) - sec;
-            const p1 = trackPath[sec], p2 = trackPath[sec+1] || trackPath[0];
+            const p1 = trackPath[sec];
+            const p2Actual = trackPath[sec+1] || trackPath[0];
             const tw = canvas.width - 224;
-            return { x: (p1.x + (p2.x - p1.x)*secT)*tw, y: (p1.y + (p2.y - p1.y)*secT)*canvas.height, a: Math.atan2(p2.y-p1.y, p2.x-p1.x) };
+            return { 
+                x: (p1.x + (p2Actual.x - p1.x)*secT)*tw, 
+                y: (p1.y + (p2Actual.y - p1.y)*secT)*canvas.height, 
+                a: Math.atan2(p2Actual.y-p1.y, p2Actual.x-p1.x) 
+            };
         }
-
         function draw() {
             ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
             textures.forEach(t => { ctx.fillStyle = t.c; ctx.beginPath(); ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); });
             scenery.forEach(s => { ctx.fillStyle = "#022c2288"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
             
             const tw = canvas.width - 224;
-            
-            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 110; ctx.lineJoin = "round"; ctx.lineCap = "round";
+            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
             ctx.beginPath(); trackPath.forEach((p,i) => i===0 ? ctx.moveTo(p.x*tw, p.y*canvas.height) : ctx.lineTo(p.x*tw, p.y*canvas.height)); ctx.stroke();
-            
-            ctx.strokeStyle = "white"; ctx.lineWidth = 100; ctx.stroke();
-            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 94; ctx.stroke();
-
-            ctx.strokeStyle = "#475569"; ctx.lineWidth = 2; ctx.setLineDash([10,15]); ctx.stroke();
-            ctx.setLineDash([]); 
-
-            const finishPos = getPointOnPath(0.0);
-            ctx.save();
-            ctx.translate(finishPos.x, finishPos.y);
-            ctx.rotate(finishPos.a + Math.PI/2);
-            let boxSize = 9;
-            for(let row=0; row<2; row++) {
-                for(let col=-5; col<5; col++) {
-                    ctx.fillStyle = (row + col) % 2 === 0 ? "white" : "black";
-                    ctx.fillRect(col * boxSize, (row - 1) * boxSize, boxSize, boxSize);
-                }
-            }
+            ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
+            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
+            const start = trackPath[0];
+            ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
+            ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80);
+            ctx.fillStyle = "black";
+            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
             ctx.restore();
-
-            particles.forEach(p => {
-                ctx.fillStyle = `rgba(226, 232, 240, ${p.alpha})`;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-            });
-
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
-                const lo = (h.lane - 1.5) * 16;
+                const lo = (h.lane - (racers.length / 2)) * 14;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
-                if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
-                else if(h.type === 'spikes') { ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); } }
-                else if(h.type === 'oil') { ctx.fillStyle = "rgba(0,0,0,0.65)"; ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI*2); ctx.fill(); }
+                if(h.type === 'cones') { 
+                    ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); 
+                } else if(h.type === 'spikes') { 
+                    ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); 
+                    for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); }
+                } else if(h.type === 'oil') { 
+                    ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); 
+                }
             });
-
             racers.forEach(r => {
-                if (!raceActive && r.x === 0) {
+                if (!raceActive && r.x === 0 && r.y === 0) {
                     const pos = getPointOnPath(Math.max(0, r.progress));
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                     r.angle = pos.a;
                 }
-                ctx.save(); 
-                ctx.translate(r.x, r.y); 
-                ctx.rotate(r.angle); 
-                
-                ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(-10, -5, 22, 11);
-                
+                ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
+                ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-10, -5, 24, 14);
                 ctx.fillStyle = r.color; 
-                ctx.beginPath(); ctx.roundRect(-12,-6,24,12,3.5); ctx.fill();
+                ctx.beginPath(); ctx.roundRect(-12,-7,24,14,3); ctx.fill();
                 
-                ctx.fillStyle = "#94a3b8"; ctx.fillRect(2, -4, 4, 8);
-                ctx.fillStyle = "#1e293b"; ctx.fillRect(-4, -4, 5, 8);
-
-                if(r.hasBushBar) { ctx.strokeStyle = "#64748b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(12, -8); ctx.lineTo(15, -8); ctx.lineTo(15, 8); ctx.lineTo(12, 8); ctx.stroke(); }
-                if(r.collisionCooldown > 0) { ctx.fillStyle = "rgba(239, 68, 68, 0.45)"; ctx.roundRect(-12,-6,24,12,3.5); ctx.fill(); }
-                
+                // Draws the physical Bushbar on the front of the car canvas element
+                if(r.hasBushBar) { 
+                    ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(10, -8); ctx.lineTo(14, -8); ctx.lineTo(14, 8); ctx.lineTo(10, 8); ctx.stroke();
+                }
+                ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; ctx.fillRect(-2, -5, 8, 10);
                 ctx.restore(); 
-                
-                ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; 
-                ctx.fillText(r.name, r.x, r.y-16);
+                ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
             });
         }
-
         function updateUI() {
-            // Sort remaining active drivers dynamically
-            const activeRacers = racers.filter(r => !r.finished);
-            const sortedActive = [...activeRacers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress));
-            
-            // Absolute leaderboard is locked finishers + dynamic active racers
-            const absoluteStandings = [...finishedPlacements, ...sortedActive];
-
-            document.getElementById('leaderList').innerHTML = absoluteStandings.slice(0, 8).map((r, i) => `
+            const sorted = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress));
+            document.getElementById('leaderList').innerHTML = sorted.slice(0, 8).map((r, i) => `
                 <div class="flex items-center gap-2 bg-slate-800/90 p-2 rounded text-[11px] border-l-4" style="border-color: ${r.color}">
                     <span class="font-black text-slate-500">${i+1}</span>
-                    <div class="flex-1 truncate font-bold text-white uppercase italic">${r.name}</div>
-                    <div class="text-blue-400 font-black">${r.finished ? 'FINISH' : 'L' + r.lap}</div>
-                </div>`).join('');
+                    <div class="flex-1 truncate font-bold text-white">${r.name}</div>
+                    <div class="text-blue-400">L${r.lap}</div>
+                </div>
+            `).join('');
         }
-
         async function checkWinner() {
             if(racers.every(r => r.finished) && !raceFinished) {
                 raceFinished = true;
+                const s = [...racers].sort((a,b) => b.progress - a.progress);
                 const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
-                announce(`🏁 RACE OVER: ${finishedPlacements[0].name.toUpperCase()} WINS!`);
-                
+                announce("🏁 RACE OVER!");
                 for(let i=0; i<3; i++) { 
-                    if(finishedPlacements[i] && finishedPlacements[i].id) {
-                        try { await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: finishedPlacements[i].id, amount: parseInt(p[i]) }) }); } 
-                        catch(e) { console.error("Payout failed"); }
+                    if(s[i] && s[i].id) {
+                        try {
+                            await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "payoutRace", winnerID: s[i].id, amount: parseInt(p[i]) }) });
+                        } catch(e) { console.error("Payout failed"); }
                     } 
                 }
-                alert(`PODIUM:\n1st: ${finishedPlacements[0].name}\n2nd: ${finishedPlacements[1].name}\n3rd: ${finishedPlacements[2] ? finishedPlacements[2].name : 'N/A'}`);
-                document.getElementById('startBtn').classList.remove('hidden');
+                alert(`PODIUM:\n1st: ${s[0].name}\n2nd: ${s[1].name}\n3rd: ${s[2].name}`);
             }
         }
-
         function startCountdown() {
             const div = document.getElementById('countdown'); div.classList.remove('hidden');
             let count = 3; document.getElementById('startBtn').classList.add('hidden');
@@ -477,7 +405,10 @@
             }, 1000);
         }
         
-        window.onload = () => { initRaceData(); loadStudentList(); };
+        window.onload = () => {
+            initRaceData();
+            loadStudentList(); 
+        };
         window.onresize = () => { canvas.width = window.innerWidth; draw(); };
     </script>
 </body>
