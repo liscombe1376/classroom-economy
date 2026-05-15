@@ -97,15 +97,20 @@
         const canvas = document.getElementById('raceCanvas');
         const ctx = canvas.getContext('2d');
         
-        let allStudents = [], racers = [], hazards = [], textures = [], scenery = [], currentLeader = null;
+        let allStudents = [], racers = [], hazards = [], textures = [], scenery = [], particles = [], currentLeader = null;
         let raceActive = false, raceFinished = false;
         
-        const trackPath = [{x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.1, y: 0.3}, {x: 0.3, y: 0.15}, {x: 0.6, y: 0.4}, {x: 0.8, y: 0.15}, {x: 0.9, y: 0.5}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85}];
+        // Loop track starting along the top edge moving right to left
+        const trackPath = [
+            {x: 0.5, y: 0.15}, {x: 0.2, y: 0.15}, {x: 0.1, y: 0.35}, 
+            {x: 0.3, y: 0.55}, {x: 0.6, y: 0.45}, {x: 0.8, y: 0.60}, 
+            {x: 0.9, y: 0.85}, {x: 0.5, y: 0.85}, {x: 0.15, y: 0.85},
+            {x: 0.08, y: 0.60}, {x: 0.4, y: 0.30}, {x: 0.85, y: 0.15}, 
+            {x: 0.5, y: 0.15}
+        ];
 
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
 
-        /** * HELPERS: Parse incoming keys safely out of sheet variants
-         */
         function parseStudent(s) {
             const vals = Object.values(s);
             const id = s.studentID || s.StudentID || s.id || s.ID || vals[0] || "NoID";
@@ -165,36 +170,40 @@
         async function saveHeatsToSheet() {
             const btn = document.getElementById('saveBtn');
             btn.innerText = "SAVING...";
-            
-            // Build a clean payload arrays mapping IDs cleanly to their updated heats
             const cleanAssignments = allStudents.map(s => {
                 const parsed = parseStudent(s);
                 return { id: parsed.id, heat: parsed.heat };
             });
-
             try {
-                const response = await fetch(WEB_APP_URL, { 
-                    method: "POST", 
-                    body: JSON.stringify({ action: "updateBulkHeats", assignments: cleanAssignments }) 
-                });
+                const response = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "updateBulkHeats", assignments: cleanAssignments }) });
                 const result = await response.json();
-                
-                if(result.success) {
-                    alert("Cloud Sync Complete!");
-                    initRaceData(); 
-                } else {
-                    alert("Error saving: " + (result.message || "Unknown error"));
-                }
-            } catch(e) { 
-                console.error(e);
-                alert("Network error. Couldn't sync to Google Sheets."); 
-            } finally {
-                btn.innerText = "SAVE TO SHEETS";
+                if(result.success) { alert("Cloud Sync Complete!"); initRaceData(); } 
+                else { alert("Error saving: " + (result.message || "Unknown error")); }
+            } catch(e) { console.error(e); alert("Network error syncing to Sheets."); } 
+            finally { btn.innerText = "SAVE TO SHEETS"; }
+        }
+
+        // --- SMOKE ENGINE ---
+        function createSmoke(x, y) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                alpha: 0.6,
+                size: 4 + Math.random() * 6
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy;
+                p.alpha -= 0.015; p.size += 0.15;
+                if (p.alpha <= 0) particles.splice(i, 1);
             }
         }
 
-        // --- RACE LOGIC ---
-
+        // --- ENVIRONMENT LOGIC ---
         function createEnvironment() {
             if (textures.length === 0) {
                 const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
@@ -211,14 +220,11 @@
         }
 
         function updateHazardsLive() { createEnvironment(); draw(); }
-
-        function hasUpgrade(r, keyword) {
-            return Object.values(r).some(val => val && String(val).toLowerCase().includes(keyword.toLowerCase()));
-        }
+        function hasUpgrade(r, keyword) { return Object.values(r).some(val => val && String(val).toLowerCase().includes(keyword.toLowerCase())); }
 
         async function initRaceData() {
             canvas.width = window.innerWidth; canvas.height = 600;
-            textures = []; scenery = [];
+            textures = []; scenery = []; particles = [];
             createEnvironment();
             try {
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
@@ -233,9 +239,13 @@
                     if (hasUpgrade(r, "Soft Tire")) base -= 0.0001; 
                     if (hasUpgrade(r, "Nitro")) base += 0.0004;
 
+                    // Feature 1: Dynamic starting staggered intervals 
+                    let staggeredStartProgress = 0 - (i * 0.015) - (Math.random() * 0.008);
+
                     return {
                         ...r, id: p.id, name: p.name, color: p.color,
-                        progress: 0 - (i*0.012), lap: 1, speedBase: base, currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0,
+                        progress: staggeredStartProgress, lap: 1, speedBase: base, currentSpeed: 0, 
+                        penalty: 0, spinFrames: 0, flats: 0, collisionCooldown: 0,
                         x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
                         hasBushBar: hasUpgrade(r, "Bush"),
                         hasSpikeShield: hasUpgrade(r, "Inflate") || hasUpgrade(r, "Self") || hasUpgrade(r, "Spare"),
@@ -250,10 +260,34 @@
 
         function gameLoop() {
             if(!raceActive) return;
+            
+            updateParticles();
+
+            // Feature 5: Car-to-Car Bumper Crash Check Loop
+            for (let i = 0; i < racers.length; i++) {
+                for (let j = i + 1; j < racers.length; j++) {
+                    let r1 = racers[i]; let r2 = racers[j];
+                    if (r1.finished || r2.finished || r1.progress < 0 || r2.progress < 0) continue;
+
+                    let dx = r1.x - r2.x; let dy = r1.y - r2.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist < 18) { // Overlap bounding circle limit
+                        if (r1.collisionCooldown === 0 && r2.collisionCooldown === 0) {
+                            r1.collisionCooldown = 60; r2.collisionCooldown = 60;
+                            announce(`💥 COLLISION: ${r1.name.toUpperCase()} & ${r2.name.toUpperCase()} BUMPED!`);
+                        }
+                    }
+                }
+            }
+
             racers.forEach(r => {
                 if(r.finished) return;
-                let speedMod = Math.max(0.15, Math.pow(0.75, r.flats));
                 
+                // Track modifiers
+                let speedMod = Math.max(0.15, Math.pow(0.75, r.flats));
+                if (r.collisionCooldown > 0) { speedMod *= 0.5; r.collisionCooldown--; }
+
                 hazards.forEach(h => {
                     if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.007) {
                         if(h.type === 'cones') { 
@@ -275,12 +309,25 @@
                 else {
                     r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
                     if(r.penalty > 0) r.penalty--;
-                    const pos = getPointOnPath(Math.max(0, r.progress));
-                    r.angle = pos.a;
-                    let variance = r.hasSoftTires ? (0.95 + Math.random()*0.1) : (0.9 + Math.random()*0.2);
-                    r.progress += r.currentSpeed * variance;
+                    
+                    // Continuous jitter to prevent mechanical lineup rows
+                    let randomJitter = 0.96 + Math.random() * 0.08;
+                    r.progress += r.currentSpeed * randomJitter;
+
+                    const pos = getPointOnPath(Math.max(0, Math.min(0.999, r.progress)));
+                    
+                    // Feature 2: Perfect tracking angle calculation aligned down the vector
+                    r.angle = pos.a; 
+                    
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
+
+                    // Feature 4: Spawn tailing exhaust smoke particles
+                    if(r.progress > 0 && Math.random() > 0.35) {
+                        let backX = r.x - Math.cos(r.angle) * 12;
+                        let backY = r.y - Math.sin(r.angle) * 12;
+                        createSmoke(backX, backY);
+                    }
                 }
 
                 if(r.progress >= 0.999) {
@@ -319,6 +366,26 @@
             ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
             ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
 
+            // Feature 3: Checkered Finish Line layout tracking box
+            const finishPos = getPointOnPath(0.001);
+            ctx.save();
+            ctx.translate(finishPos.x, finishPos.y);
+            ctx.rotate(finishPos.a + Math.PI/2);
+            let boxSize = 8;
+            for(let row=0; row<2; row++) {
+                for(let col=-5; col<5; col++) {
+                    ctx.fillStyle = (row + col) % 2 === 0 ? "white" : "black";
+                    ctx.fillRect(col * boxSize, (row - 1) * boxSize, boxSize, boxSize);
+                }
+            }
+            ctx.restore();
+
+            // Render fading smoke engine path bubbles
+            particles.forEach(p => {
+                ctx.fillStyle = `rgba(203, 213, 225, ${p.alpha})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+            });
+
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
@@ -336,12 +403,30 @@
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                     r.angle = pos.a;
                 }
-                ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-10, -5, 24, 14);
-                ctx.fillStyle = r.color; ctx.beginPath(); ctx.roundRect(-12,-7,24,14,3); ctx.fill();
-                if(r.hasBushBar) { ctx.strokeStyle = "#475569"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(10, -8); ctx.lineTo(14, -8); ctx.lineTo(14, 8); ctx.lineTo(10, 8); ctx.stroke(); }
+                ctx.save(); 
+                ctx.translate(r.x, r.y); 
+                ctx.rotate(r.angle); // Render model properly matching vector directions
+                
+                // Draw shadowy trace
+                ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-10, -5, 24, 11);
+                
+                // Vehicle Body base layout
+                ctx.fillStyle = r.color; 
+                ctx.beginPath(); ctx.roundRect(-12,-6,24,12,3); ctx.fill();
+                
+                // Front windshield display blocks
+                ctx.fillStyle = "#94a3b8"; ctx.fillRect(2, -4, 4, 8);
+                ctx.fillStyle = "#1e293b"; ctx.fillRect(-4, -4, 5, 8);
+
+                if(r.hasBushBar) { ctx.strokeStyle = "#475569"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(12, -8); ctx.lineTo(15, -8); ctx.lineTo(15, 8); ctx.lineTo(12, 8); ctx.stroke(); }
+                
+                // If recently hit, give an overlay color pulse visual warning
+                if(r.collisionCooldown > 0) { ctx.fillStyle = "rgba(239, 68, 68, 0.4)"; ctx.roundRect(-12,-6,24,12,3); ctx.fill(); }
+                
                 ctx.restore(); 
-                ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
+                
+                ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; 
+                ctx.fillText(r.name, r.x, r.y-18);
             });
         }
 
