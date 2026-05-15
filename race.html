@@ -104,14 +104,13 @@
 
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
 
-        /** * HELPERS: Handing mismatched headers 
-         * Looks at Column A (index 0) for ID and Column B (index 1) for Name
+        /** * HELPERS: Parse incoming keys safely out of sheet variants
          */
         function parseStudent(s) {
             const vals = Object.values(s);
-            const id = s.StudentID || s.id || s.ID || vals[0] || "NoID";
+            const id = s.studentID || s.StudentID || s.id || s.ID || vals[0] || "NoID";
             const name = s.Name || s.name || s.DisplayName || vals[1] || "Racer";
-            const heat = s.Heat || s.heat || 0;
+            const heat = s.Heat !== undefined ? s.Heat : (s.heat !== undefined ? s.heat : 0);
             const color = s.Colour || s.Color || s.color || "#3b82f6";
             return { id, name, heat, color, raw: s };
         }
@@ -144,15 +143,9 @@
             const student = allStudents.find(s => parseStudent(s).id == id);
             if(student) {
                 const heatNum = parseInt(val) || 0;
-                
                 student.heat = heatNum;
                 student.Heat = heatNum;
-                
-                Object.keys(student).forEach(key => {
-                    if(key.toLowerCase() === 'heat') {
-                        student[key] = heatNum;
-                    }
-                });
+                if(student.studentID) student.id = student.studentID; 
             }
         }
 
@@ -163,11 +156,8 @@
                 const h = (index % numHeats) + 1;
                 s.heat = h;
                 s.Heat = h;
-                Object.keys(s).forEach(key => {
-                    if(key.toLowerCase() === 'heat') {
-                        s[key] = h;
-                    }
-                });
+                const parsed = parseStudent(s);
+                s.id = parsed.id;
             });
             renderStudentTable();
         }
@@ -175,12 +165,32 @@
         async function saveHeatsToSheet() {
             const btn = document.getElementById('saveBtn');
             btn.innerText = "SAVING...";
+            
+            // Build a clean payload arrays mapping IDs cleanly to their updated heats
+            const cleanAssignments = allStudents.map(s => {
+                const parsed = parseStudent(s);
+                return { id: parsed.id, heat: parsed.heat };
+            });
+
             try {
-                await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "updateBulkHeats", assignments: allStudents }) });
+                const response = await fetch(WEB_APP_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ action: "updateBulkHeats", assignments: cleanAssignments }) 
+                });
+                const result = await response.json();
+                
+                if(result.success) {
+                    alert("Cloud Sync Complete!");
+                    initRaceData(); 
+                } else {
+                    alert("Error saving: " + (result.message || "Unknown error"));
+                }
+            } catch(e) { 
+                console.error(e);
+                alert("Network error. Couldn't sync to Google Sheets."); 
+            } finally {
                 btn.innerText = "SAVE TO SHEETS";
-                initRaceData(); 
-                alert("Cloud Sync Complete!");
-            } catch(e) { alert("Error saving."); btn.innerText = "SAVE TO SHEETS"; }
+            }
         }
 
         // --- RACE LOGIC ---
