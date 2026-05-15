@@ -100,13 +100,13 @@
         let allStudents = [], racers = [], hazards = [], textures = [], scenery = [], particles = [], currentLeader = null;
         let raceActive = false, raceFinished = false;
         
-        // Loop track starting along the top edge moving right to left
+        // Clean flowing Grand Prix style track path loop that NEVER crosses itself
         const trackPath = [
-            {x: 0.5, y: 0.15}, {x: 0.2, y: 0.15}, {x: 0.1, y: 0.35}, 
-            {x: 0.3, y: 0.55}, {x: 0.6, y: 0.45}, {x: 0.8, y: 0.60}, 
-            {x: 0.9, y: 0.85}, {x: 0.5, y: 0.85}, {x: 0.15, y: 0.85},
-            {x: 0.08, y: 0.60}, {x: 0.4, y: 0.30}, {x: 0.85, y: 0.15}, 
-            {x: 0.5, y: 0.15}
+            {x: 0.15, y: 0.20}, {x: 0.50, y: 0.20}, {x: 0.82, y: 0.20},
+            {x: 0.85, y: 0.45}, {x: 0.65, y: 0.55}, {x: 0.45, y: 0.45},
+            {x: 0.30, y: 0.65}, {x: 0.50, y: 0.82}, {x: 0.82, y: 0.82},
+            {x: 0.85, y: 0.90}, {x: 0.15, y: 0.90}, {x: 0.10, y: 0.55},
+            {x: 0.15, y: 0.20}
         ];
 
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
@@ -187,10 +187,10 @@
         function createSmoke(x, y) {
             particles.push({
                 x: x, y: y,
-                vx: (Math.random() - 0.5) * 0.4,
-                vy: (Math.random() - 0.5) * 0.4,
-                alpha: 0.6,
-                size: 4 + Math.random() * 6
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
+                alpha: 0.5,
+                size: 3 + Math.random() * 5
             });
         }
 
@@ -198,7 +198,7 @@
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
                 p.x += p.vx; p.y += p.vy;
-                p.alpha -= 0.015; p.size += 0.15;
+                p.alpha -= 0.02; p.size += 0.12;
                 if (p.alpha <= 0) particles.splice(i, 1);
             }
         }
@@ -215,7 +215,7 @@
             hazards = [];
             const counts = { cones: parseInt(document.getElementById('hCone').value) || 0, spikes: parseInt(document.getElementById('hSpike').value) || 0, oil: parseInt(document.getElementById('hOil').value) || 0 };
             Object.entries(counts).forEach(([type, count]) => {
-                for(let i=0; i<count; i++) { hazards.push({ progress: 0.12 + Math.random()*0.82, lane: Math.floor(Math.random()*6), type: type, active: true }); }
+                for(let i=0; i<count; i++) { hazards.push({ progress: 0.15 + Math.random()*0.80, lane: Math.floor(Math.random()*4), type: type, active: true }); }
             });
         }
 
@@ -229,6 +229,7 @@
             try {
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
                 const data = await res.json();
+                
                 racers = (data.racers || []).map((r, i) => {
                     const p = parseStudent(r);
                     let base = 0.0011;
@@ -239,14 +240,20 @@
                     if (hasUpgrade(r, "Soft Tire")) base -= 0.0001; 
                     if (hasUpgrade(r, "Nitro")) base += 0.0004;
 
-                    // Feature 1: Dynamic starting staggered intervals 
-                    let staggeredStartProgress = 0 - (i * 0.015) - (Math.random() * 0.008);
+                    // 4x4 Grid Arrangement Algorithm 
+                    let rowIndex = Math.floor(i / 4);  // 0 for first row, 1 for second row, etc.
+                    let colIndex = i % 4;              // Lane spot 0, 1, 2, or 3
+                    
+                    // Stagger back starting rows cleanly on progress wheel loop
+                    let gridStartProgress = 0 - (rowIndex * 0.022);
+                    // Match lanes dynamically based on a tight 4-lane track width split
+                    let exactLaneOffset = (colIndex - 1.5) * 16; 
 
                     return {
                         ...r, id: p.id, name: p.name, color: p.color,
-                        progress: staggeredStartProgress, lap: 1, speedBase: base, currentSpeed: 0, 
+                        progress: gridStartProgress, lap: 1, speedBase: base, currentSpeed: 0, 
                         penalty: 0, spinFrames: 0, flats: 0, collisionCooldown: 0,
-                        x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
+                        x: 0, y: 0, angle: 0, lane: colIndex, laneOffset: exactLaneOffset, finished: false,
                         hasBushBar: hasUpgrade(r, "Bush"),
                         hasSpikeShield: hasUpgrade(r, "Inflate") || hasUpgrade(r, "Self") || hasUpgrade(r, "Spare"),
                         hasGrip: hasUpgrade(r, "Grip"),
@@ -263,7 +270,7 @@
             
             updateParticles();
 
-            // Feature 5: Car-to-Car Bumper Crash Check Loop
+            // Real-time Car to Car Impact Bumper Loop
             for (let i = 0; i < racers.length; i++) {
                 for (let j = i + 1; j < racers.length; j++) {
                     let r1 = racers[i]; let r2 = racers[j];
@@ -272,10 +279,10 @@
                     let dx = r1.x - r2.x; let dy = r1.y - r2.y;
                     let dist = Math.sqrt(dx*dx + dy*dy);
                     
-                    if (dist < 18) { // Overlap bounding circle limit
+                    if (dist < 16) { 
                         if (r1.collisionCooldown === 0 && r2.collisionCooldown === 0) {
                             r1.collisionCooldown = 60; r2.collisionCooldown = 60;
-                            announce(`💥 COLLISION: ${r1.name.toUpperCase()} & ${r2.name.toUpperCase()} BUMPED!`);
+                            announce(`💥 CONTACT: ${r1.name.toUpperCase()} & ${r2.name.toUpperCase()} BUMPED!`);
                         }
                     }
                 }
@@ -284,7 +291,6 @@
             racers.forEach(r => {
                 if(r.finished) return;
                 
-                // Track modifiers
                 let speedMod = Math.max(0.15, Math.pow(0.75, r.flats));
                 if (r.collisionCooldown > 0) { speedMod *= 0.5; r.collisionCooldown--; }
 
@@ -310,22 +316,21 @@
                     r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.3 * speedMod : r.speedBase * speedMod;
                     if(r.penalty > 0) r.penalty--;
                     
-                    // Continuous jitter to prevent mechanical lineup rows
+                    // Stagger variance addition loop values
                     let randomJitter = 0.96 + Math.random() * 0.08;
                     r.progress += r.currentSpeed * randomJitter;
 
+                    // Strict boundary layout locking values
                     const pos = getPointOnPath(Math.max(0, Math.min(0.999, r.progress)));
                     
-                    // Feature 2: Perfect tracking angle calculation aligned down the vector
                     r.angle = pos.a; 
-                    
                     r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                     r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
 
-                    // Feature 4: Spawn tailing exhaust smoke particles
-                    if(r.progress > 0 && Math.random() > 0.35) {
-                        let backX = r.x - Math.cos(r.angle) * 12;
-                        let backY = r.y - Math.sin(r.angle) * 12;
+                    // Puff backend trailing particles
+                    if(r.progress > 0 && Math.random() > 0.4) {
+                        let backX = r.x - Math.cos(r.angle) * 10;
+                        let backY = r.y - Math.sin(r.angle) * 10;
                         createSmoke(backX, backY);
                     }
                 }
@@ -361,17 +366,27 @@
             scenery.forEach(s => { ctx.fillStyle = "#022c2288"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
             
             const tw = canvas.width - 224;
-            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
+            
+            // Render the thick asphalt track bed
+            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 110; ctx.lineJoin = "round"; ctx.lineCap = "round";
             ctx.beginPath(); trackPath.forEach((p,i) => i===0 ? ctx.moveTo(p.x*tw, p.y*canvas.height) : ctx.lineTo(p.x*tw, p.y*canvas.height)); ctx.stroke();
-            ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
-            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.setLineDash([]); ctx.stroke();
+            
+            // White boundaries
+            ctx.strokeStyle = "white"; ctx.lineWidth = 100; ctx.stroke();
+            
+            // Core inner roadway
+            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 94; ctx.stroke();
 
-            // Feature 3: Checkered Finish Line layout tracking box
-            const finishPos = getPointOnPath(0.001);
+            // Center dash dividers
+            ctx.strokeStyle = "#475569"; ctx.lineWidth = 2; ctx.setLineDash([10,15]); ctx.stroke();
+            ctx.setLineDash([]); // Reset fallback line states
+
+            // Draw Checkered Finish Line across the top stretch
+            const finishPos = getPointOnPath(0.0);
             ctx.save();
             ctx.translate(finishPos.x, finishPos.y);
             ctx.rotate(finishPos.a + Math.PI/2);
-            let boxSize = 8;
+            let boxSize = 9;
             for(let row=0; row<2; row++) {
                 for(let col=-5; col<5; col++) {
                     ctx.fillStyle = (row + col) % 2 === 0 ? "white" : "black";
@@ -380,20 +395,21 @@
             }
             ctx.restore();
 
-            // Render fading smoke engine path bubbles
+            // Render active smoke particle trails
             particles.forEach(p => {
-                ctx.fillStyle = `rgba(203, 213, 225, ${p.alpha})`;
+                ctx.fillStyle = `rgba(226, 232, 240, ${p.alpha})`;
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
             });
 
+            // Draw objects and obstacle components safely inside lane boundaries
             hazards.forEach(h => {
                 if(!h.active && h.type !== 'oil') return;
                 const pos = getPointOnPath(h.progress);
-                const lo = (h.lane - (racers.length / 2)) * 14;
+                const lo = (h.lane - 1.5) * 16;
                 const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
                 if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); }
                 else if(h.type === 'spikes') { ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py+1, 16, 2); for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(px-6+(i*6), py+1); ctx.lineTo(px-3+(i*6), py-5); ctx.lineTo(px+(i*6), py+1); ctx.fill(); } }
-                else if(h.type === 'oil') { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2); ctx.fill(); }
+                else if(h.type === 'oil') { ctx.fillStyle = "rgba(0,0,0,0.65)"; ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI*2); ctx.fill(); }
             });
 
             racers.forEach(r => {
@@ -405,28 +421,26 @@
                 }
                 ctx.save(); 
                 ctx.translate(r.x, r.y); 
-                ctx.rotate(r.angle); // Render model properly matching vector directions
+                ctx.rotate(r.angle); // Cars lock strictly down the direction vector
                 
-                // Draw shadowy trace
-                ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(-10, -5, 24, 11);
+                // Shadow mapping
+                ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(-10, -5, 22, 11);
                 
-                // Vehicle Body base layout
+                // Chassis shell
                 ctx.fillStyle = r.color; 
-                ctx.beginPath(); ctx.roundRect(-12,-6,24,12,3); ctx.fill();
+                ctx.beginPath(); ctx.roundRect(-12,-6,24,12,3.5); ctx.fill();
                 
-                // Front windshield display blocks
+                // Cockpit detailing
                 ctx.fillStyle = "#94a3b8"; ctx.fillRect(2, -4, 4, 8);
                 ctx.fillStyle = "#1e293b"; ctx.fillRect(-4, -4, 5, 8);
 
-                if(r.hasBushBar) { ctx.strokeStyle = "#475569"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(12, -8); ctx.lineTo(15, -8); ctx.lineTo(15, 8); ctx.lineTo(12, 8); ctx.stroke(); }
-                
-                // If recently hit, give an overlay color pulse visual warning
-                if(r.collisionCooldown > 0) { ctx.fillStyle = "rgba(239, 68, 68, 0.4)"; ctx.roundRect(-12,-6,24,12,3); ctx.fill(); }
+                if(r.hasBushBar) { ctx.strokeStyle = "#64748b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(12, -8); ctx.lineTo(15, -8); ctx.lineTo(15, 8); ctx.lineTo(12, 8); ctx.stroke(); }
+                if(r.collisionCooldown > 0) { ctx.fillStyle = "rgba(239, 68, 68, 0.45)"; ctx.roundRect(-12,-6,24,12,3.5); ctx.fill(); }
                 
                 ctx.restore(); 
                 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; 
-                ctx.fillText(r.name, r.x, r.y-18);
+                ctx.fillText(r.name, r.x, r.y-16);
             });
         }
 
