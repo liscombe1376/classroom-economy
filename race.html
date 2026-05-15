@@ -4,10 +4,10 @@
     <script src="config.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BCE GRAND PRIX - FINAL FIX</title>
+    <title>BCE GRAND PRIX - SYNCED</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #064e3b; margin: 0; overflow: hidden; overflow-y: auto; font-family: 'Inter', sans-serif; color: white; }
+        body { background: #064e3b; margin: 0; overflow-x: hidden; overflow-y: auto; font-family: 'Inter', sans-serif; color: white; }
         canvas { display: block; background: #064e3b; width: 100%; height: 600px; border-bottom: 4px solid #1e293b; }
         .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); }
         .leaderboard { background: rgba(15, 23, 42, 0.85); border-left: 2px solid #3b82f6; backdrop-filter: blur(5px); }
@@ -15,7 +15,7 @@
         .management-section { background: #0f172a; padding: 40px; }
         .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
         .student-card { background: #1e293b; padding: 15px; border-radius: 10px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
-        input { background: #0f172a; border: 1px solid #475569; padding: 6px; border-radius: 6px; color: white; outline: none; }
+        input { background: #0f172a; border: 1px solid #475569; padding: 6px; border-radius: 6px; color: white; outline: none; text-align: center; font-weight: 900; }
         #countdown { font-size: 160px; font-weight: 900; text-shadow: 0 0 40px #3b82f6; pointer-events: none; z-index: 100; }
     </style>
 </head>
@@ -23,13 +23,13 @@
 
     <div class="admin-panel sticky top-0 left-0 w-full z-50 p-4 flex justify-between items-center px-10">
         <div class="flex items-center gap-8">
-            <h1 class="text-3xl font-black italic uppercase tracking-tighter text-white">BCE <span class="text-blue-500">GP</span></h1>
-            <div class="flex gap-4">
-                <input type="number" id="heatSelect" value="1" class="w-16 text-center font-bold text-blue-400" onchange="initRaceData()">
-                <span class="text-slate-500 font-bold self-center">HEAT</span>
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter">BCE <span class="text-blue-500">GP</span></h1>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-500 uppercase">Current Heat</span>
+                <input type="number" id="heatSelect" value="1" class="w-14 text-blue-400" onchange="initRaceData()">
             </div>
         </div>
-        <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-10 py-3 rounded-lg font-black uppercase tracking-widest text-sm shadow-lg">Start Race</button>
+        <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 hover:bg-blue-500 px-10 py-3 rounded-lg font-black uppercase text-sm shadow-lg shadow-blue-500/20 transition-all">Start Race</button>
     </div>
 
     <div class="relative">
@@ -42,14 +42,17 @@
     </div>
 
     <div class="announcer-panel sticky bottom-0 w-full h-20 z-50 flex items-center px-12">
-        <div id="announcement" class="text-2xl font-black italic text-white tracking-tight uppercase truncate">Awaiting Heat...</div>
+        <div id="announcement" class="text-2xl font-black italic text-white tracking-tight uppercase truncate">Awaiting Heat Initialization...</div>
     </div>
 
     <div class="management-section">
         <div class="max-w-7xl mx-auto">
             <div class="flex justify-between items-end mb-8 border-b border-slate-800 pb-6">
-                <h2 class="text-4xl font-black italic uppercase tracking-tighter">Garage <span class="text-blue-500">Sync</span></h2>
-                <button onclick="saveHeatsToSheet()" id="saveBtn" class="bg-blue-600 px-8 py-3 rounded-lg font-black text-xs uppercase shadow-lg">Save to Cloud</button>
+                <div>
+                    <h2 class="text-4xl font-black italic uppercase tracking-tighter">Race <span class="text-blue-500">Roster</span></h2>
+                    <p class="text-slate-500">Data pulled from Column B of your Garage sheet.</p>
+                </div>
+                <button onclick="saveHeatsToSheet()" id="saveBtn" class="bg-blue-600 px-8 py-3 rounded-lg font-black text-xs uppercase shadow-lg">Sync Heats to Sheet</button>
             </div>
             <div id="studentGrid" class="student-grid"></div>
         </div>
@@ -60,26 +63,16 @@
         const canvas = document.getElementById('raceCanvas');
         const ctx = canvas.getContext('2d');
         
-        let allStudents = [], racers = [], hazards = [], textures = [];
-        let raceActive = false, raceFinished = false;
+        let allStudents = [], racers = [], hazards = [], raceActive = false, raceFinished = false;
 
         const trackPath = [{x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.1, y: 0.3}, {x: 0.3, y: 0.15}, {x: 0.6, y: 0.4}, {x: 0.8, y: 0.15}, {x: 0.9, y: 0.5}, {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85}];
 
         function announce(msg) { document.getElementById('announcement').innerText = msg; }
 
-        // NEW SMART LOOKUP: Finds the name even if columns are shifted
-        function getSmartName(r) {
-            const possibleKeys = ["Name", "name", "DisplayName", "Student"];
-            for (let key of possibleKeys) { if (r[key]) return r[key]; }
-            
-            // If those fail, look for any string that isn't an ID or a Hex Color
-            const values = Object.values(r);
-            for (let val of values) {
-                if (typeof val === 'string' && val.length > 2 && !val.startsWith('#') && isNaN(val)) {
-                    return val;
-                }
-            }
-            return "Racer";
+        // SIMPLE & CLEAN: Hard-coded to your new uniform spreadsheet layout
+        function getCleanName(r) {
+            // Priority: Name (Col B), name (Col B), or fallback
+            return r.Name || r.name || "Racer";
         }
 
         async function loadStudentList() {
@@ -87,7 +80,7 @@
                 const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getStudents" }) });
                 allStudents = await res.json();
                 renderStudentGrid();
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Sync Error:", e); }
         }
 
         function renderStudentGrid() {
@@ -95,23 +88,27 @@
             grid.innerHTML = allStudents.map(s => `
                 <div class="student-card">
                     <div class="flex flex-col">
-                        <span class="font-bold text-white text-lg">${getSmartName(s)}</span>
-                        <span class="text-[10px] text-slate-500 font-bold">${s.id || "No ID"}</span>
+                        <span class="font-black text-white text-lg leading-tight uppercase italic">${getCleanName(s)}</span>
+                        <span class="text-[9px] text-slate-500 font-bold tracking-widest">${s.StudentID || s.id || "NO ID"}</span>
                     </div>
-                    <input type="number" value="${s.heat || 0}" class="w-12 text-center font-black text-blue-400" onchange="updateLocalHeat('${s.id}', this.value)">
+                    <div class="flex flex-col items-center">
+                        <span class="text-[8px] font-bold text-slate-600 mb-1">HEAT</span>
+                        <input type="number" value="${s.heat || 0}" class="w-12 text-blue-400 text-lg" onchange="updateLocalHeat('${s.id || s.StudentID}', this.value)">
+                    </div>
                 </div>
             `).join('');
         }
 
         function updateLocalHeat(id, val) {
-            const student = allStudents.find(s => s.id == id);
+            const student = allStudents.find(s => (s.id || s.StudentID) == id);
             if(student) student.heat = parseInt(val);
         }
 
         async function saveHeatsToSheet() {
-            document.getElementById('saveBtn').innerText = "SAVING...";
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "SAVING...";
             await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "updateBulkHeats", assignments: allStudents }) });
-            document.getElementById('saveBtn').innerText = "SAVE TO CLOUD";
+            btn.innerText = "SYNC HEATS TO SHEET";
             initRaceData();
         }
 
@@ -122,24 +119,22 @@
 
         async function initRaceData() {
             canvas.width = window.innerWidth; canvas.height = 600;
-            textures = [];
             const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
             const data = await res.json();
             racers = (data.racers || []).map((r, i) => {
                 let base = 0.0011;
                 if (hasItem(r, "V12")) base += 0.0008;
-                if (hasItem(r, "Electric")) base += 0.0002;
+                if (hasItem(r, "V8")) base += 0.0003;
                 return {
                     ...r,
-                    name: getSmartName(r),
-                    progress: 0 - (i*0.02), lap: 1, speedBase: base, currentSpeed: 0, penalty: 0, spinFrames: 0, flats: 0, x: 0, y: 0, angle: 0, 
+                    name: getCleanName(r),
+                    progress: 0 - (i*0.02), lap: 1, speedBase: base, currentSpeed: 0, penalty: 0, spinFrames: 0, x: 0, y: 0, angle: 0, 
                     lane: i, laneOffset: (i - (data.racers.length/2))*16, finished: false,
                     color: r.Colour || r.Color || r.color || "#3b82f6",
-                    hasBushBar: hasItem(r, "Bush"),
-                    hasSpikeShield: hasItem(r, "Self") || hasItem(r, "Shield")
+                    hasBushBar: hasItem(r, "Bush")
                 }
             });
-            announce("Grid ready for Heat " + document.getElementById('heatSelect').value);
+            announce("Grid Lock Confirmed. Drivers Ready.");
             draw();
         }
 
@@ -147,14 +142,14 @@
             if(!raceActive) return;
             racers.forEach(r => {
                 if(r.finished) return;
-                r.currentSpeed = (r.penalty > 0) ? r.speedBase * 0.4 : r.speedBase;
+                r.currentSpeed = r.speedBase;
                 const pos = getPointOnPath(Math.max(0, r.progress));
                 r.angle = pos.a;
-                r.progress += r.currentSpeed * (0.95 + Math.random()*0.1);
+                r.progress += r.currentSpeed * (0.94 + Math.random()*0.12);
                 r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
                 r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
                 if(r.progress >= 0.999) {
-                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { r.lap++; r.progress = 0; }
+                    if(r.lap < 3) { r.lap++; r.progress = 0; }
                     else { r.finished = true; checkWinner(); }
                 }
             });
@@ -192,8 +187,8 @@
             document.getElementById('leaderList').innerHTML = sorted.map((r, i) => `
                 <div class="flex items-center gap-3 bg-slate-800 p-3 rounded-xl border-l-4" style="border-color: ${r.color}">
                     <span class="font-black text-slate-500">${i+1}</span>
-                    <div class="flex-1 truncate font-black text-xs uppercase">${r.name}</div>
-                    <div class="text-blue-400 font-black">L${r.lap}</div>
+                    <div class="flex-1 truncate font-black text-[10px] uppercase">${r.name}</div>
+                    <div class="text-blue-400 font-black text-xs">L${r.lap}</div>
                 </div>
             `).join('');
         }
@@ -202,7 +197,7 @@
             if(racers.every(r => r.finished) && !raceFinished) {
                 raceFinished = true;
                 const s = [...racers].sort((a,b) => b.progress - a.progress);
-                announce("WINNER: " + s[0].name.toUpperCase());
+                announce("FINISH: " + s[0].name.toUpperCase() + " TAKES THE GOLD!");
                 document.getElementById('startBtn').classList.remove('hidden');
             }
         }
