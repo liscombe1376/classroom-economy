@@ -3,238 +3,173 @@
 <head>
     <script src="config.js"></script>
     <meta charset="UTF-8">
-    <title>BCE GRAND PRIX | CUSTOM COLORS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Shop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #064e3b; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; }
-        canvas { display: block; }
-        .admin-panel { background: rgba(15, 23, 42, 0.95); border-bottom: 2px solid #3b82f6; backdrop-filter: blur(10px); pointer-events: auto; }
-        .leaderboard { background: rgba(15, 23, 42, 0.85); border-left: 2px solid #3b82f6; backdrop-filter: blur(5px); }
-        .announcer-panel { background: rgba(0, 0, 0, 0.85); border-top: 4px solid #facc15; }
-        input, select { background: #1e293b; border: 1px solid #475569; padding: 4px 6px; border-radius: 4px; color: white; outline: none; font-size: 0.75rem; }
-        #countdown { font-size: 120px; font-weight: 900; text-shadow: 0 0 30px #3b82f6; pointer-events: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #f8fafc; }
+        .glass-card { background: #161d2f; border: 1px solid #2d3748; }
     </style>
 </head>
-<body>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-white tracking-tight">The Shop</h1>
+                <p class="text-slate-400">Your One Stop Shop</p>
+            </div>
+            <button onclick="location.href='student.html'" class="text-blue-400 hover:text-white font-bold transition flex items-center gap-2">
+                ← Back to Bank
+            </button>
+        </header>
 
-    <div class="admin-panel fixed top-0 left-0 w-full z-50 p-3 flex justify-between items-center px-8 shadow-2xl">
-        <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-black italic uppercase tracking-tighter text-white">BCE <span class="text-blue-500">GP</span></h1>
-            
-            <div class="flex gap-3">
-                <div class="flex flex-col">
-                    <label class="text-[8px] uppercase font-bold text-slate-400">Heat / Laps</label>
-                    <div class="flex gap-1">
-                        <input type="number" id="heatSelect" value="1" class="w-10" onchange="initRaceData()">
-                        <input type="number" id="totalLaps" value="3" class="w-10">
-                    </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-4" id="partGrid">
+                <div class="p-10 text-center text-slate-500 animate-pulse">Loading parts catalog...</div>
+            </div>
+
+            <div class="glass-card p-6 rounded-3xl h-fit sticky top-8 shadow-2xl">
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-2">🛒 Your Cart</h2>
+                
+                <div id="cartItems" class="space-y-4 mb-6 border-b border-slate-800 pb-6 max-h-[400px] overflow-y-auto">
+                    <p class="text-slate-500 text-sm italic text-center">No parts selected</p>
                 </div>
 
-                <div class="flex flex-col border-l border-slate-700 pl-3">
-                    <label class="text-[8px] uppercase font-bold text-slate-400">Hazards (Cone / Spike / Oil)</label>
-                    <div class="flex gap-1">
-                        <input type="number" id="hCone" value="8" class="w-10" title="Cones">
-                        <input type="number" id="hSpike" value="3" class="w-10" title="Spikes">
-                        <input type="number" id="hOil" value="2" class="w-10" title="Oil Slicks">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400 uppercase tracking-wider text-xs">Subtotal</span>
+                        <span id="subtotal" class="font-mono text-slate-200">$0.00</span>
                     </div>
-                </div>
-
-                <div class="flex flex-col border-l border-slate-700 pl-3">
-                    <label class="text-[8px] uppercase font-bold text-slate-400">Prizes (1/2/3)</label>
-                    <div class="flex gap-1">
-                        <input type="number" id="p1" value="100" class="w-12">
-                        <input type="number" id="p2" value="50" class="w-12">
-                        <input type="number" id="p3" value="25" class="w-12">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400 uppercase tracking-wider text-xs">HST (13%)</span>
+                        <span id="taxAmount" class="font-mono text-slate-200">$0.00</span>
                     </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-800">
+                        <span class="text-white font-bold uppercase text-xs">Total Cost</span>
+                        <span id="cartTotal" class="text-2xl font-bold text-emerald-400 font-mono">$0.00</span>
+                    </div>
+                    
+                    <button onclick="checkout()" id="checkoutBtn" disabled class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white font-bold py-4 rounded-2xl transition transform active:scale-95 mt-4">
+                        Confirm Purchase
+                    </button>
                 </div>
             </div>
         </div>
-        <button onclick="startCountdown()" id="startBtn" class="bg-blue-600 px-6 py-2 rounded font-black hover:bg-blue-500 transition-all uppercase tracking-widest text-xs active:scale-95">Start Heat</button>
     </div>
-
-    <div class="leaderboard fixed top-[72px] right-0 bottom-16 w-56 z-40 p-4 shadow-2xl">
-        <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-1">Live Standings</h2>
-        <div id="leaderList" class="flex flex-col gap-2"></div>
-    </div>
-
-    <div class="announcer-panel fixed bottom-0 left-0 w-full h-16 z-50 flex items-center px-10">
-        <div class="bg-yellow-400 text-black px-3 py-1 font-black italic uppercase text-xs mr-4">Live</div>
-        <div id="announcement" class="text-xl font-bold italic text-white tracking-wide uppercase truncate">Garage colors loaded. Engines ready!</div>
-    </div>
-
-    <div id="countdown" class="fixed inset-0 flex items-center justify-center z-[100] hidden italic uppercase"></div>
-    <canvas id="raceCanvas"></canvas>
 
     <script>
-        const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
-        const canvas = document.getElementById('raceCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        let racers = [], hazards = [], textures = [], scenery = [], currentLeader = null;
-        let raceActive = false, raceFinished = false;
+        // DYNAMICALLY USE YOUR GLOBAL CONFIG URL FROM config.js
+        const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL; 
+        const TAX_RATE = 0.13;
+        let cart = [];
 
-        const trackPath = [
-            {x: 0.5, y: 0.85}, {x: 0.2, y: 0.85}, {x: 0.1, y: 0.3}, {x: 0.3, y: 0.15}, 
-            {x: 0.6, y: 0.4}, {x: 0.8, y: 0.15}, {x: 0.9, y: 0.5}, 
-            {x: 0.8, y: 0.85}, {x: 0.5, y: 0.85}
-        ];
+        async function loadParts() {
+            try {
+                const response = await fetch(WEB_APP_URL + "?action=getStoreItems");
+                const parts = await response.json();
+                const grid = document.getElementById('partGrid');
+                grid.innerHTML = '';
 
-        function announce(msg) {
-            const el = document.getElementById('announcement');
-            el.style.opacity = 0;
-            setTimeout(() => { el.innerText = msg; el.style.opacity = 1; }, 150);
+                parts.forEach((part, idx) => {
+                    grid.innerHTML += `
+                        <div class="glass-card p-6 rounded-2xl flex justify-between items-center gap-4 hover:border-slate-500 transition-colors">
+                            <div>
+                                <h3 class="text-xl font-bold text-white">${part[0]}</h3>
+                                <p class="text-slate-400 text-sm">${part[2] || 'Standard Part'}</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-lg font-mono font-bold text-blue-400">$${parseFloat(part[1]).toFixed(2)}</span>
+                                <input type="number" id="qty-${idx}" value="1" min="1" class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center font-bold text-white">
+                                <button onclick="addToCart('${part[0]}', ${part[1]}, 'qty-${idx}')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold transition">Add</button>
+                            </div>
+                        </div>`;
+                });
+            } catch (e) { console.error("Inventory error:", e); }
         }
 
-        function createEnvironment() {
-            textures = []; scenery = []; hazards = [];
-            const colors = ["#14532d", "#064e3b", "#3f6212", "#78350f"];
-            for(let i=0; i<45; i++) textures.push({
-                x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-                w: 150+Math.random()*300, h: 100+Math.random()*200,
-                c: colors[Math.floor(Math.random()*colors.length)] + "55"
-            });
-            for(let i=0; i<30; i++) scenery.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 8+Math.random()*15 });
+        function addToCart(name, price, qtyId) {
+            const qty = parseInt(document.getElementById(qtyId).value);
+            const existing = cart.find(i => i.name === name);
+            if (existing) { existing.qty += qty; } else { cart.push({ name, price, qty }); }
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cartItems');
+            const subtotalEl = document.getElementById('subtotal');
+            const taxEl = document.getElementById('taxAmount');
+            const totalEl = document.getElementById('cartTotal');
             
-            const counts = { cones: parseInt(document.getElementById('hCone').value), spikes: parseInt(document.getElementById('hSpike').value), oil: parseInt(document.getElementById('hOil').value) };
-            Object.entries(counts).forEach(([type, count]) => {
-                for(let i=0; i<count; i++) hazards.push({ progress: 0.12 + Math.random()*0.85, lane: Math.floor(Math.random()*6), type: type, active: true });
-            });
-        }
+            container.innerHTML = '';
+            let subtotal = 0;
 
-        async function initRaceData() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            createEnvironment();
-            const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getHeat", heat: document.getElementById('heatSelect').value }) });
-            const data = await res.json();
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-sm italic text-center">No parts selected</p>';
+            } else {
+                cart.forEach((item) => {
+                    subtotal += item.price * item.qty;
+                    container.innerHTML += `
+                        <div class="flex justify-between text-sm items-center bg-slate-900/30 p-2 rounded-lg">
+                            <span class="text-slate-200"><span class="text-blue-400 font-bold">${item.qty}x</span> ${item.name}</span>
+                            <span class="font-mono">$${(item.price * item.qty).toFixed(2)}</span>
+                        </div>`;
+                });
+            }
+
+            const tax = subtotal * TAX_RATE;
+            const total = subtotal + tax;
+
+            subtotalEl.innerText = `$${subtotal.toFixed(2)}`;
+            taxEl.innerText = `$${tax.toFixed(2)}`;
+            totalEl.innerText = `$${total.toFixed(2)}`;
             
-            racers = (data.racers || []).map((r, i) => ({
-                ...r, 
-                progress: 0 - (i*0.012), 
-                lap: 1, 
-                speedBase: 0.0011 + (r.motor === "V8 Engine" ? 0.0004 : 0),
-                currentSpeed: 0, penalty: 0, spin: 0, flats: 0,
-                x: 0, y: 0, angle: 0, lane: i, laneOffset: (i - (data.racers.length/2))*14, finished: false,
-                color: r.color || "#3b82f6" // Takes color from column E in your sheet
-            }));
-            draw();
+            document.getElementById('checkoutBtn').disabled = cart.length === 0;
         }
 
-        function gameLoop() {
-            if(!raceActive) return;
-            racers.forEach(r => {
-                if(r.finished) return;
-                let speedMod = Math.max(0.4, 1 - (r.flats * 0.25));
-                if(r.spin > 0) { r.currentSpeed = 0; r.spin -= 0.1; }
-                else if(r.penalty > 0) { r.currentSpeed = r.speedBase * 0.3 * speedMod; r.penalty--; }
-                else { r.currentSpeed = r.speedBase * speedMod; }
+        async function checkout() {
+            const studentID = localStorage.getItem('studentID');
+            const studentName = localStorage.getItem('studentName');
+            const finalTotal = parseFloat(document.getElementById('cartTotal').innerText.replace('$', ''));
 
-                r.progress += r.currentSpeed * (0.9 + Math.random()*0.2);
-                const pos = getPointOnPath(Math.max(0, r.progress));
-                r.x = pos.x + Math.cos(pos.a + Math.PI/2)*r.laneOffset;
-                r.y = pos.y + Math.sin(pos.a + Math.PI/2)*r.laneOffset;
-                r.angle = r.spin > 0 ? r.angle + 0.5 : pos.a;
+            if (!studentID) return alert("Error: No student session found. Please log in again.");
+            if (!confirm(`Confirm purchase for $${finalTotal.toFixed(2)} (including 13% HST)?`)) return;
+            
+            const btn = document.getElementById('checkoutBtn');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
 
-                hazards.forEach(h => {
-                    if(h.active && h.lane === r.lane && Math.abs(r.progress - h.progress) < 0.006) {
-                        if(h.type === 'cones') { r.penalty = 80; h.active = false; announce(`${r.name} clipped a cone!`); }
-                        if(h.type === 'spikes') { r.flats++; h.active = false; announce(`${r.name} has a flat tire!`); }
-                        if(h.type === 'oil') { r.spin = 6.28; announce(`${r.name} hit an oil slick!`); }
-                    }
+            try {
+                const res = await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "purchaseItems",
+                        studentID: studentID,
+                        studentName: studentName,
+                        cart: cart,
+                        total: finalTotal
+                    })
                 });
 
-                if(r.progress >= 0.999) {
-                    if(r.lap < parseInt(document.getElementById('totalLaps').value)) { r.lap++; r.progress = 0; }
-                    else { r.finished = true; checkWinner(); }
+                const data = await res.json();
+                if (data.success) {
+                    alert("Purchase complete! Order sent to teacher for fulfillment.");
+                    cart = []; 
+                    renderCart();
+                    window.location.href = 'student.html'; // REDIRECT BACK TO STUDENT BANKING
+                } else { 
+                    alert("Transaction failed: " + data.message); 
+                    btn.innerText = "Confirm Purchase"; 
+                    btn.disabled = false; 
                 }
-            });
-
-            const leader = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress))[0];
-            if(leader && leader.name !== currentLeader && leader.progress > 0) {
-                currentLeader = leader.name;
-                announce(`${currentLeader.toUpperCase()} IS IN THE LEAD!`);
-            }
-            updateUI(); draw();
-            if(racers.some(r => !r.finished)) requestAnimationFrame(gameLoop);
-        }
-
-        function getPointOnPath(t) {
-            const sections = trackPath.length - 1;
-            const p = Math.max(0, Math.min(0.999, t));
-            const sec = Math.floor(p * sections);
-            const secT = (p * sections) - sec;
-            const p1 = trackPath[sec], p2 = trackPath[sec+1];
-            return { x: (p1.x + (p2.x - p1.x)*secT)*(canvas.width-224), y: (p1.y + (p2.y - p1.y)*secT)*canvas.height, a: Math.atan2(p2.y-p1.y, p2.x-p1.x) };
-        }
-
-        function draw() {
-            ctx.fillStyle = "#166534"; ctx.fillRect(0,0,canvas.width,canvas.height);
-            textures.forEach(t => { ctx.fillStyle = t.c; ctx.beginPath(); ctx.ellipse(t.x,t.y,t.w,t.h,0,0,Math.PI*2); ctx.fill(); });
-            scenery.forEach(s => { ctx.fillStyle = "#022c2288"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
-            
-            const tw = canvas.width - 224;
-            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 100; ctx.lineJoin = "round"; ctx.lineCap = "round";
-            ctx.beginPath(); trackPath.forEach((p,i) => i===0 ? ctx.moveTo(p.x*tw, p.y*canvas.height) : ctx.lineTo(p.x*tw, p.y*canvas.height)); ctx.stroke();
-            ctx.strokeStyle = "white"; ctx.lineWidth = 90; ctx.setLineDash([15,15]); ctx.stroke();
-            ctx.strokeStyle = "#ef4444"; ctx.lineDashOffset = 15; ctx.stroke(); ctx.setLineDash([]);
-            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 80; ctx.stroke();
-
-            const start = trackPath[0];
-            ctx.save(); ctx.translate(start.x*tw, start.y*canvas.height); ctx.rotate(Math.atan2(trackPath[1].y-start.y, trackPath[1].x-start.x));
-            ctx.fillStyle = "white"; ctx.fillRect(-4,-40,8,80); ctx.fillStyle = "black";
-            for(let i=0; i<8; i++) { if(i%2==0) { ctx.fillRect(-4, i*10-40, 4, 10); ctx.fillRect(0, i*10-30, 4, 10); } }
-            ctx.restore();
-
-            hazards.forEach(h => {
-                if(!h.active && h.type !== 'oil') return;
-                const pos = getPointOnPath(h.progress);
-                const lo = (h.lane - (racers.length/2))*14;
-                const px = pos.x + Math.cos(pos.a+Math.PI/2)*lo, py = pos.y + Math.sin(pos.a+Math.PI/2)*lo;
-                if(h.type === 'cones') { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.moveTo(px,py-6); ctx.lineTo(px+5,py+6); ctx.lineTo(px-5,py+6); ctx.fill(); ctx.fillStyle="white"; ctx.fillRect(px-3,py+1,6,2); }
-                else if(h.type === 'spikes') { ctx.fillStyle = "#94a3b8"; ctx.fillRect(px-8, py-2, 16, 4); }
-                // OIL SLICK: Dark Charcoal with Sheen
-                else if(h.type === 'oil') { ctx.fillStyle = "rgba(15,15,20,0.8)"; ctx.beginPath(); ctx.ellipse(px, py, 14, 10, pos.a, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="rgba(255,255,255,0.1)"; ctx.lineWidth=2; ctx.stroke(); }
-            });
-
-            racers.forEach(r => {
-                ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.angle);
-                ctx.fillStyle = r.penalty > 0 || r.spin > 0 ? "#ef4444" : r.color; ctx.shadowBlur = 8; ctx.shadowColor = "black";
-                ctx.roundRect(-12,-7,24,14,3); ctx.fill();
-                if(r.flats > 0) { ctx.fillStyle = "black"; ctx.fillRect(-10, 6, 6, 2); if(r.flats > 1) ctx.fillRect(4, 6, 6, 2); }
-                ctx.restore(); ctx.fillStyle = "white"; ctx.font = "bold 11px Inter"; ctx.textAlign = "center"; ctx.fillText(r.name, r.x, r.y-20);
-            });
-        }
-
-        function updateUI() {
-            const sorted = [...racers].sort((a,b) => (b.lap*10 + b.progress) - (a.lap*10 + a.progress));
-            document.getElementById('leaderList').innerHTML = sorted.slice(0, 8).map((r, i) => `
-                <div class="flex items-center gap-2 bg-slate-800/90 p-2 rounded text-[11px] border-l-4" style="border-color: ${r.color}">
-                    <span class="font-black text-slate-500">${i+1}</span>
-                    <div class="flex-1 truncate font-bold text-white">${r.name} ${r.flats > 0 ? '❌' : ''}</div>
-                    <div class="text-blue-400">L${r.lap}</div>
-                </div>
-            `).join('');
-        }
-
-        async function checkWinner() {
-            if(racers.every(r => r.finished) && !raceFinished) {
-                raceFinished = true;
-                const s = [...racers].sort((a,b) => b.progress - a.progress);
-                const p = [document.getElementById('p1').value, document.getElementById('p2').value, document.getElementById('p3').value];
-                alert(`PODIUM:\n1st: ${s[0].name} ($${p[0]})\n2nd: ${s[1].name} ($${p[1]})\n3rd: ${s[2].name} ($${p[3]})`);
+            } catch (e) {
+                alert("Network error. Please try again.");
+                btn.innerText = "Confirm Purchase";
+                btn.disabled = false;
             }
         }
 
-        function startCountdown() {
-            const div = document.getElementById('countdown'); div.classList.remove('hidden');
-            let count = 3; document.getElementById('startBtn').classList.add('hidden');
-            const timer = setInterval(() => {
-                if(count > 0) { div.innerText = count; count--; }
-                else if(count === 0) { div.innerText = "START!"; count--; raceActive = true; gameLoop(); }
-                else { div.classList.add('hidden'); clearInterval(timer); }
-            }, 1000);
-        }
-
-        window.onload = () => initRaceData();
+        loadParts();
     </script>
 </body>
 </html>
