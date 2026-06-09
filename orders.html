@@ -79,55 +79,69 @@
                 const rawOrders = await res.json();
                 const list = document.getElementById('orderList');
                 
-                // Filter out header rows if they get fetched by mistake
-                const orders = rawOrders.filter(o => o[0] !== "Timestamp");
-                
-                if (!orders || orders.length === 0) {
+                if (!rawOrders || rawOrders.length === 0) {
                     list.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-500 font-medium italic">No orders found in the sheet database.</td></tr>`;
-                } else {
-                    // Show newest orders at the top
-                    list.innerHTML = orders.reverse().map(o => {
-                        const timestamp = o[0];
-                        const studentName = o[1];
-                        const itemSummary = o[2];
-                        const totalCost = parseFloat(o[3] || 0).toFixed(2);
-                        const status = o[4] ? o[4].toString().trim() : 'Pending';
-
-                        const isPending = status.toLowerCase() === 'pending';
-                        const badgeColor = isPending 
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
-                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-
-                        // Human-readable local time formatting
-                        let formattedTime = "---";
-                        if(timestamp) {
-                            try { formattedTime = new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); } catch(e){}
-                        }
-
-                        return `
-                            <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="p-5 text-xs text-slate-500 font-mono">${formattedTime}</td>
-                                <td class="p-5 font-bold text-white capitalize">${studentName}</td>
-                                <td class="p-5 text-slate-300 leading-relaxed">${itemSummary}</td>
-                                <td class="p-5 font-mono text-rose-400 font-bold">$${totalCost}</td>
-                                <td class="p-5">
-                                    <span class="border px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}">
-                                        ${status}
-                                    </span>
-                                </td>
-                                <td class="p-5 text-right">
-                                    ${isPending ? `
-                                        <button onclick="fulfillOrder('${studentName}', '${itemSummary}', this)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-md active:scale-95">
-                                            Fulfill Order ✓
-                                        </button>
-                                    ` : `
-                                        <span class="text-xs text-slate-500 font-medium italic">Distributed 📦</span>
-                                    `}
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
+                    return;
                 }
+
+                // Map entries along with their exact physical row number from the spreadsheet
+                // Row 1 is headers, so index 0 is Row 2, index 1 is Row 3, etc.
+                const mappedOrders = rawOrders.map((o, idx) => ({
+                    rowData: o,
+                    sheetRowNum: idx + 2 
+                }));
+
+                // Filter out header rows if they get fetched by mistake
+                const cleanOrders = mappedOrders.filter(item => item.rowData[0] !== "Timestamp" && item.rowData[0] !== "");
+                
+                // Show newest orders at the top
+                cleanOrders.reverse();
+
+                list.innerHTML = cleanOrders.map(item => {
+                    const o = item.rowData;
+                    const rowNumber = item.sheetRowNum; // This is the tracking row id
+
+                    const timestamp = o[0];
+                    const studentName = o[1];
+                    const itemSummary = o[2];
+                    const totalCost = parseFloat(o[3] || 0).toFixed(2);
+                    const status = o[4] ? o[4].toString().trim() : 'Pending';
+
+                    const isPending = status.toLowerCase() === 'pending';
+                    const badgeColor = isPending 
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+
+                    // Human-readable local time formatting
+                    let formattedTime = "---";
+                    if(timestamp) {
+                        try { formattedTime = new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); } catch(e){}
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-800/30 transition-colors">
+                            <td class="p-5 text-xs text-slate-500 font-mono">${formattedTime}</td>
+                            <td class="p-5 font-bold text-white capitalize">${studentName}</td>
+                            <td class="p-5 text-slate-300 leading-relaxed">${itemSummary}</td>
+                            <td class="p-5 font-mono text-rose-400 font-bold">$${totalCost}</td>
+                            <td class="p-5">
+                                <span class="border px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}">
+                                    ${status}
+                                </span>
+                            </td>
+                            <td class="p-5 text-right">
+                                ${isPending ? `
+                                    <button onclick="fulfillOrder(${rowNumber}, '${studentName}', this)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-md active:scale-95">
+                                        Fulfill Order ✓
+                                    </button>
+                                ` : `
+                                    <span class="text-xs text-slate-500 font-medium italic">Distributed 📦</span>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
             } catch (err) {
                 console.error("Fetch Error:", err);
                 document.getElementById('orderList').innerHTML = `<tr><td colspan="6" class="p-20 text-center text-rose-400">⚠️ Error connecting to server. Check deployment URL.</td></tr>`;
@@ -136,8 +150,8 @@
             }
         }
 
-        async function fulfillOrder(studentName, itemSummary, buttonEl) {
-            if (!confirm(`Confirm fulfillment of "${itemSummary}" for student: ${studentName}?`)) return;
+        async function fulfillOrder(rowId, studentName, buttonEl) {
+            if (!confirm(`Confirm fulfillment for student: ${studentName}?`)) return;
 
             buttonEl.innerText = "Saving...";
             buttonEl.disabled = true;
@@ -147,8 +161,7 @@
                     method: "POST",
                     body: JSON.stringify({
                         action: "fulfillOrder",
-                        studentName: studentName,
-                        itemSummary: itemSummary
+                        rowIndex: rowId
                     })
                 });
                 const data = await res.json();
