@@ -24,10 +24,10 @@
     </style>
 </head>
 <body class="p-8">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-6xl mx-auto">
         <header class="flex justify-between items-center mb-8">
             <div>
-                <h1 class="text-3xl font-bold tracking-tight">📦 Pending Orders</h1>
+                <h1 class="text-3xl font-bold tracking-tight">📦 STEM Store Orders</h1>
                 <p class="text-slate-400 mt-1">Live fulfillment queue for The Shop</p>
             </div>
             <div class="flex items-center gap-4">
@@ -42,17 +42,19 @@
 
         <div class="glass-card rounded-3xl overflow-hidden shadow-2xl">
             <table class="w-full text-left">
-                <thead class="bg-slate-900/50 text-slate-500 text-xs uppercase tracking-widest">
+                <thead class="bg-slate-900/50 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-800">
                     <tr>
                         <th class="p-5">Time</th>
                         <th class="p-5">Student</th>
                         <th class="p-5">Items Purchased</th>
-                        <th class="p-5 text-right">Total Charge</th>
+                        <th class="p-5">Total Charge</th>
+                        <th class="p-5">Status</th>
+                        <th class="p-5 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="orderList" class="divide-y divide-slate-800">
+                <tbody id="orderList" class="divide-y divide-slate-800 text-sm">
                     <tr>
-                        <td colspan="4" class="p-20 text-center text-slate-500">
+                        <td colspan="6" class="p-20 text-center text-slate-500">
                             <div class="flex flex-col items-center gap-3">
                                 <div class="spinner mx-auto"></div>
                                 Connecting to ClassBank...
@@ -65,7 +67,6 @@
     </div>
 
     <script>
-        // Update this URL whenever you do a "New Deployment" in Apps Script
         const WEB_APP_URL = GLOBAL_CONFIG.WEB_APP_URL;
 
         async function loadOrders() {
@@ -75,34 +76,102 @@
             try {
                 // Fetch with action and a timestamp to force fresh data
                 const res = await fetch(`${WEB_APP_URL}?action=getOrders&t=${Date.now()}`);
-                const orders = await res.json();
+                const rawOrders = await res.json();
                 const list = document.getElementById('orderList');
                 
+                // Filter out header rows if they get fetched by mistake
+                const orders = rawOrders.filter(o => o[0] !== "Timestamp");
+                
                 if (!orders || orders.length === 0) {
-                    list.innerHTML = `<tr><td colspan="4" class="p-20 text-center text-slate-500 font-medium italic">No pending orders found in the sheet.</td></tr>`;
+                    list.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-500 font-medium italic">No orders found in the sheet database.</td></tr>`;
                 } else {
                     // Show newest orders at the top
-                    list.innerHTML = orders.reverse().map(o => `
-                        <tr class="hover:bg-slate-800/30 transition-colors">
-                            <td class="p-5 text-xs text-slate-500 font-mono">${new Date(o[0]).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                            <td class="p-5 font-bold text-white">${o[1]}</td>
-                            <td class="p-5 text-sm text-slate-300 leading-relaxed">${o[2]}</td>
-                            <td class="p-5 font-mono text-emerald-400 font-bold text-right">$${parseFloat(o[3]).toFixed(2)}</td>
-                        </tr>
-                    `).join('');
+                    list.innerHTML = orders.reverse().map(o => {
+                        const timestamp = o[0];
+                        const studentName = o[1];
+                        const itemSummary = o[2];
+                        const totalCost = parseFloat(o[3] || 0).toFixed(2);
+                        const status = o[4] ? o[4].toString().trim() : 'Pending';
+
+                        const isPending = status.toLowerCase() === 'pending';
+                        const badgeColor = isPending 
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+
+                        // Human-readable local time formatting
+                        let formattedTime = "---";
+                        if(timestamp) {
+                            try { formattedTime = new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); } catch(e){}
+                        }
+
+                        return `
+                            <tr class="hover:bg-slate-800/30 transition-colors">
+                                <td class="p-5 text-xs text-slate-500 font-mono">${formattedTime}</td>
+                                <td class="p-5 font-bold text-white capitalize">${studentName}</td>
+                                <td class="p-5 text-slate-300 leading-relaxed">${itemSummary}</td>
+                                <td class="p-5 font-mono text-rose-400 font-bold">$${totalCost}</td>
+                                <td class="p-5">
+                                    <span class="border px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}">
+                                        ${status}
+                                    </span>
+                                </td>
+                                <td class="p-5 text-right">
+                                    ${isPending ? `
+                                        <button onclick="fulfillOrder('${studentName}', '${itemSummary}', this)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-md active:scale-95">
+                                            Fulfill Order ✓
+                                        </button>
+                                    ` : `
+                                        <span class="text-xs text-slate-500 font-medium italic">Distributed 📦</span>
+                                    `}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
                 }
             } catch (err) {
                 console.error("Fetch Error:", err);
-                document.getElementById('orderList').innerHTML = `<tr><td colspan="4" class="p-20 text-center text-rose-400">⚠️ Error connecting to server. Check deployment URL.</td></tr>`;
+                document.getElementById('orderList').innerHTML = `<tr><td colspan="6" class="p-20 text-center text-rose-400">⚠️ Error connecting to server. Check deployment URL.</td></tr>`;
             } finally {
                 statusIndicator.classList.add('hidden');
             }
         }
 
-        // Run immediately
+        async function fulfillOrder(studentName, itemSummary, buttonEl) {
+            if (!confirm(`Confirm fulfillment of "${itemSummary}" for student: ${studentName}?`)) return;
+
+            buttonEl.innerText = "Saving...";
+            buttonEl.disabled = true;
+
+            try {
+                const res = await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "fulfillOrder",
+                        studentName: studentName,
+                        itemSummary: itemSummary
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Instantly trigger a refresh upon success
+                    await loadOrders();
+                } else {
+                    alert("Transaction update failed: " + data.message);
+                    buttonEl.innerText = "Fulfill Order ✓";
+                    buttonEl.disabled = false;
+                }
+            } catch (e) {
+                alert("Network communication dropped. Please try again.");
+                buttonEl.innerText = "Fulfill Order ✓";
+                buttonEl.disabled = false;
+            }
+        }
+
+        // Run immediately on page load
         loadOrders();
         
-        // Auto-refresh every 20 seconds
+        // Auto-refresh every 20 seconds in background
         setInterval(loadOrders, 20000);
     </script>
 </body>
